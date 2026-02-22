@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plugins - Lcore Documentation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="shortcut icon" href="lcore.png" type="image/x-icon">
+
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="index.html" class="logo"><img src="lcore.png" alt="Lcore" class="logo-icon"> Lcore</a>
+      <nav class="header-nav">
+        <a href="getting-started.html">Guide</a>
+        <a href="routing.html">Routing</a>
+        <a href="request-response.html">Request/Response</a>
+        <a href="middleware.html">Middleware</a>
+        <a href="plugins.html">Plugins</a>
+        <a href="advanced.html">Advanced</a>
+        <a href="api-reference.html">API</a>
+        <a href="real-world-example.html">Example</a>
+        <a href="https://play.lcore.lusansapkota.com.np/#code-playground">Playground</a>
+      </nav>
+      <div class="header-right">
+        <span class="version-badge">v0.0.1</span>
+        <a href="https://github.com/LusanSapkota/Lcore" class="github-link">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          GitHub
+        </a>
+        <button class="menu-toggle">&#9776;</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="doc-layout">
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-title">Getting Started</div>
+        <a href="getting-started.html#installation" class="sidebar-link">Installation</a>
+        <a href="getting-started.html#first-app" class="sidebar-link">Your First App</a>
+        <a href="getting-started.html#concepts" class="sidebar-link">Core Concepts</a>
+        <a href="getting-started.html#configuration" class="sidebar-link">Configuration</a>
+        <a href="getting-started.html#running" class="sidebar-link">Running Your App</a>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-title">Core</div>
+        <a href="routing.html" class="sidebar-link">Routing</a>
+        <a href="request-response.html" class="sidebar-link">Request &amp; Response</a>
+        <a href="middleware.html" class="sidebar-link">Middleware</a>
+        <a href="plugins.html" class="sidebar-link">Plugins</a>
+        <a href="plugins.html#overview" class="sidebar-link sub">Overview</a>
+        <a href="plugins.html#built-in" class="sidebar-link sub">Built-in Plugins</a>
+        <a href="plugins.html#writing-plugins" class="sidebar-link sub">Writing Plugins</a>
+        <a href="plugins.html#plugin-api" class="sidebar-link sub">Plugin API</a>
+        <a href="plugins.html#skip-plugins" class="sidebar-link sub">Skipping Plugins</a>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-title">Advanced</div>
+        <a href="advanced.html#dependency-injection" class="sidebar-link">Dependency Injection</a>
+        <a href="advanced.html#mounting" class="sidebar-link">Module Mounting</a>
+        <a href="advanced.html#security" class="sidebar-link">Security</a>
+        <a href="advanced.html#production" class="sidebar-link">Production</a>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-title">Reference</div>
+        <a href="api-reference.html" class="sidebar-link">API Reference</a>
+      </div>
+    </aside>
+
+    <main class="content">
+      <h1>Plugins</h1>
+      <p class="page-desc">Extend route handling with plugins that transform callbacks, add features, and integrate external libraries.</p>
+
+      <!-- Overview -->
+      <h2 id="overview">Overview</h2>
+
+      <p>Plugins modify how individual routes process requests. Unlike middleware (which wraps the entire pipeline), plugins wrap specific route callbacks and can access route configuration.</p>
+
+      <table>
+        <thead><tr><th>Feature</th><th>Plugins</th><th>Middleware</th></tr></thead>
+        <tbody>
+          <tr><td>Wraps</td><td>Individual route callbacks</td><td>Entire request pipeline</td></tr>
+          <tr><td>Receives</td><td><code>callback</code>, <code>route</code> object</td><td><code>ctx</code>, <code>next_handler</code></td></tr>
+          <tr><td>Per-route config</td><td>Yes (<code>route.config</code>)</td><td>Via route patterns only</td></tr>
+          <tr><td>Registration</td><td><code>app.install(plugin)</code></td><td><code>app.use(middleware)</code></td></tr>
+          <tr><td>Use case</td><td>JSON serialization, DB sessions, template rendering</td><td>CORS, auth, logging, rate limiting</td></tr>
+        </tbody>
+      </table>
+
+      <p>A plugin is an object with two key methods:</p>
+      <ul>
+        <li><code>setup(app)</code> &mdash; Called once when the plugin is installed</li>
+        <li><code>apply(callback, route)</code> &mdash; Called for each route; must return a wrapper function</li>
+      </ul>
+
+      <!-- Built-in Plugins -->
+      <h2 id="built-in">Built-in Plugins</h2>
+
+      <h3>JSONPlugin</h3>
+      <p>Installed by default. Automatically converts <code>dict</code> and <code>list</code> return values to JSON responses with <code>application/json</code> Content-Type:</p>
+
+      <pre><code>@app.route('/api/users')
+def list_users():
+    # Automatically serialized to JSON
+    return {'users': [{'id': 1, 'name': 'Alice'}]}
+
+# Disable for a specific route
+@app.route('/raw', json_disable=True)
+def raw():
+    return {'this': 'is not serialized'}</code></pre>
+
+      <p>You can customize the JSON serializer:</p>
+      <pre><code>from lcore import JSONPlugin
+import json
+
+def custom_dumps(obj, **kwargs):
+    return json.dumps(obj, default=str, ensure_ascii=False, **kwargs)
+
+app.uninstall('json')
+app.install(JSONPlugin(json_dumps=custom_dumps))</code></pre>
+
+      <h3>TemplatePlugin</h3>
+      <p>Installed by default. If a route has a <code>template</code> config and returns a <code>dict</code>, the dict is used as template context:</p>
+
+      <pre><code>@app.route('/page', template='page.html')
+def page():
+    return {'title': 'My Page', 'items': [1, 2, 3]}</code></pre>
+
+      <!-- Writing Plugins -->
+      <h2 id="writing-plugins">Writing Plugins</h2>
+
+      <h3>Plugin Class Structure</h3>
+      <pre><code>class MyPlugin:
+    name = 'myplugin'  # Unique name
+    api = 2            # Plugin API version (always 2)
+
+    def __init__(self, option='default'):
+        self.option = option
+
+    def setup(self, app):
+        """Called once when installed. Access app config here."""
+        self.app = app
+
+    def apply(self, callback, route):
+        """Called for each route. Return a wrapper function."""
+        # Check per-route config
+        if route.config.get('myplugin_skip'):
+            return callback  # Don't wrap this route
+
+        def wrapper(*args, **kwargs):
+            # Before handler
+            start = time.time()
+            result = callback(*args, **kwargs)
+            # After handler
+            duration = time.time() - start
+            response.set_header('X-Duration', f'{duration:.4f}')
+            return result
+
+        return wrapper
+
+app.install(MyPlugin(option='custom'))</code></pre>
+
+      <h3>Example: Database Session Plugin</h3>
+      <pre><code>class SQLAlchemyPlugin:
+    name = 'sqlalchemy'
+    api = 2
+
+    def __init__(self, engine):
+        self.engine = engine
+
+    def setup(self, app):
+        from sqlalchemy.orm import sessionmaker
+        self.Session = sessionmaker(bind=self.engine)
+
+    def apply(self, callback, route):
+        # Skip if route doesn't need DB
+        if route.config.get('no_db'):
+            return callback
+
+        def wrapper(*args, **kwargs):
+            session = self.Session()
+            try:
+                # Inject session as keyword argument
+                kwargs['db'] = session
+                result = callback(*args, **kwargs)
+                session.commit()
+                return result
+            except Exception:
+                session.rollback()
+                raise
+            finally:
+                session.close()
+        return wrapper
+
+# Usage
+from sqlalchemy import create_engine
+engine = create_engine('sqlite:///app.db')
+app.install(SQLAlchemyPlugin(engine))
+
+@app.route('/users')
+def list_users(db):
+    # db session is automatically injected
+    return {'users': db.query(User).all()}
+
+@app.route('/health', no_db=True)
+def health():
+    # Skipped by plugin (no_db=True)
+    return {'status': 'ok'}</code></pre>
+
+      <h3>Simple Function Plugin</h3>
+      <p>For simple cases, a plugin can be just a function that wraps callbacks:</p>
+      <pre><code>def uppercase_plugin(callback, route):
+    def wrapper(*args, **kwargs):
+        result = callback(*args, **kwargs)
+        if isinstance(result, str):
+            return result.upper()
+        return result
+    return wrapper
+
+app.install(uppercase_plugin)</code></pre>
+
+      <!-- Plugin API -->
+      <h2 id="plugin-api">Plugin API</h2>
+
+      <pre><code># Install a plugin
+app.install(MyPlugin())
+
+# Install returns the plugin instance
+plugin = app.install(MyPlugin())
+
+# Uninstall by name
+app.uninstall('myplugin')
+
+# Uninstall by instance
+app.uninstall(plugin)
+
+# List all installed plugins
+for p in app.plugins:
+    print(getattr(p, 'name', type(p).__name__))
+
+# Get all plugins for a specific route
+route = app.routes[0]
+all_plugins = route.all_plugins()
+
+# Reset all routes (re-applies plugins)
+app.reset()</code></pre>
+
+      <table>
+        <thead><tr><th>Method</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>app.install(plugin)</code></td><td>Install plugin globally. Calls <code>setup(app)</code>.</td></tr>
+          <tr><td><code>app.uninstall(plugin)</code></td><td>Remove by name (string) or instance. Calls <code>close()</code> if available.</td></tr>
+          <tr><td><code>app.plugins</code></td><td>List of all installed plugins</td></tr>
+          <tr><td><code>app.reset()</code></td><td>Reset route cache and re-apply all plugins</td></tr>
+          <tr><td><code>route.all_plugins()</code></td><td>Get all plugins applied to a route</td></tr>
+        </tbody>
+      </table>
+
+      <!-- Skip Plugins -->
+      <h2 id="skip-plugins">Skipping Plugins</h2>
+
+      <p>Skip specific plugins on individual routes:</p>
+
+      <pre><code># Skip the JSON plugin for this route
+@app.route('/raw', skip=['json'])
+def raw():
+    response.content_type = 'text/plain'
+    return 'plain text response'
+
+# Skip all plugins (maximum performance)
+@app.route('/health', skip=True)
+def health():
+    return 'ok'
+
+# Skip multiple plugins by name
+@app.route('/fast', skip=['json', 'template', 'sqlalchemy'])
+def fast():
+    return b'binary response'</code></pre>
+
+      <div class="info-box tip">
+        <strong>Performance Tip</strong>
+        <p>Use <code>skip=True</code> on health check endpoints and high-frequency internal routes where you don't need plugin processing. This reduces per-request overhead to the absolute minimum.</p>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="assets/script.js"></script>
+</body>
+</html>

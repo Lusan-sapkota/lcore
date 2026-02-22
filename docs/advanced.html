@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Advanced - Lcore Documentation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="shortcut icon" href="lcore.png" type="image/x-icon">
+
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="index.html" class="logo"><img src="lcore.png" alt="Lcore" class="logo-icon"> Lcore</a>
+      <nav class="header-nav">
+        <a href="getting-started.html">Guide</a>
+        <a href="routing.html">Routing</a>
+        <a href="request-response.html">Request/Response</a>
+        <a href="middleware.html">Middleware</a>
+        <a href="plugins.html">Plugins</a>
+        <a href="advanced.html">Advanced</a>
+        <a href="api-reference.html">API</a>
+        <a href="real-world-example.html">Example</a>
+        <a href="https://play.lcore.lusansapkota.com.np/#code-playground">Playground</a>
+      </nav>
+      <div class="header-right">
+        <span class="version-badge">v0.0.1</span>
+        <a href="https://github.com/LusanSapkota/Lcore" class="github-link">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          GitHub
+        </a>
+        <button class="menu-toggle">&#9776;</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="doc-layout">
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-title">Getting Started</div>
+        <a href="getting-started.html#installation" class="sidebar-link">Installation</a>
+        <a href="getting-started.html#first-app" class="sidebar-link">Your First App</a>
+        <a href="getting-started.html#concepts" class="sidebar-link">Core Concepts</a>
+        <a href="getting-started.html#configuration" class="sidebar-link">Configuration</a>
+        <a href="getting-started.html#running" class="sidebar-link">Running Your App</a>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-title">Core</div>
+        <a href="routing.html" class="sidebar-link">Routing</a>
+        <a href="request-response.html" class="sidebar-link">Request &amp; Response</a>
+        <a href="middleware.html" class="sidebar-link">Middleware</a>
+        <a href="plugins.html" class="sidebar-link">Plugins</a>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-title">Advanced</div>
+        <a href="advanced.html#dependency-injection" class="sidebar-link">Dependency Injection</a>
+        <a href="advanced.html#mounting" class="sidebar-link">Module Mounting</a>
+        <a href="advanced.html#templates" class="sidebar-link">Templates</a>
+        <a href="advanced.html#request-context" class="sidebar-link">Request Context</a>
+        <a href="advanced.html#api-docs" class="sidebar-link">API Documentation</a>
+        <a href="advanced.html#security" class="sidebar-link">Security</a>
+        <a href="advanced.html#testing" class="sidebar-link">Testing</a>
+        <a href="advanced.html#background-tasks" class="sidebar-link">Background Tasks</a>
+        <a href="advanced.html#production" class="sidebar-link">Production</a>
+        <a href="advanced.html#hot-reload" class="sidebar-link">Hot Reload</a>
+        <a href="advanced.html#server-adapters" class="sidebar-link">Server Adapters</a>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-title">Reference</div>
+        <a href="api-reference.html" class="sidebar-link">API Reference</a>
+      </div>
+    </aside>
+
+    <main class="content">
+      <h1>Advanced Features</h1>
+      <p class="page-desc">Dependency injection, module mounting, templates, security hardening, and production deployment.</p>
+
+      <!-- Dependency Injection -->
+      <h2 id="dependency-injection">Dependency Injection</h2>
+
+      <p>Lcore has a built-in dependency injection system with three lifetimes:</p>
+
+      <table>
+        <thead><tr><th>Lifetime</th><th>Behavior</th><th>Use Case</th></tr></thead>
+        <tbody>
+          <tr><td><code>singleton</code></td><td>One instance for the entire app lifetime</td><td>Redis connection, config cache</td></tr>
+          <tr><td><code>scoped</code></td><td>One instance per request, auto-cleaned</td><td>DB sessions, auth context</td></tr>
+          <tr><td><code>transient</code></td><td>New instance every access</td><td>Loggers, unique ID generators</td></tr>
+        </tbody>
+      </table>
+
+      <pre><code>from lcore import Lcore, ctx
+
+app = Lcore()
+
+# Singleton: created once, shared everywhere
+class RedisCache:
+    def __init__(self):
+        self.store = {}
+    def get(self, key):
+        return self.store.get(key)
+    def set(self, key, value):
+        self.store[key] = value
+
+app.inject('cache', RedisCache, lifetime='singleton')
+
+# Scoped: one per request, .close() called automatically
+class DBSession:
+    def __init__(self):
+        self.conn = create_connection()
+    def query(self, sql):
+        return self.conn.execute(sql)
+    def close(self):
+        self.conn.close()
+
+app.inject('db', DBSession, lifetime='scoped')
+
+# Transient: new each time
+import uuid
+app.inject('request_id', lambda: str(uuid.uuid4()), lifetime='transient')
+
+# Access in handlers via ctx
+@app.route('/users')
+def list_users():
+    users = ctx.db.query('SELECT * FROM users')
+    ctx.cache.set('last_query', 'users')
+    return {'users': users, 'request_id': ctx.request_id}</code></pre>
+
+      <div class="info-box tip">
+        <strong>Auto-Cleanup</strong>
+        <p>Scoped dependencies with a <code>close()</code> method are automatically closed at the end of each request, even if an error occurs. This prevents resource leaks.</p>
+      </div>
+
+      <!-- Module Mounting -->
+      <h2 id="mounting">Module Mounting</h2>
+
+      <p>Build modular applications by mounting sub-apps under URL prefixes:</p>
+
+      <pre><code># users.py
+from lcore import Lcore
+
+users_app = Lcore()
+
+@users_app.route('/')
+def list_users():
+    return {'users': []}
+
+@users_app.route('/&lt;id:int&gt;')
+def get_user(id):
+    return {'id': id}
+
+@users_app.hook('before_request')
+def auth_check():
+    # Only runs for /api/users/* requests
+    pass</code></pre>
+
+      <pre><code># app.py
+from lcore import Lcore
+from users import users_app
+from products import products_app
+
+app = Lcore()
+
+# Mount sub-applications
+app.mount('/api/users/', users_app)
+app.mount('/api/products/', products_app)
+
+# Mount hooks fire when sub-apps are mounted
+@app.hook('on_module_mount')
+def on_mount(prefix, child):
+    print(f'Mounted {child} at {prefix}')
+
+# Module-specific hooks from parent
+@app.module_hook('/api/users/', 'after_request')
+def log_user_api():
+    log(f'User API: {request.path}')
+
+app.run(port=8080)</code></pre>
+
+      <h3>Mounting WSGI Apps</h3>
+      <p>Mount any WSGI application, not just Lcore apps:</p>
+      <pre><code># Mount a Flask app
+from flask import Flask
+flask_app = Flask(__name__)
+
+app.mount('/legacy/', flask_app)</code></pre>
+
+      <!-- Templates -->
+      <h2 id="templates">Templates</h2>
+
+      <h3>Built-in SimpleTemplate</h3>
+      <pre><code>from lcore import template, view, TEMPLATE_PATH
+
+# Add template search paths
+TEMPLATE_PATH.insert(0, './templates')
+
+@app.route('/hello/&lt;name&gt;')
+def hello(name):
+    return template('hello', name=name)
+
+# Or use the @view decorator
+@app.route('/page')
+@view('page')
+def page():
+    return {'title': 'My Page', 'items': [1, 2, 3]}</code></pre>
+
+      <p>SimpleTemplate syntax (<code>templates/hello.tpl</code>):</p>
+      <pre><code>&lt;html&gt;
+&lt;body&gt;
+  &lt;h1&gt;Hello, {{name}}!&lt;/h1&gt;
+
+  % for item in items:
+    &lt;p&gt;Item: {{item}}&lt;/p&gt;
+  % end
+
+  {{!raw_html}}  &lt;!-- Unescaped output --&gt;
+
+  % include('footer')
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+
+      <h3>Jinja2 Integration</h3>
+      <pre><code>from lcore import jinja2_template, jinja2_view
+
+@app.route('/page')
+def page():
+    return jinja2_template('page.html',
+        title='My Page',
+        items=['a', 'b', 'c']
+    )
+
+# Or with decorator
+@app.route('/dashboard')
+@jinja2_view('dashboard.html')
+def dashboard():
+    return {'stats': get_stats()}</code></pre>
+
+      <h3>Supported Engines</h3>
+      <table>
+        <thead><tr><th>Engine</th><th>Template Function</th><th>View Decorator</th><th>Requires</th></tr></thead>
+        <tbody>
+          <tr><td>SimpleTemplate</td><td><code>template()</code></td><td><code>@view()</code></td><td>Built-in</td></tr>
+          <tr><td>Jinja2</td><td><code>jinja2_template()</code></td><td><code>@jinja2_view()</code></td><td><code>pip install jinja2</code></td></tr>
+          <tr><td>Mako</td><td><code>mako_template()</code></td><td><code>@mako_view()</code></td><td><code>pip install mako</code></td></tr>
+          <tr><td>Cheetah</td><td><code>cheetah_template()</code></td><td><code>@cheetah_view()</code></td><td><code>pip install cheetah3</code></td></tr>
+        </tbody>
+      </table>
+
+      <!-- Request Context -->
+      <h2 id="request-context">Request Context</h2>
+
+      <p>The <code>ctx</code> object carries state across middleware and handlers for the current request:</p>
+
+      <pre><code>from lcore import ctx
+
+@app.route('/info')
+def info():
+    return {
+        'request_id': ctx.request_id,   # Set by RequestIDMiddleware
+        'user': ctx.user,               # Set by auth middleware
+        'method': ctx.request.method,
+        'state': ctx.state,             # Arbitrary state dict
+    }</code></pre>
+
+      <h3>RequestContext Attributes</h3>
+      <table>
+        <thead><tr><th>Attribute</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>ctx.request</code></td><td><code>BaseRequest</code></td><td>Current request object</td></tr>
+          <tr><td><code>ctx.response</code></td><td><code>BaseResponse</code></td><td>Current response object</td></tr>
+          <tr><td><code>ctx.app</code></td><td><code>Lcore</code></td><td>Application instance</td></tr>
+          <tr><td><code>ctx.route</code></td><td><code>Route</code></td><td>Matched route object</td></tr>
+          <tr><td><code>ctx.request_id</code></td><td><code>str</code></td><td>Unique request ID</td></tr>
+          <tr><td><code>ctx.user</code></td><td><code>any</code></td><td>Authenticated user info</td></tr>
+          <tr><td><code>ctx.state</code></td><td><code>dict</code></td><td>Arbitrary per-request state</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Lazy Attributes</h3>
+      <pre><code># Register a lazy-loaded attribute (computed on first access)
+ctx.lazy('expensive_data', lambda: compute_expensive_thing())</code></pre>
+
+      <!-- API Documentation -->
+      <h2 id="api-docs">Built-in API Documentation</h2>
+
+      <p>Lcore can serve auto-generated API documentation at any path, similar to FastAPI's <code>/docs</code>. The docs page lists all registered routes with their methods, parameters, types, and docstrings.</p>
+
+      <h3>Auto-enabled in Debug Mode</h3>
+      <p>When you run with <code>debug=True</code>, the <code>/docs</code> and <code>/docs/json</code> endpoints are automatically available:</p>
+      <pre><code>from lcore import Lcore
+
+app = Lcore()
+
+@app.route('/users/&lt;id:int&gt;')
+def get_user(id):
+    '''Fetch a user by their numeric ID.'''
+    return {'id': id}
+
+@app.route('/users', method='POST')
+def create_user():
+    '''Create a new user account.'''
+    return {'status': 'created'}
+
+# debug=True auto-enables /docs
+app.run(port=8080, debug=True)</code></pre>
+
+      <h3>Explicit Enable (Production)</h3>
+      <p>In production (<code>debug=False</code>), API docs are disabled by default for security. To explicitly enable them:</p>
+      <pre><code># Enable at /docs (default)
+app.enable_docs()
+
+# Or use a custom path
+app.enable_docs('/api-docs')</code></pre>
+
+      <p>This creates two routes:</p>
+      <table>
+        <thead><tr><th>Path</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>/docs</code></td><td>Interactive HTML documentation page</td></tr>
+          <tr><td><code>/docs/json</code></td><td>Raw JSON API schema</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Docstrings and Type Hints</h3>
+      <p>The docs page automatically extracts information from your handler functions:</p>
+      <pre><code>@app.route('/items/&lt;id:int&gt;', method='GET')
+def get_item(id: int) -&gt; dict:
+    '''Retrieve an item by its ID.
+
+    Returns the full item object including metadata.'''
+    return {'id': id, 'name': 'Widget'}
+
+@app.route('/search')
+def search(q: str = '', page: int = 1):
+    '''Search items by keyword.'''
+    return {'query': q, 'page': page, 'results': []}</code></pre>
+
+      <p>The generated docs will display the method badges (GET, POST, PUT, DELETE), route patterns, parameter names with types and defaults, return types, and docstrings.</p>
+
+      <h3>Programmatic Access</h3>
+      <pre><code># Get docs data as a Python dict
+docs = app.api_docs()
+
+# Get as JSON string
+json_str = app.api_docs_json()</code></pre>
+
+      <div class="info-box tip">
+        <strong>Tip</strong>
+        <p>The <code>/docs</code> and <code>/docs/json</code> routes are automatically hidden from the API docs output, so they won't clutter your documentation.</p>
+      </div>
+
+      <div class="info-box warning">
+        <strong>Security</strong>
+        <p>API docs expose your route structure, parameter names, and docstrings. In production, only enable them behind authentication or on internal-facing ports. By default, they are only active when <code>debug=True</code>.</p>
+      </div>
+
+      <!-- Security -->
+      <h2 id="security">Security</h2>
+
+      <h3>HTTP Basic Authentication</h3>
+      <p>The <code>@auth_basic</code> decorator protects routes with HTTP Basic Auth. It parses the <code>Authorization</code> header and calls your check function:</p>
+
+      <pre><code>from lcore import auth_basic
+
+def check_credentials(username, password):
+    # Return True to allow access, False to deny
+    return username == 'admin' and password == 's3cret'
+
+@app.route('/admin')
+@auth_basic(check_credentials, realm='Admin Area')
+def admin():
+    return 'Welcome, admin!'
+
+# With a database check
+def db_check(username, password):
+    user = db.find_user(username)
+    return user and user.verify_password(password)
+
+@app.route('/dashboard')
+@auth_basic(db_check, realm='Dashboard')
+def dashboard():
+    return {'status': 'authenticated'}</code></pre>
+
+      <table class="params-table">
+        <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>check</code></td><td><code>callable</code></td><td>Function <code>(username, password) -&gt; bool</code></td></tr>
+          <tr><td><code>realm</code></td><td><code>str</code></td><td>Authentication realm shown in browser dialog</td></tr>
+          <tr><td><code>text</code></td><td><code>str</code></td><td>Custom error message for unauthorized access</td></tr>
+        </tbody>
+      </table>
+
+      <p>On failure, the decorator returns <strong>401 Unauthorized</strong> with a <code>WWW-Authenticate</code> header that prompts the browser for credentials.</p>
+
+      <h3>Rate Limiting</h3>
+      <p>The <code>@rate_limit</code> decorator limits requests per client IP using a token bucket algorithm:</p>
+
+      <pre><code>from lcore import rate_limit
+
+# 100 requests per 60 seconds per IP
+@app.route('/api/data')
+@rate_limit(100, per=60)
+def data():
+    return {'data': 'value'}
+
+# Strict limit for expensive operations
+@app.route('/api/search')
+@rate_limit(20, per=60, max_buckets=10000)
+def search():
+    return {'results': []}
+
+# Very strict for auth endpoints
+@app.post('/api/login')
+@rate_limit(5, per=300)  # 5 attempts per 5 minutes
+def login():
+    return {'token': 'abc'}</code></pre>
+
+      <table class="params-table">
+        <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>limit</code></td><td><code>int</code></td><td>Maximum requests allowed in the time window</td></tr>
+          <tr><td><code>per</code></td><td><code>int</code></td><td>Time window in seconds</td></tr>
+          <tr><td><code>max_buckets</code></td><td><code>int</code></td><td>Maximum number of tracked IPs (prevents memory leak). Default: 10000</td></tr>
+        </tbody>
+      </table>
+
+      <p>When the limit is exceeded, the client receives <strong>429 Too Many Requests</strong>. The algorithm uses token buckets with automatic cleanup of stale entries to prevent memory leaks.</p>
+
+      <h3>Request Validation</h3>
+      <p>The <code>@validate_request</code> decorator validates incoming request data against a schema. It supports both <strong>body</strong> (JSON) and <strong>query</strong> parameter validation using dataclass-style type declarations:</p>
+
+      <pre><code>from lcore import validate_request
+
+# Validate JSON body
+@app.post('/api/users')
+@validate_request(body={'name': str, 'email': str, 'age': int})
+def create_user():
+    data = request.json
+    return {'created': True, 'name': data['name']}
+
+# Validate query parameters
+@app.get('/api/search')
+@validate_request(query={'q': str, 'page': int, 'limit': int})
+def search():
+    q = request.query.get('q')
+    page = int(request.query.get('page', 1))
+    return {'query': q, 'page': page}
+
+# Validate both body and query
+@app.post('/api/items')
+@validate_request(
+    body={'name': str, 'price': float},
+    query={'category': str}
+)
+def create_item():
+    return {'created': True}</code></pre>
+
+      <p>Validation errors return appropriate HTTP status codes:</p>
+      <table>
+        <thead><tr><th>Error</th><th>Status</th><th>When</th></tr></thead>
+        <tbody>
+          <tr><td>Missing query param</td><td><code>400 Bad Request</code></td><td>Required query parameter is absent</td></tr>
+          <tr><td>Invalid body</td><td><code>422 Unprocessable Entity</code></td><td>Body fields missing or wrong type</td></tr>
+          <tr><td>Invalid JSON</td><td><code>400 Bad Request</code></td><td>Body is not valid JSON</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Security Middleware Stack</h3>
+      <pre><code>from lcore import (
+    SecurityHeadersMiddleware, CSRFMiddleware,
+    CORSMiddleware, BodyLimitMiddleware
+)
+
+# Recommended production security stack
+app.use(BodyLimitMiddleware(max_size=10 * 1024 * 1024))
+app.use(SecurityHeadersMiddleware(hsts=True))
+app.use(CORSMiddleware(
+    allow_origins=['https://myapp.com'],
+    allow_credentials=True
+))
+app.use(CSRFMiddleware(secret='your-csrf-secret'))</code></pre>
+
+      <h3>Security Features Summary</h3>
+      <table>
+        <thead><tr><th>Feature</th><th>Protection</th></tr></thead>
+        <tbody>
+          <tr><td>Signed cookies</td><td>HMAC-SHA256 + JSON (no pickle)</td></tr>
+          <tr><td>Timing-safe comparison</td><td><code>hmac.compare_digest</code></td></tr>
+          <tr><td>Path traversal</td><td><code>os.path.realpath()</code> in static_file</td></tr>
+          <tr><td>Dotenv injection</td><td>Regex validation of env var key names</td></tr>
+          <tr><td>Dynamic loading</td><td>Safe <code>getattr</code> chain with <code>isidentifier()</code></td></tr>
+          <tr><td>Security headers</td><td>X-Frame-Options, CSP, HSTS, XSS protection</td></tr>
+          <tr><td>CSRF tokens</td><td>Cookie + header validation</td></tr>
+          <tr><td>Body limits</td><td>413 error on oversized requests</td></tr>
+          <tr><td>Rate limiting</td><td>Token bucket with memory cleanup</td></tr>
+          <tr><td>ETag hashing</td><td>SHA256 (not SHA1)</td></tr>
+          <tr><td>Password hashing</td><td>PBKDF2-SHA256 with random salt</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Password Hashing</h3>
+      <p>Lcore provides secure password hashing using PBKDF2-SHA256 with automatic random salting. Zero external dependencies:</p>
+
+      <pre><code>from lcore import hash_password, verify_password
+
+# Hash a password (during registration)
+hashed = hash_password('user_password_123')
+# Output: 'pbkdf2:sha256:600000$a1b2c3...$d4e5f6...'
+
+# Verify a password (during login)
+if verify_password(request.json['password'], stored_hash):
+    return {'token': generate_token(user)}
+
+# Custom iteration count (higher = slower but more secure)
+hashed = hash_password('password', iterations=800000)</code></pre>
+
+      <table class="params-table">
+        <thead><tr><th>Function</th><th>Signature</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>hash_password</code></td><td><code>(password, iterations=600000)</code></td><td>Hash password with PBKDF2-SHA256. Returns formatted hash string with embedded salt.</td></tr>
+          <tr><td><code>verify_password</code></td><td><code>(password, hash_string)</code></td><td>Verify password against stored hash. Timing-safe comparison.</td></tr>
+        </tbody>
+      </table>
+
+      <div class="info-box tip">
+        <strong>Storage Format</strong>
+        <p><code>pbkdf2:sha256:iterations$salt_hex$hash_hex</code> &mdash; each hash includes its own random 32-byte salt, so identical passwords produce different hashes.</p>
+      </div>
+
+      <!-- Testing -->
+      <h2 id="testing">Testing</h2>
+
+      <p>Lcore includes a built-in WSGI test client for unit and integration testing without starting a live server:</p>
+
+      <pre><code>from lcore import Lcore, TestClient
+
+app = Lcore()
+
+@app.route('/api/users/&lt;id:int&gt;')
+def get_user(id):
+    return {'id': id, 'name': 'Alice'}
+
+# Create test client
+client = TestClient(app)
+
+# GET request
+resp = client.get('/api/users/1')
+assert resp.status_code == 200
+assert resp.json['name'] == 'Alice'
+
+# POST with JSON body
+resp = client.post('/api/items', json={'name': 'Widget', 'price': 9.99})
+assert resp.status_code == 200
+
+# Custom headers
+resp = client.get('/api/data', headers={'Authorization': 'Bearer token123'})
+
+# Query strings
+resp = client.get('/search', query_string='q=hello&amp;page=1')</code></pre>
+
+      <h3>TestClient Methods</h3>
+      <table>
+        <thead><tr><th>Method</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>client.get(path, **kw)</code></td><td>Send GET request</td></tr>
+          <tr><td><code>client.post(path, json=None, body=b'', **kw)</code></td><td>Send POST request (auto-sets Content-Type for JSON)</td></tr>
+          <tr><td><code>client.put(path, **kw)</code></td><td>Send PUT request</td></tr>
+          <tr><td><code>client.patch(path, **kw)</code></td><td>Send PATCH request</td></tr>
+          <tr><td><code>client.delete(path, **kw)</code></td><td>Send DELETE request</td></tr>
+          <tr><td><code>client.head(path, **kw)</code></td><td>Send HEAD request</td></tr>
+          <tr><td><code>client.options(path, **kw)</code></td><td>Send OPTIONS request</td></tr>
+        </tbody>
+      </table>
+
+      <h3>TestResponse Properties</h3>
+      <table>
+        <thead><tr><th>Property</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>.status</code></td><td><code>str</code></td><td>Full status line, e.g. <code>"200 OK"</code></td></tr>
+          <tr><td><code>.status_code</code></td><td><code>int</code></td><td>HTTP status code, e.g. <code>200</code></td></tr>
+          <tr><td><code>.headers</code></td><td><code>dict</code></td><td>Response headers</td></tr>
+          <tr><td><code>.body</code></td><td><code>bytes</code></td><td>Raw response body</td></tr>
+          <tr><td><code>.text</code></td><td><code>str</code></td><td>Response body decoded as UTF-8</td></tr>
+          <tr><td><code>.json</code></td><td><code>dict/list</code></td><td>Response body parsed as JSON</td></tr>
+        </tbody>
+      </table>
+
+      <!-- Background Tasks -->
+      <h2 id="background-tasks">Background Tasks</h2>
+
+      <p>Lcore includes a thread-pool for running work in the background without blocking requests:</p>
+
+      <pre><code>from lcore import Lcore, BackgroundTaskPool, on_shutdown
+
+app = Lcore()
+tasks = BackgroundTaskPool(max_workers=4)
+
+def send_welcome_email(email):
+    import time; time.sleep(2)  # Simulate slow SMTP
+    print(f"Email sent to {email}")
+
+@app.post('/api/users')
+def create_user():
+    data = request.json
+    user_id = db.insert('users', data)
+
+    # Fire-and-forget: returns immediately
+    tasks.submit(send_welcome_email, data['email'])
+
+    return {'id': user_id, 'created': True}
+
+# Graceful shutdown
+@on_shutdown
+def cleanup():
+    tasks.shutdown(wait=True)</code></pre>
+
+      <h3>BackgroundTaskPool API</h3>
+      <table>
+        <thead><tr><th>Method / Property</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>BackgroundTaskPool(max_workers=4)</code></td><td>Create a pool with the given number of worker threads</td></tr>
+          <tr><td><code>.submit(fn, *args, **kwargs)</code></td><td>Queue a function for background execution. Returns <code>concurrent.futures.Future</code></td></tr>
+          <tr><td><code>.pending</code></td><td>Number of tasks still running or queued</td></tr>
+          <tr><td><code>.shutdown(wait=True)</code></td><td>Shut down the pool. If <code>wait=True</code>, blocks until all tasks complete</td></tr>
+        </tbody>
+      </table>
+
+      <div class="info-box warning">
+        <strong>Thread Safety</strong>
+        <p>Background tasks run in separate threads. Ensure database connections and shared state are thread-safe. Create new DB connections inside task functions rather than sharing request-scoped ones.</p>
+      </div>
+
+      <!-- Production Deployment -->
+      <h2 id="production">Production Deployment</h2>
+
+      <pre><code>from lcore import (
+    Lcore, request, response, ctx, on_shutdown,
+    RequestIDMiddleware, RequestLoggerMiddleware,
+    SecurityHeadersMiddleware, CORSMiddleware,
+    BodyLimitMiddleware
+)
+import logging
+
+app = Lcore()
+
+# Load config from environment
+app.config.load_env('MYAPP_', strip_prefix=True)
+
+# Production middleware stack
+app.use(BodyLimitMiddleware(max_size=5 * 1024 * 1024))
+app.use(RequestIDMiddleware())
+app.use(RequestLoggerMiddleware(logger=logging.getLogger('http')))
+app.use(SecurityHeadersMiddleware(hsts=True))
+app.use(CORSMiddleware(
+    allow_origins=app.config.get('cors_origins', '*').split(','),
+    allow_credentials=True
+))
+
+# Dependency injection
+app.inject('db', create_session, lifetime='scoped')
+app.inject('cache', create_redis, lifetime='singleton')
+
+# Lifecycle hooks
+@app.hook('on_request_start')
+def set_timer():
+    import time
+    ctx.state['start_time'] = time.time()
+
+@app.hook('on_response_send')
+def log_duration():
+    import time
+    duration = time.time() - ctx.state.get('start_time', 0)
+    response.set_header('X-Response-Time', f'{duration*1000:.1f}ms')
+
+# Graceful shutdown
+@on_shutdown
+def cleanup():
+    close_db_pool()
+    flush_cache()
+
+# Routes
+@app.route('/health', skip=True)
+def health():
+    return {'status': 'ok'}
+
+@app.route('/api/data')
+def data():
+    return ctx.db.query('SELECT * FROM data')
+
+# Run with Gunicorn
+app.run(server='gunicorn', host='0.0.0.0', port=8080)</code></pre>
+
+      <div class="info-box warning">
+        <strong>Production Checklist</strong>
+        <p>
+          1. Use a production server (Gunicorn, Waitress, Gevent)<br>
+          2. Set <code>debug=False</code> (default)<br>
+          3. Enable HSTS and security headers<br>
+          4. Configure CORS with explicit origins<br>
+          5. Set body size limits<br>
+          6. Register shutdown hooks for cleanup<br>
+          7. Use signed cookies with a strong secret<br>
+          8. Load config from environment variables
+        </p>
+      </div>
+
+      <!-- Hot Reload -->
+      <h2 id="hot-reload">Hot Reload</h2>
+
+      <h3>Built-in Reloader</h3>
+      <pre><code># Polls files for changes (no dependencies required)
+app.run(reloader=True, interval=1)</code></pre>
+
+      <h3>WatchdogReloader</h3>
+      <pre><code>from lcore import WatchdogReloader
+
+reloader = WatchdogReloader(
+    app,
+    paths=['./'],       # Directories to watch
+    interval=1,         # Check interval (seconds)
+    callback=None       # Optional callback on change
+)
+reloader.start()
+# ... later
+reloader.stop()</code></pre>
+
+      <h3>AsyncReloader</h3>
+      <pre><code>from lcore import AsyncReloader
+import asyncio
+
+reloader = AsyncReloader(
+    app,
+    paths=['./'],
+    interval=1.0,
+    callback=lambda: print('File changed!')
+)
+
+loop = asyncio.get_event_loop()
+reloader.start(loop=loop)</code></pre>
+
+      <!-- Server Adapters -->
+      <h2 id="server-adapters">Server Adapters</h2>
+
+      <p>Lcore includes 20+ server adapters. Use the <code>server</code> parameter to select one:</p>
+
+      <table>
+        <thead><tr><th>Name</th><th>Package</th><th>Features</th></tr></thead>
+        <tbody>
+          <tr><td><code>wsgiref</code></td><td>Built-in</td><td>Development only, single-threaded</td></tr>
+          <tr><td><code>gunicorn</code></td><td><code>gunicorn</code></td><td>Production, multi-worker, pre-fork</td></tr>
+          <tr><td><code>waitress</code></td><td><code>waitress</code></td><td>Production, Windows-compatible, multi-threaded</td></tr>
+          <tr><td><code>gevent</code></td><td><code>gevent</code></td><td>Async via coroutines, high concurrency</td></tr>
+          <tr><td><code>eventlet</code></td><td><code>eventlet</code></td><td>Async via green threads</td></tr>
+          <tr><td><code>cheroot</code></td><td><code>cheroot</code></td><td>CherryPy's production server</td></tr>
+          <tr><td><code>tornado</code></td><td><code>tornado</code></td><td>Async I/O server</td></tr>
+          <tr><td><code>twisted</code></td><td><code>twisted</code></td><td>Event-driven networking</td></tr>
+          <tr><td><code>meinheld</code></td><td><code>meinheld</code></td><td>Ultra-fast C-based WSGI</td></tr>
+          <tr><td><code>bjoern</code></td><td><code>bjoern</code></td><td>Ultra-fast C-based WSGI</td></tr>
+          <tr><td><code>aiohttp</code></td><td><code>aiohttp</code></td><td>asyncio-based</td></tr>
+          <tr><td><code>paste</code></td><td><code>paste</code></td><td>Multi-threaded</td></tr>
+          <tr><td><code>auto</code></td><td>Any available</td><td>Auto-selects best available adapter</td></tr>
+        </tbody>
+      </table>
+
+      <pre><code># Auto-select best available server
+app.run(server='auto', host='0.0.0.0', port=8080)
+
+# Gunicorn with workers
+app.run(server='gunicorn', host='0.0.0.0', port=8080, workers=4)
+
+# Gevent with high concurrency
+app.run(server='gevent', host='0.0.0.0', port=8080)
+
+# Or run directly with gunicorn CLI
+# gunicorn -w 4 -b 0.0.0.0:8080 myapp:app</code></pre>
+
+    </main>
+  </div>
+
+  <script src="assets/script.js"></script>
+</body>
+</html>

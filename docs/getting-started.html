@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Getting Started - Lcore Documentation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="shortcut icon" href="lcore.png" type="image/x-icon">
+
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="index.html" class="logo"><img src="lcore.png" alt="Lcore" class="logo-icon"> Lcore</a>
+      <nav class="header-nav">
+        <a href="getting-started.html">Guide</a>
+        <a href="routing.html">Routing</a>
+        <a href="request-response.html">Request/Response</a>
+        <a href="middleware.html">Middleware</a>
+        <a href="plugins.html">Plugins</a>
+        <a href="advanced.html">Advanced</a>
+        <a href="api-reference.html">API</a>
+        <a href="real-world-example.html">Example</a>
+        <a href="https://play.lcore.lusansapkota.com.np/#code-playground">Playground</a>
+      </nav>
+      <div class="header-right">
+        <span class="version-badge">v0.0.1</span>
+        <a href="https://github.com/LusanSapkota/Lcore" class="github-link">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          GitHub
+        </a>
+        <button class="menu-toggle">&#9776;</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="doc-layout">
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-title">Getting Started</div>
+        <a href="getting-started.html#installation" class="sidebar-link">Installation</a>
+        <a href="getting-started.html#first-app" class="sidebar-link">Your First App</a>
+        <a href="getting-started.html#concepts" class="sidebar-link">Core Concepts</a>
+        <a href="getting-started.html#configuration" class="sidebar-link">Configuration</a>
+        <a href="getting-started.html#running" class="sidebar-link">Running Your App</a>
+        <a href="getting-started.html#cli" class="sidebar-link">CLI</a>
+        <a href="getting-started.html#project-structure" class="sidebar-link">Project Structure</a>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-title">Core</div>
+        <a href="routing.html" class="sidebar-link">Routing</a>
+        <a href="request-response.html" class="sidebar-link">Request &amp; Response</a>
+        <a href="middleware.html" class="sidebar-link">Middleware</a>
+        <a href="plugins.html" class="sidebar-link">Plugins</a>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-title">Advanced</div>
+        <a href="advanced.html#dependency-injection" class="sidebar-link">Dependency Injection</a>
+        <a href="advanced.html#mounting" class="sidebar-link">Module Mounting</a>
+        <a href="advanced.html#templates" class="sidebar-link">Templates</a>
+        <a href="advanced.html#security" class="sidebar-link">Security</a>
+        <a href="advanced.html#production" class="sidebar-link">Production</a>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-title">Reference</div>
+        <a href="api-reference.html" class="sidebar-link">API Reference</a>
+      </div>
+    </aside>
+
+    <main class="content">
+      <h1>Getting Started</h1>
+      <p class="page-desc">Everything you need to build your first Lcore microservice, from installation to deployment.</p>
+
+      <!-- Installation -->
+      <h2 id="installation">Installation</h2>
+
+      <p>Lcore requires <strong>Python 3.7+</strong> and has <strong>zero required dependencies</strong>. The entire framework is a single file you can drop into any project.</p>
+
+      <h3>Via pip</h3>
+      <pre><code>pip install lcore</code></pre>
+
+      <h3>Single-file copy</h3>
+      <p>Since Lcore is a single Python file, you can simply copy <code>lcore.py</code> into your project directory:</p>
+      <pre><code>curl -O https://raw.githubusercontent.com/LusanSapkota/Lcore/main/lcore.py</code></pre>
+
+      <h3>Optional Dependencies</h3>
+      <table>
+        <thead><tr><th>Package</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>watchdog</code></td><td>Efficient file watching for hot reload</td></tr>
+          <tr><td><code>jinja2</code></td><td>Jinja2 template engine support</td></tr>
+          <tr><td><code>mako</code></td><td>Mako template engine support</td></tr>
+          <tr><td><code>gunicorn</code></td><td>Production WSGI server (Linux/macOS)</td></tr>
+          <tr><td><code>waitress</code></td><td>Production WSGI server (Windows-compatible)</td></tr>
+          <tr><td><code>gevent</code></td><td>Async WSGI server with coroutines</td></tr>
+        </tbody>
+      </table>
+
+      <!-- First App -->
+      <h2 id="first-app">Your First App</h2>
+
+      <h3>Hello World</h3>
+      <pre><code>from lcore import Lcore
+
+app = Lcore()
+
+@app.route('/')
+def index():
+    return 'Hello, World!'
+
+app.run(port=8080)</code></pre>
+
+      <p>Save this as <code>app.py</code> and run it:</p>
+      <pre><code>python app.py</code></pre>
+      <p>Visit <code>http://localhost:8080</code> to see your app running.</p>
+
+      <h3>JSON API</h3>
+      <p>Return a <code>dict</code> from any handler and Lcore automatically serializes it as JSON with the correct <code>Content-Type</code>:</p>
+      <pre><code>from lcore import Lcore, request, abort
+
+app = Lcore()
+
+users = {1: {'name': 'Alice'}, 2: {'name': 'Bob'}}
+
+@app.route('/api/users/&lt;id:int&gt;')
+def get_user(id):
+    if id not in users:
+        abort(404, 'User not found')
+    return users[id]
+
+@app.route('/api/users', method='POST')
+def create_user():
+    data = request.json
+    new_id = max(users.keys()) + 1
+    users[new_id] = data
+    return {'id': new_id, 'created': True}
+
+app.run(port=8080, debug=True)</code></pre>
+
+      <div class="info-box tip">
+        <strong>Tip</strong>
+        <p>The <code>debug=True</code> flag enables detailed error pages and auto-reloading. Never use it in production.</p>
+      </div>
+
+      <h3>What Happens Under the Hood</h3>
+      <ol>
+        <li>Lcore compiles your route patterns into an optimized regex-based router</li>
+        <li>A WSGI server (default: <code>wsgiref</code>) starts listening on the given host/port</li>
+        <li>For each request, the router matches the URL and dispatches to your handler</li>
+        <li>The response is processed through plugins (JSON serialization, templates) and middleware</li>
+        <li>The WSGI response is sent back to the client</li>
+      </ol>
+
+      <!-- Core Concepts -->
+      <h2 id="concepts">Core Concepts</h2>
+
+      <h3>WSGI Application with Async Support</h3>
+      <p>Lcore is a standard <strong>WSGI application</strong> with built-in <strong>async/await support</strong>. The <code>Lcore</code> class is callable and can be used with any WSGI server:</p>
+      <pre><code># Use with any WSGI server
+from lcore import Lcore
+app = Lcore()
+
+# app is a WSGI callable: app(environ, start_response)
+# Use with gunicorn: gunicorn app:app
+
+# Async routes work out of the box
+@app.route('/async')
+async def async_handler():
+    data = await fetch_data()
+    return {'result': data}</code></pre>
+
+      <div class="info-box note">
+        <strong>WSGI, not ASGI</strong>
+        <p>Lcore is a WSGI framework. Async handlers are executed via <code>asyncio.run()</code> for compatibility with async libraries. For true async concurrency, pair with an async-capable server adapter like <strong>gevent</strong>, <strong>eventlet</strong>, or <strong>aiohttp</strong>. Lcore does not support ASGI servers like Uvicorn or Daphne.</p>
+      </div>
+
+      <h3>Thread-Local Objects</h3>
+      <p>Lcore provides thread-local proxy objects that are safe to use in multi-threaded servers:</p>
+      <pre><code>from lcore import request, response, ctx
+
+@app.route('/example')
+def example():
+    # request - current HTTP request (read-only)
+    method = request.method
+    ip = request.remote_addr
+
+    # response - outgoing HTTP response (writable)
+    response.content_type = 'application/json'
+    response.set_header('X-Custom', 'value')
+
+    # ctx - request context (carries state across middleware)
+    ctx.state['processed'] = True
+    user = ctx.user  # set by auth middleware
+
+    return {'method': method, 'ip': ip}</code></pre>
+
+      <h3>Request Lifecycle</h3>
+      <p>Every request flows through this pipeline:</p>
+      <pre><code>Incoming Request
+    |
+    v
+on_request_start hook
+    |
+    v
+Middleware Pipeline (ordered by priority)
+    |
+    v
+on_auth_resolved hook
+    |
+    v
+Router matches URL -&gt; Route
+    |
+    v
+on_handler_enter hook
+    |
+    v
+Plugin chain wraps handler
+    |
+    v
+Route Handler executes
+    |
+    v
+on_handler_exit hook
+    |
+    v
+on_response_build hook
+    |
+    v
+on_response_send hook
+    |
+    v
+Response sent to client</code></pre>
+
+      <h3>Plugins vs Middleware</h3>
+      <table>
+        <thead><tr><th>Feature</th><th>Plugins</th><th>Middleware</th></tr></thead>
+        <tbody>
+          <tr><td>Scope</td><td>Wraps individual route callbacks</td><td>Wraps the entire request pipeline</td></tr>
+          <tr><td>Access</td><td>Route config, callback function</td><td>Full request context (<code>ctx</code>)</td></tr>
+          <tr><td>Use case</td><td>JSON serialization, template rendering</td><td>Auth, CORS, logging, rate limiting</td></tr>
+          <tr><td>Registration</td><td><code>app.install(plugin)</code></td><td><code>app.use(middleware)</code></td></tr>
+        </tbody>
+      </table>
+
+      <!-- Configuration -->
+      <h2 id="configuration">Configuration</h2>
+
+      <p>Every Lcore app has a <code>config</code> attribute backed by <code>ConfigDict</code>, a powerful configuration store with metadata, overlays, and validation.</p>
+
+      <h3>Basic Usage</h3>
+      <pre><code>app = Lcore()
+
+# Direct assignment
+app.config['debug'] = True
+app.config['my_app.db_url'] = 'sqlite:///data.db'
+app.config['my_app.secret_key'] = 'change-me'</code></pre>
+
+      <h3>Loading Configuration</h3>
+      <pre><code># From a Python dict
+app.config.load_dict({
+    'debug': True,
+    'my_app': {
+        'db_url': 'sqlite:///data.db',
+        'secret_key': 'change-me'
+    }
+})
+
+# From environment variables (MYAPP_DB_URL -&gt; db_url)
+app.config.load_env('MYAPP_', strip_prefix=True)
+
+# From a .env file
+app.config.load_dotenv('.env')
+
+# From a JSON file
+app.config.load_json('config.json')
+
+# From an INI file
+app.config.load_config('settings.ini')</code></pre>
+
+      <h3>Config Validation</h3>
+      <pre><code>from dataclasses import dataclass
+
+@dataclass
+class AppConfig:
+    debug: bool = False
+    db_url: str = 'sqlite:///data.db'
+    max_upload: int = 10_000_000
+
+app.config.load_dict({'debug': True, 'db_url': 'postgres://...'})
+valid, errors = app.config.validate_config(AppConfig)
+if not valid:
+    print('Config errors:', errors)</code></pre>
+
+      <div class="info-box note">
+        <strong>Note</strong>
+        <p>Configuration keys use dot notation for namespacing: <code>my_app.db_url</code>. When loading from dicts, nested dicts are flattened automatically.</p>
+      </div>
+
+      <!-- Running Your App -->
+      <h2 id="running">Running Your App</h2>
+
+      <h3>Development</h3>
+      <pre><code># Auto-reload on file changes + detailed error pages
+app.run(host='localhost', port=8080, debug=True, reloader=True)</code></pre>
+
+      <h3>Production</h3>
+      <pre><code># With Gunicorn (recommended for Linux/macOS)
+app.run(server='gunicorn', host='0.0.0.0', port=8080)
+
+# With Waitress (Windows-compatible)
+app.run(server='waitress', host='0.0.0.0', port=8080)
+
+# With Gevent (async)
+app.run(server='gevent', host='0.0.0.0', port=8080)
+
+# Or use gunicorn directly from CLI:
+# gunicorn -w 4 -b 0.0.0.0:8080 app:app</code></pre>
+
+      <h3>Server Adapters</h3>
+      <p>Lcore supports <strong>20+ server adapters</strong> out of the box. Use <code>server='auto'</code> to automatically pick the best available:</p>
+      <pre><code>app.run(server='auto', host='0.0.0.0', port=8080)</code></pre>
+
+      <div class="info-box warning">
+        <strong>Warning</strong>
+        <p>The default <code>wsgiref</code> server is single-threaded and intended for development only. Always use a production server like Gunicorn or Waitress for deployment.</p>
+      </div>
+
+      <h3>Hot Reload</h3>
+      <pre><code>from lcore import WatchdogReloader
+
+# Watchdog-based (efficient, requires watchdog package)
+reloader = WatchdogReloader(app, paths=['./'], interval=1)
+reloader.start()
+
+# Or use the built-in reloader flag
+app.run(reloader=True)</code></pre>
+
+      <!-- CLI -->
+      <h2 id="cli">Command-Line Interface</h2>
+
+      <p>Lcore can be run directly as a Python module with command-line options:</p>
+
+      <pre><code># Basic usage
+python -m lcore myapp
+
+# With options
+python -m lcore myapp -b 0.0.0.0:8080 -s gunicorn --debug --reload</code></pre>
+
+      <h3>CLI Options</h3>
+      <table>
+        <thead><tr><th>Flag</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>--version</code></td><td>Show Lcore version</td></tr>
+          <tr><td><code>-b, --bind ADDRESS</code></td><td>Bind address (host:port)</td></tr>
+          <tr><td><code>-s, --server NAME</code></td><td>WSGI server backend (default: wsgiref)</td></tr>
+          <tr><td><code>-p, --plugin MODULE</code></td><td>Load a plugin module</td></tr>
+          <tr><td><code>-c, --conf FILE</code></td><td>Load configuration from a config file</td></tr>
+          <tr><td><code>-C, --param KEY=VALUE</code></td><td>Override a config parameter</td></tr>
+          <tr><td><code>--debug</code></td><td>Enable debug mode</td></tr>
+          <tr><td><code>--reload</code></td><td>Auto-reload on file changes</td></tr>
+          <tr><td><code>--docs</code></td><td>Open documentation website in browser</td></tr>
+        </tbody>
+      </table>
+
+      <p>The CLI also accepts <code>.py</code> file paths directly:</p>
+      <pre><code># All of these work
+python -m lcore app
+python -m lcore app.py
+python -m lcore app:app
+python -m lcore mypackage.app:application</code></pre>
+
+      <h3>Built-in API Documentation</h3>
+      <p>When running in debug mode, Lcore automatically serves interactive API documentation at <code>/docs</code>, similar to FastAPI:</p>
+      <pre><code>from lcore import Lcore
+
+app = Lcore()
+
+@app.route('/users/&lt;id:int&gt;')
+def get_user(id):
+    '''Fetch a user by ID.'''
+    return {'id': id}
+
+app.run(port=8080, debug=True)
+# /docs and /docs/json are now available</code></pre>
+      <p>Visit <code>http://localhost:8080/docs</code> to see the auto-generated API reference, or <code>/docs/json</code> for the raw JSON data.</p>
+
+      <div class="info-box note">
+        <strong>Production</strong>
+        <p>API docs are only auto-enabled in debug mode. In production, call <code>app.enable_docs()</code> explicitly if you want to expose them.</p>
+      </div>
+
+      <!-- Project Structure -->
+      <h2 id="project-structure">Project Structure</h2>
+
+      <h3>Simple Microservice</h3>
+      <pre><code>my-service/
+  app.py          # Main application
+  lcore.py        # Framework (single file)
+  config.json     # Configuration
+  .env            # Environment variables
+  tests/
+    test_app.py   # Tests</code></pre>
+
+      <h3>Multi-Module Service</h3>
+      <pre><code>my-service/
+  app.py              # App setup &amp; middleware
+  config.py           # Configuration loading
+  lcore.py            # Framework
+  modules/
+    __init__.py
+    users.py          # Users sub-app (mounted)
+    products.py       # Products sub-app (mounted)
+    auth.py           # Auth middleware
+  templates/
+    error.html
+  tests/
+    test_users.py
+    test_products.py</code></pre>
+
+      <p>With module mounting:</p>
+      <pre><code># app.py
+from lcore import Lcore
+from modules.users import users_app
+from modules.products import products_app
+
+app = Lcore()
+app.mount('/api/users/', users_app)
+app.mount('/api/products/', products_app)
+
+app.run(server='gunicorn', port=8080)
+
+# modules/users.py
+from lcore import Lcore, request
+
+users_app = Lcore()
+
+@users_app.route('/')
+def list_users():
+    return {'users': []}
+
+@users_app.route('/&lt;id:int&gt;')
+def get_user(id):
+    return {'id': id}</code></pre>
+
+    </main>
+  </div>
+
+  <script src="assets/script.js"></script>
+</body>
+</html>

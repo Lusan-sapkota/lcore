@@ -1,0 +1,20 @@
+# =================================================================
+# sqlite database and env files are intentionally not ignored to allow for easy local # development and testing 
+# =================================================================
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Uploads directory contents
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

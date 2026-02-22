@@ -1,0 +1,1552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Real-World Example - Lcore Documentation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="shortcut icon" href="lcore.png" type="image/x-icon">
+
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="index.html" class="logo"><img src="lcore.png" alt="Lcore" class="logo-icon"> Lcore</a>
+      <nav class="header-nav">
+        <a href="getting-started.html">Guide</a>
+        <a href="routing.html">Routing</a>
+        <a href="request-response.html">Request/Response</a>
+        <a href="middleware.html">Middleware</a>
+        <a href="plugins.html">Plugins</a>
+        <a href="advanced.html">Advanced</a>
+        <a href="api-reference.html">API</a>
+        <a href="real-world-example.html">Example</a>
+        <a href="https://play.lcore.lusansapkota.com.np/#code-playground">Playground</a>
+      </nav>
+      <div class="header-right">
+        <span class="version-badge">v0.0.1</span>
+        <a href="https://github.com/LusanSapkota/Lcore" class="github-link">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          GitHub
+        </a>
+        <button class="menu-toggle">&#9776;</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="doc-layout">
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-title">TaskFlow Example</div>
+        <a href="#overview" class="sidebar-link">Overview</a>
+        <a href="#configuration" class="sidebar-link">Configuration</a>
+        <a href="#database" class="sidebar-link">Database &amp; Models</a>
+        <a href="#authentication" class="sidebar-link">Authentication</a>
+        <a href="#middleware-stack" class="sidebar-link">Middleware Stack</a>
+        <a href="#plugins" class="sidebar-link">Custom Plugins</a>
+        <a href="#mounting" class="sidebar-link">Module Mounting</a>
+        <a href="#dependency-injection" class="sidebar-link">Dependency Injection</a>
+        <a href="#crud" class="sidebar-link">CRUD Operations</a>
+        <a href="#file-uploads" class="sidebar-link">File Uploads</a>
+        <a href="#async-routes" class="sidebar-link">Async Routes</a>
+        <a href="#smtp-email" class="sidebar-link">SMTP Email</a>
+        <a href="#templates" class="sidebar-link">Templates</a>
+        <a href="#lifecycle-hooks" class="sidebar-link">Lifecycle Hooks</a>
+        <a href="#error-handling" class="sidebar-link">Error Handling</a>
+        <a href="#api-docs" class="sidebar-link">Auto API Docs</a>
+        <a href="#frontend" class="sidebar-link">Frontend App</a>
+        <a href="#test-results" class="sidebar-link">Test Results</a>
+        <a href="#websocket-note" class="sidebar-link">WebSocket Note</a>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-title">Core</div>
+        <a href="routing.html" class="sidebar-link">Routing</a>
+        <a href="request-response.html" class="sidebar-link">Request &amp; Response</a>
+        <a href="middleware.html" class="sidebar-link">Middleware</a>
+        <a href="plugins.html" class="sidebar-link">Plugins</a>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-title">Advanced</div>
+        <a href="advanced.html#dependency-injection" class="sidebar-link">Dependency Injection</a>
+        <a href="advanced.html#mounting" class="sidebar-link">Module Mounting</a>
+        <a href="advanced.html#templates" class="sidebar-link">Templates</a>
+        <a href="advanced.html#security" class="sidebar-link">Security</a>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-title">Reference</div>
+        <a href="api-reference.html" class="sidebar-link">API Reference</a>
+      </div>
+    </aside>
+
+    <main class="content">
+      <h1>Real-World Example &mdash; TaskFlow API</h1>
+      <p class="page-desc">A complete project management API built with Lcore, demonstrating every framework feature with 30/30 passing tests.</p>
+
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!--  OVERVIEW                                          -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <h2 id="overview">Overview</h2>
+
+      <p>TaskFlow is a full-featured project management API (similar to Trello or Jira) that serves as a comprehensive test of every Lcore framework feature. It includes a real SQLite database, multi-source configuration, authentication with signed tokens and cookies, endpoint-level RBAC (admin-only guards on write operations), 10 middleware, custom plugins, four mounted sub-applications, file uploads, SMTP email, async routes, templates, lifecycle hooks, custom error handlers, and a <strong>complete single-page frontend</strong> served via SimpleTemplate.</p>
+
+      <h3>Project Structure</h3>
+      <pre><code>backend/
+  app.py                  # Main entry point &mdash; wires everything together
+  config.py               # Config loading + dataclass validation
+  models.py               # SQLite database layer (schema + seed data)
+  .env                    # Environment variables
+  modules/
+    __init__.py
+    auth.py               # Token auth, Basic Auth, signed cookies, RBAC
+    users.py              # Users CRUD (all HTTP methods, admin-only guards)
+    products.py           # Projects + Tasks + Comments + File uploads (admin-only guards)
+    notifications.py      # SMTP email sending + async batch
+    plugins.py            # Custom plugins + custom middleware
+  templates/
+    welcome.tpl           # API overview + interactive playground
+    frontend.tpl          # Full project management frontend (SPA)
+    error.tpl             # Error page template
+  static/                 # Static file directory
+  uploads/                # File upload directory</code></pre>
+
+      <h3>Quick Start</h3>
+      <pre><code>cd backend
+python app.py</code></pre>
+
+      <p>The server starts at <code>http://localhost:8080</code> with a seeded SQLite database containing 3 users, 2 projects, and 3 tasks.</p>
+
+      <table>
+        <thead><tr><th>Username</th><th>Password</th><th>Role</th></tr></thead>
+        <tbody>
+          <tr><td><code>admin</code></td><td><code>admin123</code></td><td>admin</td></tr>
+          <tr><td><code>alice</code></td><td><code>alice123</code></td><td>member</td></tr>
+          <tr><td><code>bob</code></td><td><code>bob123</code></td><td>member</td></tr>
+        </tbody>
+      </table>
+
+      <pre><code># Login and get a token
+curl -X POST http://localhost:8080/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin123"}'
+
+# Use the returned token for authenticated requests
+curl http://localhost:8080/api/users/ \
+  -H "Authorization: Bearer &lt;token&gt;"</code></pre>
+
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!--  CONFIGURATION                                     -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <h2 id="configuration">Configuration</h2>
+
+      <p>TaskFlow demonstrates Lcore's 3-source configuration loading with dataclass validation. Configuration is loaded in priority order: defaults from a dict, overrides from a <code>.env</code> file, and final overrides from real environment variables.</p>
+
+      <h3>Config Loading (config.py)</h3>
+      <pre><code>from dataclasses import dataclass
+from lcore import Lcore
+
+
+@dataclass
+class AppConfigSchema:
+    """Dataclass schema for config validation."""
+    debug: bool = False
+    secret_key: str = 'change-me'
+    host: str = '0.0.0.0'
+    port: int = 8080
+    db_path: str = './taskflow.db'
+    cors_origins: str = '*'
+    smtp_host: str = 'smtp.gmail.com'
+    smtp_port: int = 587
+    smtp_user: str = ''
+    smtp_password: str = ''
+    smtp_from: str = 'noreply@taskflow.app'
+    smtp_use_tls: bool = True
+    rate_limit_default: int = 100
+    rate_limit_window: int = 60
+    max_upload_size: int = 10_485_760
+    upload_dir: str = './uploads'
+
+
+def configure_app(app: Lcore) -&gt; None:
+    """Load configuration from multiple sources and validate."""
+
+    # 1. Load defaults via dict
+    app.config.load_dict({
+        'debug': False,
+        'secret_key': 'change-me-in-production',
+        'host': '0.0.0.0',
+        'port': 8080,
+        'db_path': './taskflow.db',
+        'cors_origins': '*',
+        'smtp_host': 'smtp.gmail.com',
+        'smtp_port': 587,
+        'smtp_user': '',
+        'smtp_password': '',
+        'smtp_from': 'noreply@taskflow.app',
+        'smtp_use_tls': True,
+        'rate_limit_default': 100,
+        'rate_limit_window': 60,
+        'max_upload_size': 10_485_760,
+        'upload_dir': './uploads',
+    })
+
+    # 2. Load from .env file (overrides defaults)
+    env_path = os.path.join(os.path.dirname(__file__), '.env')
+    if os.path.exists(env_path):
+        app.config.load_dotenv(env_path)
+
+    # 3. Load from environment variables with APP_ prefix (overrides .env)
+    app.config.load_env('APP_', strip_prefix=True)
+
+    # 4. Validate config against schema
+    try:
+        app.config.validate_config(AppConfigSchema)
+        print("[CONFIG] Configuration validated successfully")
+    except ValueError as e:
+        print(f"[CONFIG WARNING] {e}")</code></pre>
+
+      <div class="info-box tip">
+        <strong>Priority Order</strong>
+        <p>Each source overrides the previous: <code>load_dict()</code> sets defaults, <code>load_dotenv()</code> overrides from <code>.env</code>, and <code>load_env('APP_')</code> overrides from real environment variables. The final <code>validate_config()</code> ensures all values match the dataclass types.</p>
+      </div>
+
+      <h3>.env File Format</h3>
+      <pre><code># TaskFlow API Configuration
+APP_NAME=TaskFlow API
+APP_DEBUG=true
+APP_SECRET_KEY=super-secret-key-change-in-production
+APP_HOST=0.0.0.0
+APP_PORT=8080
+
+# Database
+APP_DB_PATH=./taskflow.db
+
+# CORS
+APP_CORS_ORIGINS=http://localhost:3000,http://localhost:5173
+
+# SMTP / Email
+APP_SMTP_HOST=smtp.gmail.com
+APP_SMTP_PORT=587
+APP_SMTP_USER=your-email@gmail.com
+APP_SMTP_PASSWORD=your-app-password
+APP_SMTP_FROM=noreply@taskflow.app
+APP_SMTP_USE_TLS=true
+
+# Rate Limiting
+APP_RATE_LIMIT_DEFAULT=100
+APP_RATE_LIMIT_WINDOW=60
+
+# Upload
+APP_MAX_UPLOAD_SIZE=10485760
+APP_UPLOAD_DIR=./uploads</code></pre>
+
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!--  DATABASE & MODELS                                 -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <h2 id="database">Database &amp; Models</h2>
+
+      <p>TaskFlow uses SQLite with a real relational schema. The <code>Database</code> class wraps <code>sqlite3</code> and is used as a scoped dependency (one connection per request, auto-closed).</p>
+
+      <h3>Schema (models.py)</h3>
+      <pre><code>SCHEMA = """
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'member',
+    avatar TEXT,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    created_at REAL NOT NULL,
+    updated_at REAL
+);
+
+CREATE TABLE IF NOT EXISTS projects (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    description TEXT DEFAULT '',
+    owner_id INTEGER NOT NULL REFERENCES users(id),
+    status TEXT NOT NULL DEFAULT 'active',
+    created_at REAL NOT NULL,
+    updated_at REAL
+);
+
+CREATE TABLE IF NOT EXISTS tasks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    description TEXT DEFAULT '',
+    project_id INTEGER NOT NULL REFERENCES projects(id),
+    assignee_id INTEGER REFERENCES users(id),
+    creator_id INTEGER NOT NULL REFERENCES users(id),
+    status TEXT NOT NULL DEFAULT 'todo',
+    priority TEXT NOT NULL DEFAULT 'medium',
+    due_date TEXT,
+    attachment TEXT,
+    created_at REAL NOT NULL,
+    updated_at REAL
+);
+
+CREATE TABLE IF NOT EXISTS comments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_id INTEGER NOT NULL REFERENCES tasks(id),
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    body TEXT NOT NULL,
+    created_at REAL NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS notifications (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER REFERENCES users(id),
+    type TEXT NOT NULL,
+    recipient TEXT NOT NULL,
+    subject TEXT NOT NULL,
+    body TEXT,
+    status TEXT NOT NULL DEFAULT 'pending',
+    error TEXT,
+    created_at REAL NOT NULL
+);
+"""</code></pre>
+
+      <h3>Database Class</h3>
+      <pre><code>class Database:
+    """SQLite wrapper used as a scoped dependency (one per request)."""
+
+    def __init__(self, db_path: str = None):
+        self.db_path = db_path or DB_PATH
+        self.conn = sqlite3.connect(self.db_path)
+        self.conn.row_factory = sqlite3.Row
+        self.conn.execute("PRAGMA journal_mode=WAL")
+        self.conn.execute("PRAGMA foreign_keys=ON")
+
+    def execute(self, sql: str, params: tuple = ()) -&gt; sqlite3.Cursor:
+        return self.conn.execute(sql, params)
+
+    def fetchone(self, sql: str, params: tuple = ()) -&gt; dict | None:
+        row = self.conn.execute(sql, params).fetchone()
+        return dict(row) if row else None
+
+    def fetchall(self, sql: str, params: tuple = ()) -&gt; list[dict]:
+        rows = self.conn.execute(sql, params).fetchall()
+        return [dict(r) for r in rows]
+
+    def insert(self, table: str, data: dict) -&gt; int:
+        data['created_at'] = time.time()
+        cols = ', '.join(data.keys())
+        placeholders = ', '.join('?' for _ in data)
+        cur = self.conn.execute(
+            f"INSERT INTO {table} ({cols}) VALUES ({placeholders})",
+            tuple(data.values())
+        )
+        self.conn.commit()
+        return cur.lastrowid
+
+    def update(self, table: str, row_id: int, data: dict) -&gt; bool:
+        data['updated_at'] = time.time()
+        sets = ', '.join(f"{k} = ?" for k in data)
+        self.conn.execute(
+            f"UPDATE {table} SET {sets} WHERE id = ?",
+            (*data.values(), row_id)
+        )
+        self.conn.commit()
+        return True
+
+    def delete(self, table: str, row_id: int) -&gt; bool:
+        cur = self.conn.execute(f"DELETE FROM {table} WHERE id = ?", (row_id,))
+        self.conn.commit()
+        return cur.rowcount &gt; 0
+
+    def count(self, table: str) -&gt; int:
+        row = self.conn.execute(f"SELECT COUNT(*) as cnt FROM {table}").fetchone()
+        return row['cnt']
+
+    def close(self):
+        self.conn.close()</code></pre>
+
+      <h3>Seed Data</h3>
+      <pre><code>def init_db(db_path: str = None):
+    """Initialize the database schema and seed demo data."""
+    path = db_path or DB_PATH
+    conn = sqlite3.connect(path)
+    conn.executescript(SCHEMA)
+
+    count = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+    if count == 0:
+        now = time.time()
+
+        # Admin user (password: admin123)
+        conn.execute(
+            "INSERT INTO users (username, email, password_hash, role, created_at) "
+            "VALUES (?, ?, ?, ?, ?)",
+            ('admin', 'admin@taskflow.app', hash_password('admin123'), 'admin', now)
+        )
+        # Regular users
+        conn.execute(
+            "INSERT INTO users (username, email, password_hash, role, created_at) "
+            "VALUES (?, ?, ?, ?, ?)",
+            ('alice', 'alice@example.com', hash_password('alice123'), 'member', now)
+        )
+        conn.execute(
+            "INSERT INTO users (username, email, password_hash, role, created_at) "
+            "VALUES (?, ?, ?, ?, ?)",
+            ('bob', 'bob@example.com', hash_password('bob123'), 'member', now)
+        )
+
+        # Demo projects and tasks...
+        conn.commit()
+    conn.close()</code></pre>
+
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!--  AUTHENTICATION                                    -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <h2 id="authentication">Authentication</h2>
+
+      <p>TaskFlow implements a complete authentication and authorization system: HMAC-SHA256 signed tokens, PBKDF2-SHA256 password hashing via Lcore's built-in <code>hash_password()</code> / <code>verify_password()</code>, a custom <code>TokenAuthMiddleware</code>, an <code>AdminGuardHook</code> for route-level RBAC, endpoint-level <code>_require_admin()</code> guards on write operations (create/update/delete projects and users), HTTP Basic Auth via <code>@auth_basic</code>, and signed session cookies.</p>
+
+      <h3>Token Generation &amp; Verification (auth.py)</h3>
+      <pre><code>import hashlib
+import hmac
+import time
+import json
+import base64
+
+
+def generate_token(user_id: int, username: str, role: str) -&gt; str:
+    """Generate a signed auth token (base64 JSON + HMAC-SHA256)."""
+    payload = {
+        'sub': user_id,
+        'username': username,
+        'role': role,
+        'iat': int(time.time()),
+        'exp': int(time.time()) + 3600,
+    }
+    payload_b64 = base64.urlsafe_b64encode(
+        json.dumps(payload).encode()
+    ).decode()
+    signature = hmac.new(
+        _get_secret().encode(), payload_b64.encode(), hashlib.sha256
+    ).hexdigest()
+    return f"{payload_b64}.{signature}"
+
+
+def verify_token(token: str) -&gt; dict | None:
+    """Verify and decode a signed auth token."""
+    try:
+        payload_b64, signature = token.rsplit('.', 1)
+        expected_sig = hmac.new(
+            _get_secret().encode(), payload_b64.encode(), hashlib.sha256
+        ).hexdigest()
+        if not hmac.compare_digest(signature, expected_sig):
+            return None
+        payload = json.loads(base64.urlsafe_b64decode(payload_b64))
+        if payload.get('exp', 0) &lt; time.time():
+            return None
+        return payload
+    except Exception:
+        return None</code></pre>
+
+      <h3>TokenAuthMiddleware</h3>
+      <pre><code>class TokenAuthMiddleware(Middleware):
+    """Validates Bearer tokens on protected API routes."""
+    name = 'token_auth'
+    order = 6
+
+    def __init__(self, skip_paths=None):
+        self.skip_paths = skip_paths or []
+
+    def __call__(self, ctx, next_handler):
+        path = ctx.request.path
+        for skip in self.skip_paths:
+            if skip == path:
+                return next_handler(ctx)
+            if len(skip) &gt; 1 and skip.endswith('/') and path.startswith(skip):
+                return next_handler(ctx)
+
+        auth_header = ctx.request.get_header('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            ctx.response.status = 401
+            return {'error': 'Missing or invalid Authorization header'}
+
+        payload = verify_token(auth_header[7:])
+        if not payload:
+            ctx.response.status = 401
+            return {'error': 'Invalid or expired token'}
+
+        ctx.user = {
+            'id': payload['sub'],
+            'username': payload['username'],
+            'role': payload['role'],
+        }
+        return next_handler(ctx)</code></pre>
+
+      <h3>AdminGuardHook (RBAC)</h3>
+      <pre><code>class AdminGuardHook(MiddlewareHook):
+    """Restricts /admin/* to admin users."""
+    name = 'admin_guard'
+    order = 7
+
+    def pre(self, ctx):
+        if not ctx.request.path.startswith('/admin'):
+            return None
+        user = getattr(ctx, 'user', None)
+        if not user or user.get('role') != 'admin':
+            return HTTPResponse(
+                body=json.dumps({'error': 'Admin access required'}),
+                status=403,
+                headers={'Content-Type': 'application/json'}
+            )
+        return None
+
+    def post(self, ctx, result):
+        return result</code></pre>
+
+      <h3>Endpoint-Level RBAC</h3>
+
+      <p>Beyond the route-level <code>AdminGuardHook</code>, TaskFlow enforces role-based access directly in endpoint handlers. Write operations on projects and users are restricted to admin users, while members can update their own profile:</p>
+
+      <pre><code># Helper used in users.py and products.py
+def _require_admin():
+    """Abort 403 if current user is not an admin."""
+    user = getattr(ctx, 'user', None)
+    if not user or user.get('role') != 'admin':
+        abort(403, 'Admin access required')
+
+
+# Admin-only: create, patch, delete users
+@users_app.post('/', name='create_user')
+def create_user():
+    _require_admin()
+    # ...
+
+# Admin or self: update own profile
+@users_app.put('/&lt;id:int&gt;', name='update_user')
+def update_user(id):
+    user = getattr(ctx, 'user', None)
+    if not user or (user.get('role') != 'admin' and user.get('id') != id):
+        abort(403, 'Admin access required or can only update own profile')
+    # ...
+
+# Admin-only: create, update, delete projects
+@projects_app.post('/', name='create_project')
+def create_project():
+    _require_admin()
+    # ...</code></pre>
+
+      <table>
+        <thead><tr><th>Endpoint</th><th>Access Rule</th></tr></thead>
+        <tbody>
+          <tr><td><code>POST /api/users/</code></td><td>Admin only</td></tr>
+          <tr><td><code>PUT /api/users/&lt;id&gt;</code></td><td>Admin or self (own profile)</td></tr>
+          <tr><td><code>PATCH /api/users/&lt;id&gt;</code></td><td>Admin only</td></tr>
+          <tr><td><code>DELETE /api/users/&lt;id&gt;</code></td><td>Admin only</td></tr>
+          <tr><td><code>POST /api/projects/</code></td><td>Admin only</td></tr>
+          <tr><td><code>PUT /api/projects/&lt;id&gt;</code></td><td>Admin only</td></tr>
+          <tr><td><code>DELETE /api/projects/&lt;id&gt;</code></td><td>Admin only</td></tr>
+          <tr><td><code>GET</code> endpoints, tasks, comments</td><td>Any authenticated user</td></tr>
+        </tbody>
+      </table>
+
+      <h3>HTTP Basic Auth &amp; Signed Cookies</h3>
+      <pre><code># HTTP Basic Auth on a specific route
+@auth_app.get('/basic-demo')
+@auth_basic(_check_basic_auth, realm='TaskFlow')
+def basic_auth_demo():
+    """Protected by HTTP Basic Auth."""
+    return {'message': 'Authenticated via HTTP Basic Auth!'}
+
+# Login sets a signed session cookie (HMAC-SHA256)
+@auth_app.post('/login')
+@rate_limit(5, per=300)
+@validate_request(body={'username': str, 'password': str})
+def login():
+    """Authenticate and return a signed token + session cookie."""
+    data = request.json
+    db = Database()
+    try:
+        user = db.fetchone("SELECT * FROM users WHERE username = ?", (data['username'],))
+        if not user or not verify_password(data['password'], user['password_hash']):
+            abort(401, 'Invalid credentials')
+
+        token = generate_token(user['id'], user['username'], user['role'])
+
+        # Signed cookie for session-based auth
+        response.set_cookie('session_user', user['username'],
+                            secret=_get_secret(), path='/',
+                            httponly=True, samesite='Lax', max_age=3600)
+
+        return {
+            'token': token,
+            'user': {'id': user['id'], 'username': user['username'], 'role': user['role']}
+        }
+    finally:
+        db.close()
+
+# Read signed cookie
+@auth_app.get('/me')
+def me():
+    """Get current user from signed session cookie."""
+    username = request.get_cookie('session_user', secret=_get_secret())
+    if not username:
+        abort(401, 'Not authenticated')
+    # ...</code></pre>
+
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!--  MIDDLEWARE STACK                                   -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <h2 id="middleware-stack">Middleware Stack</h2>
+
+      <p>TaskFlow uses all 7 built-in Lcore middleware plus 3 custom middleware, for a total of 10 active middleware ordered by priority.</p>
+
+      <table>
+        <thead><tr><th>Order</th><th>Middleware</th><th>Type</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td>0</td><td><code>BodyLimitMiddleware</code></td><td>Built-in</td><td>Reject oversized request bodies</td></tr>
+          <tr><td>1</td><td><code>RequestIDMiddleware</code></td><td>Built-in</td><td>Generate/propagate X-Request-ID</td></tr>
+          <tr><td>2</td><td><code>RequestLoggerMiddleware</code></td><td>Built-in</td><td>Structured JSON request logging</td></tr>
+          <tr><td>2</td><td><code>TimingMiddleware</code></td><td>Custom</td><td>X-Response-Time header</td></tr>
+          <tr><td>3</td><td><code>CORSMiddleware</code></td><td>Built-in</td><td>Full CORS with preflight</td></tr>
+          <tr><td>5</td><td><code>SecurityHeadersMiddleware</code></td><td>Built-in</td><td>HSTS, XSS, clickjacking headers</td></tr>
+          <tr><td>6</td><td><code>TokenAuthMiddleware</code></td><td>Custom</td><td>Bearer token validation</td></tr>
+          <tr><td>7</td><td><code>AdminGuardHook</code></td><td>Custom</td><td>RBAC for /admin/* routes</td></tr>
+          <tr><td>8</td><td><code>AuditLogHook</code></td><td>Custom</td><td>Log state-changing requests</td></tr>
+          <tr><td>90</td><td><code>CompressionMiddleware</code></td><td>Built-in</td><td>Gzip compression</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Registration Code (app.py)</h3>
+      <pre><code>from lcore import (
+    Lcore,
+    CORSMiddleware, SecurityHeadersMiddleware, CSRFMiddleware,
+    RequestIDMiddleware, RequestLoggerMiddleware,
+    BodyLimitMiddleware, CompressionMiddleware,
+)
+from modules.plugins import TimingMiddleware, AuditLogHook
+from modules.auth import TokenAuthMiddleware, AdminGuardHook
+
+app = Lcore()
+
+# Built-in middleware
+app.use(BodyLimitMiddleware(
+    max_size=int(app.config.get('max_upload_size', 10_485_760))
+))
+app.use(RequestIDMiddleware())
+app.use(RequestLoggerMiddleware(logger=logging.getLogger('http')))
+
+# Custom timing middleware
+app.use(TimingMiddleware())
+
+# CORS with full configuration
+app.use(CORSMiddleware(
+    allow_origins=cors_origins,
+    allow_methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allow_headers=['Content-Type', 'Authorization', 'X-CSRF-Token', 'X-Requested-With'],
+    expose_headers=['X-Request-ID', 'X-Response-Time', 'X-API-Version'],
+    allow_credentials=True,
+    max_age=86400,
+))
+
+app.use(SecurityHeadersMiddleware(hsts=True, hsts_max_age=31536000))
+
+# Custom auth middleware with path skipping
+app.use(TokenAuthMiddleware(
+    skip_paths=['/auth/', '/health', '/docs', '/', '/static/', '/debug/', '/old-api']
+))
+app.use(AdminGuardHook())
+app.use(AuditLogHook())
+
+# Compression (high order = runs last)
+app.use(CompressionMiddleware(min_size=256, level=6))</code></pre>
+
+      <div class="info-box tip">
+        <strong>CSRFMiddleware</strong>
+        <p><code>CSRFMiddleware</code> is imported but not activated. It is designed for server-rendered form-based apps, not JSON APIs with Bearer token auth where cross-origin requests cannot set custom <code>Authorization</code> headers.</p>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!--  CUSTOM PLUGINS                                    -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <h2 id="plugins">Custom Plugins</h2>
+
+      <p>TaskFlow includes two custom plugins that demonstrate the <code>setup(app)</code> / <code>apply(callback, route)</code> plugin lifecycle.</p>
+
+      <h3>APIVersionPlugin (plugins.py)</h3>
+      <pre><code>class APIVersionPlugin:
+    """Adds API version info to every JSON response."""
+    name = 'api_version'
+    api = 2
+
+    def __init__(self, version='0.0.1'):
+        self.version = version
+
+    def setup(self, app):
+        """Called once when the plugin is installed."""
+        self.app = app
+        print(f"  [Plugin] APIVersionPlugin v{self.version} installed")
+
+    def apply(self, callback, route):
+        """Called for each route. Wraps the callback."""
+        # Skip if route opts out
+        if route.config.get('skip_versioning'):
+            return callback
+
+        version = self.version
+
+        def wrapper(*args, **kwargs):
+            result = callback(*args, **kwargs)
+            if isinstance(result, dict):
+                result['_api_version'] = version
+            response.set_header('X-API-Version', version)
+            return result
+
+        return wrapper</code></pre>
+
+      <h3>RequestCounterPlugin (plugins.py)</h3>
+      <pre><code>class RequestCounterPlugin:
+    """Tracks total request count per route."""
+    name = 'request_counter'
+    api = 2
+
+    def __init__(self):
+        self.counts = {}
+
+    def setup(self, app):
+        self.app = app
+
+    def apply(self, callback, route):
+        rule = route.rule
+        self.counts.setdefault(rule, 0)
+        counts = self.counts
+
+        def wrapper(*args, **kwargs):
+            counts[rule] = counts.get(rule, 0) + 1
+            result = callback(*args, **kwargs)
+            if isinstance(result, dict):
+                result['_request_number'] = counts[rule]
+            return result
+
+        return wrapper
+
+    def get_stats(self):
+        return dict(self.counts)
+
+    def close(self):
+        """Called when plugin is uninstalled."""
+        print(f"  [Plugin] RequestCounterPlugin closed. Final stats: {self.counts}")</code></pre>
+
+      <h3>Installing Plugins (app.py)</h3>
+      <pre><code>version_plugin = APIVersionPlugin(version='0.0.1')
+app.install(version_plugin)
+
+counter_plugin = RequestCounterPlugin()
+app.install(counter_plugin)</code></pre>
+
+      <div class="info-box tip">
+        <strong>Per-Route Config</strong>
+        <p>Routes can opt out of specific plugins. The home page uses <code>skip_versioning=True</code> to prevent the version plugin from modifying its template response: <code>@app.get('/', name='home', skip_versioning=True)</code></p>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!--  MODULE MOUNTING                                   -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <h2 id="mounting">Module Mounting</h2>
+
+      <p>TaskFlow is organized into four sub-applications, each defined as an independent <code>Lcore()</code> instance and mounted at a URL prefix. This demonstrates Lcore's modular architecture.</p>
+
+      <pre><code>from modules.auth import auth_app
+from modules.users import users_app
+from modules.products import projects_app
+from modules.notifications import notifications_app
+
+app = Lcore()
+
+# Mount sub-applications at URL prefixes
+app.mount('/auth/', auth_app)
+app.mount('/api/users/', users_app)
+app.mount('/api/projects/', projects_app)
+app.mount('/api/notifications/', notifications_app)</code></pre>
+
+      <table>
+        <thead><tr><th>Prefix</th><th>Sub-App</th><th>Source File</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>/auth/</code></td><td><code>auth_app</code></td><td>modules/auth.py</td><td>Login, register, session, Basic Auth</td></tr>
+          <tr><td><code>/api/users/</code></td><td><code>users_app</code></td><td>modules/users.py</td><td>User CRUD with all HTTP methods</td></tr>
+          <tr><td><code>/api/projects/</code></td><td><code>projects_app</code></td><td>modules/products.py</td><td>Projects, tasks, comments, uploads</td></tr>
+          <tr><td><code>/api/notifications/</code></td><td><code>notifications_app</code></td><td>modules/notifications.py</td><td>SMTP email, batch notify</td></tr>
+        </tbody>
+      </table>
+
+      <p>Each sub-app is a fully independent <code>Lcore()</code> instance with its own routes, hooks, and middleware:</p>
+
+      <pre><code># modules/users.py
+from lcore import Lcore, request
+
+users_app = Lcore()
+
+@users_app.hook('before_request')
+def log_user_request():
+    print(f"  [Users] {request.method} {request.path}")
+
+@users_app.get('/', name='list_users')
+def list_users():
+    """List all team members."""
+    # ...</code></pre>
+
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!--  DEPENDENCY INJECTION                              -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <h2 id="dependency-injection">Dependency Injection</h2>
+
+      <p>TaskFlow registers three dependencies with different lifetimes, demonstrating all three DI modes.</p>
+
+      <pre><code>import uuid
+import time
+from models import Database
+
+class AppCache:
+    """In-memory cache (singleton lifetime)."""
+    def __init__(self):
+        self._store = {}
+
+    def get(self, key):
+        entry = self._store.get(key)
+        if entry and entry['expires'] &gt; time.time():
+            return entry['value']
+        return None
+
+    def set(self, key, value, ttl=300):
+        self._store[key] = {'value': value, 'expires': time.time() + ttl}
+
+    def invalidate(self, key):
+        self._store.pop(key, None)
+
+# Singleton: one instance for the entire app lifetime
+app.inject('cache', AppCache, lifetime='singleton')
+
+# Scoped: one instance per request, auto-closed via .close()
+app.inject('db', lambda: Database(db_path), lifetime='scoped')
+
+# Transient: new value every time it is accessed
+app.inject('trace_id', lambda: str(uuid.uuid4()), lifetime='transient')</code></pre>
+
+      <p>Access injected dependencies anywhere via <code>ctx</code>:</p>
+
+      <pre><code>@app.get('/debug/di', name='debug_di')
+def debug_di():
+    """Dependency injection demo - shows different lifetimes."""
+    return {
+        'trace_id_1': ctx.trace_id,
+        'trace_id_2': ctx.trace_id,  # Different each access (transient)
+        'cache_type': type(ctx.cache).__name__,
+        'db_type': type(ctx.db).__name__,
+    }</code></pre>
+
+      <table>
+        <thead><tr><th>Name</th><th>Lifetime</th><th>Type</th><th>Behavior</th></tr></thead>
+        <tbody>
+          <tr><td><code>ctx.cache</code></td><td>singleton</td><td><code>AppCache</code></td><td>Same instance for all requests</td></tr>
+          <tr><td><code>ctx.db</code></td><td>scoped</td><td><code>Database</code></td><td>One per request, <code>.close()</code> called automatically</td></tr>
+          <tr><td><code>ctx.trace_id</code></td><td>transient</td><td><code>str</code></td><td>New UUID on every access</td></tr>
+        </tbody>
+      </table>
+
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!--  CRUD OPERATIONS                                   -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <h2 id="crud">CRUD Operations</h2>
+
+      <p>The Users module demonstrates all five HTTP method decorators with typed route parameters, rate limiting, request validation, pagination, and search. Write operations (POST, PUT, PATCH, DELETE) are protected by admin-only guards, except PUT which also allows users to update their own profile.</p>
+
+      <h3>GET &mdash; List with Pagination</h3>
+      <pre><code>@users_app.get('/', name='list_users')
+@rate_limit(100, per=60)
+def list_users():
+    """List all team members with optional role filter and pagination."""
+    db = _get_db()
+    try:
+        role = request.query.get('role')
+        page = int(request.query.get('page', '1'))
+        limit = int(request.query.get('limit', '20'))
+        offset = (page - 1) * limit
+
+        if role:
+            users = db.fetchall(
+                "SELECT id, username, email, role, is_active, created_at "
+                "FROM users WHERE role = ? LIMIT ? OFFSET ?",
+                (role, limit, offset)
+            )
+            total = db.fetchone("SELECT COUNT(*) as cnt FROM users WHERE role = ?", (role,))['cnt']
+        else:
+            users = db.fetchall(
+                "SELECT id, username, email, role, is_active, created_at "
+                "FROM users LIMIT ? OFFSET ?",
+                (limit, offset)
+            )
+            total = db.count('users')
+
+        return {'users': users, 'total': total, 'page': page, 'limit': limit}
+    finally:
+        db.close()</code></pre>
+
+      <h3>POST &mdash; Create</h3>
+      <pre><code>@users_app.post('/', name='create_user')
+@rate_limit(20, per=60)
+@validate_request(body={'username': str, 'email': str, 'password': str})
+def create_user():
+    """Invite a new team member."""
+    data = request.json
+    db = _get_db()
+    try:
+        if db.fetchone("SELECT id FROM users WHERE username = ?", (data['username'],)):
+            abort(409, 'Username already exists')
+
+        user_id = db.insert('users', {
+            'username': data['username'],
+            'email': data['email'],
+            'password_hash': hash_password(data['password']),
+            'role': data.get('role', 'member'),
+            'is_active': 1,
+        })
+        response.status = 201
+        return {'id': user_id, 'username': data['username'], 'created': True}
+    finally:
+        db.close()</code></pre>
+
+      <h3>GET &mdash; Read by ID</h3>
+      <pre><code>@users_app.get('/&lt;id:int&gt;', name='get_user')
+@rate_limit(200, per=60)
+def get_user(id):
+    """Fetch a team member by ID."""
+    db = _get_db()
+    try:
+        user = db.fetchone(
+            "SELECT id, username, email, role, is_active, avatar, created_at "
+            "FROM users WHERE id = ?",
+            (id,)
+        )
+        if not user:
+            abort(404, 'User not found')
+        return user
+    finally:
+        db.close()</code></pre>
+
+      <h3>PUT &mdash; Full Update (Admin or Self)</h3>
+      <pre><code>@users_app.put('/&lt;id:int&gt;', name='update_user')
+@rate_limit(50, per=60)
+@validate_request(body={'username': str, 'email': str})
+def update_user(id):
+    """Full update of a user profile. Admin or self only."""
+    user = getattr(ctx, 'user', None)
+    if not user or (user.get('role') != 'admin' and user.get('id') != id):
+        abort(403, 'Admin access required or can only update own profile')
+    data = request.json
+    db = _get_db()
+    try:
+        if not db.fetchone("SELECT id FROM users WHERE id = ?", (id,)):
+            abort(404, 'User not found')
+        db.update('users', id, {'username': data['username'], 'email': data['email']})
+        return {'id': id, 'updated': True}
+    finally:
+        db.close()</code></pre>
+
+      <h3>PATCH &mdash; Partial Update</h3>
+      <pre><code>@users_app.patch('/&lt;id:int&gt;', name='patch_user')
+@rate_limit(50, per=60)
+def patch_user(id):
+    """Partial update (change role, deactivate, etc.)."""
+    data = request.json
+    if not data:
+        abort(400, 'No data provided')
+    db = _get_db()
+    try:
+        if not db.fetchone("SELECT id FROM users WHERE id = ?", (id,)):
+            abort(404, 'User not found')
+        allowed = {'username', 'email', 'role', 'is_active'}
+        update_data = {k: v for k, v in data.items() if k in allowed}
+        if not update_data:
+            abort(400, 'No valid fields to update')
+        db.update('users', id, update_data)
+        return {'id': id, 'patched': True, 'fields': list(update_data.keys())}
+    finally:
+        db.close()</code></pre>
+
+      <h3>DELETE &mdash; Remove</h3>
+      <pre><code>@users_app.delete('/&lt;id:int&gt;', name='delete_user')
+@rate_limit(10, per=60)
+def delete_user(id):
+    """Remove a team member."""
+    db = _get_db()
+    try:
+        if not db.fetchone("SELECT id FROM users WHERE id = ?", (id,)):
+            abort(404, 'User not found')
+        db.delete('users', id)
+        return {'id': id, 'deleted': True}
+    finally:
+        db.close()</code></pre>
+
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!--  FILE UPLOADS                                      -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <h2 id="file-uploads">File Uploads</h2>
+
+      <p>Task attachments can be uploaded via multipart form data. Uploaded files are saved to disk and served via <code>static_file()</code>.</p>
+
+      <h3>Upload Handler (products.py)</h3>
+      <pre><code>@projects_app.post('/&lt;project_id:int&gt;/tasks/&lt;task_id:int&gt;/attachment', name='upload_attachment')
+@rate_limit(10, per=60)
+def upload_attachment(project_id, task_id):
+    """Upload a file attachment to a task."""
+    db = _get_db()
+    try:
+        if not db.fetchone("SELECT id FROM tasks WHERE id = ? AND project_id = ?",
+                           (task_id, project_id)):
+            abort(404, 'Task not found')
+
+        upload = request.files.get('file')
+        if not upload:
+            abort(400, 'No file provided (field name: "file")')
+
+        upload_dir = os.path.join(os.path.dirname(__file__), '..', 'uploads')
+        os.makedirs(upload_dir, exist_ok=True)
+
+        safe_name = f"task_{task_id}_{upload.filename}"
+        upload.save(os.path.join(upload_dir, safe_name), overwrite=True)
+
+        db.update('tasks', task_id, {'attachment': safe_name})
+        return {
+            'task_id': task_id,
+            'filename': safe_name,
+            'content_type': upload.content_type,
+            'uploaded': True,
+        }
+    finally:
+        db.close()</code></pre>
+
+      <h3>Serving Attachments</h3>
+      <pre><code>@projects_app.get('/attachments/&lt;filename:path&gt;', name='serve_attachment')
+def serve_attachment(filename):
+    """Serve uploaded task attachments. Demonstrates static_file()."""
+    upload_dir = os.path.join(os.path.dirname(__file__), '..', 'uploads')
+    return static_file(filename, root=upload_dir,
+                       headers={'Cache-Control': 'max-age=3600'})</code></pre>
+
+      <pre><code># Upload a file
+curl -X POST -F "file=@report.pdf" \
+  http://localhost:8080/api/projects/1/tasks/1/attachment \
+  -H "Authorization: Bearer &lt;token&gt;"
+
+# Download it
+curl http://localhost:8080/api/projects/attachments/task_1_report.pdf \
+  -H "Authorization: Bearer &lt;token&gt;"</code></pre>
+
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!--  ASYNC ROUTES                                      -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <h2 id="async-routes">Async Routes</h2>
+
+      <p>Lcore supports <code>async def</code> route handlers. TaskFlow uses <code>asyncio.gather</code> in the dashboard endpoint to run multiple database queries concurrently.</p>
+
+      <pre><code>import asyncio
+
+@projects_app.get('/dashboard/overview')
+async def dashboard_overview():
+    """Project dashboard with aggregated stats."""
+    db = _get_db()
+    try:
+        async def get_project_stats():
+            await asyncio.sleep(0.01)
+            return db.fetchall(
+                """SELECT p.id, p.name, p.status,
+                     COUNT(t.id) as task_count,
+                     SUM(CASE WHEN t.status = 'done' THEN 1 ELSE 0 END) as done_count
+                   FROM projects p LEFT JOIN tasks t ON p.id = t.project_id
+                   GROUP BY p.id"""
+            )
+
+        async def get_overdue_tasks():
+            await asyncio.sleep(0.01)
+            return db.fetchall(
+                """SELECT t.id, t.title, t.due_date, p.name as project_name
+                   FROM tasks t JOIN projects p ON t.project_id = p.id
+                   WHERE t.due_date &lt; date('now') AND t.status != 'done'"""
+            )
+
+        projects, overdue = await asyncio.gather(
+            get_project_stats(),
+            get_overdue_tasks()
+        )
+
+        total_tasks = db.count('tasks')
+        total_users = db.count('users')
+
+        return {
+            'projects': projects,
+            'overdue_tasks': overdue,
+            'totals': {
+                'projects': len(projects),
+                'tasks': total_tasks,
+                'users': total_users,
+                'overdue': len(overdue),
+            }
+        }
+    finally:
+        db.close()</code></pre>
+
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!--  SMTP EMAIL                                        -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <h2 id="smtp-email">SMTP Email</h2>
+
+      <p>The notifications module includes a full <code>EmailService</code> that sends emails via Python's <code>smtplib</code>. When SMTP credentials are not configured, it runs in simulated mode, logging emails to the database without sending them.</p>
+
+      <h3>EmailService (notifications.py)</h3>
+      <pre><code>import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+
+class EmailService:
+    """SMTP email sender. Simulates when credentials aren't configured."""
+
+    def __init__(self):
+        self.host = os.environ.get('APP_SMTP_HOST', 'smtp.gmail.com')
+        self.port = int(os.environ.get('APP_SMTP_PORT', '587'))
+        self.user = os.environ.get('APP_SMTP_USER', '')
+        self.password = os.environ.get('APP_SMTP_PASSWORD', '')
+        self.from_addr = os.environ.get('APP_SMTP_FROM', 'noreply@taskflow.app')
+        self.use_tls = os.environ.get('APP_SMTP_USE_TLS', 'true').lower() == 'true'
+
+    def send(self, to: str, subject: str, body: str, html: bool = False) -&gt; dict:
+        msg = MIMEMultipart('alternative')
+        msg['From'] = self.from_addr
+        msg['To'] = to
+        msg['Subject'] = subject
+        msg.attach(MIMEText(body, 'html' if html else 'plain'))
+
+        db = Database()
+        try:
+            if not self.user or self.user == 'your-email@gmail.com':
+                # Simulate - no real SMTP configured
+                db.insert('notifications', {
+                    'type': 'email', 'recipient': to, 'subject': subject,
+                    'body': body, 'status': 'simulated',
+                })
+                return {
+                    'status': 'simulated', 'to': to, 'subject': subject,
+                    'note': 'SMTP not configured - email simulated.',
+                }
+
+            # Real SMTP
+            server = smtplib.SMTP(self.host, self.port, timeout=10)
+            if self.use_tls:
+                server.starttls()
+            server.login(self.user, self.password)
+            server.sendmail(self.from_addr, [to], msg.as_string())
+            server.quit()
+
+            db.insert('notifications', {
+                'type': 'email', 'recipient': to, 'subject': subject,
+                'body': body, 'status': 'sent',
+            })
+            return {'status': 'sent', 'to': to, 'subject': subject}
+
+        except Exception as e:
+            db.insert('notifications', {
+                'type': 'email', 'recipient': to, 'subject': subject,
+                'status': 'failed', 'error': str(e),
+            })
+            return {'status': 'failed', 'to': to, 'error': str(e)}
+        finally:
+            db.close()</code></pre>
+
+      <h3>Usage in Routes</h3>
+      <pre><code>@notifications_app.post('/email', name='send_email')
+@rate_limit(10, per=60)
+@validate_request(body={'to': str, 'subject': str, 'body': str})
+def send_email():
+    """Send an email notification via SMTP."""
+    data = request.json
+    svc = EmailService()
+    return svc.send(data['to'], data['subject'], data['body'], data.get('html', False))
+
+
+@notifications_app.post('/task-assigned/&lt;task_id:int&gt;', name='notify_assignment')
+@rate_limit(20, per=60)
+def notify_assignment(task_id):
+    """Notify a user they've been assigned a task."""
+    db = Database()
+    try:
+        task = db.fetchone(
+            """SELECT t.*, u.email as assignee_email, u.username as assignee_name,
+                 p.name as project_name
+               FROM tasks t
+               JOIN users u ON t.assignee_id = u.id
+               JOIN projects p ON t.project_id = p.id
+               WHERE t.id = ?""",
+            (task_id,)
+        )
+        if not task:
+            abort(404, 'Task not found or has no assignee')
+
+        svc = EmailService()
+        return svc.send(
+            to=task['assignee_email'],
+            subject=f"[TaskFlow] You've been assigned: {task['title']}",
+            body=f"&lt;h2&gt;New Task Assignment&lt;/h2&gt;...",
+            html=True,
+        )
+    finally:
+        db.close()</code></pre>
+
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!--  TEMPLATES                                         -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <h2 id="templates">Templates</h2>
+
+      <p>Lcore's <code>.tpl</code> files use <strong>SimpleTemplate</strong>, the built-in template engine. SimpleTemplate files are standard HTML with embedded Python expressions and control flow. There is no special compilation step &mdash; they are rendered at request time via <code>template('name', key=value)</code>.</p>
+
+      <h3>Syntax Reference</h3>
+      <table>
+        <thead><tr><th>Syntax</th><th>Purpose</th><th>Example</th></tr></thead>
+        <tbody>
+          <tr><td><code>{{variable}}</code></td><td>Output (HTML-escaped)</td><td><code>{{title}}</code></td></tr>
+          <tr><td><code>{{!variable}}</code></td><td>Output (raw/unescaped)</td><td><code>{{!raw_html}}</code></td></tr>
+          <tr><td><code>% for x in y:</code></td><td>Loop</td><td><code>% for item in items:</code></td></tr>
+          <tr><td><code>% if cond:</code></td><td>Conditional</td><td><code>% if user:</code></td></tr>
+          <tr><td><code>% end</code></td><td>End block</td><td><code>% end</code></td></tr>
+          <tr><td><code>% include('x')</code></td><td>Include another template</td><td><code>% include('footer')</code></td></tr>
+        </tbody>
+      </table>
+
+      <h3>Welcome Page Template (welcome.tpl)</h3>
+      <pre><code>&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+  &lt;title&gt;{{title}}&lt;/title&gt;
+  &lt;style&gt;
+    /* ... CSS styles ... */
+  &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;div class="container"&gt;
+    &lt;h1&gt;{{title}}&lt;/h1&gt;
+    &lt;p class="subtitle"&gt;{{description}}&lt;/p&gt;
+
+    &lt;div class="features"&gt;
+      % for feature in features:
+      &lt;div class="feature"&gt;
+        &lt;h3&gt;{{feature['name']}}&lt;/h3&gt;
+        &lt;p&gt;{{feature['desc']}}&lt;/p&gt;
+      &lt;/div&gt;
+      % end
+    &lt;/div&gt;
+
+    &lt;div class="endpoints"&gt;
+      % for group in endpoint_groups:
+      &lt;div class="endpoint-group"&gt;
+        &lt;div class="group-title"&gt;{{group['name']}}&lt;/div&gt;
+        % for ep in group['endpoints']:
+        &lt;div class="endpoint"&gt;
+          &lt;span class="method {{ep['method'].lower()}}"&gt;{{ep['method']}}&lt;/span&gt;
+          &lt;span class="path"&gt;{{ep['path']}}&lt;/span&gt;
+          &lt;span class="desc"&gt;{{ep['desc']}}&lt;/span&gt;
+        &lt;/div&gt;
+        % end
+      &lt;/div&gt;
+      % end
+    &lt;/div&gt;
+
+    &lt;div class="footer"&gt;
+      Lcore Framework v{{version}} &amp;middot; Running on {{host}}:{{port}}
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+
+      <h3>Rendering from a Route (app.py)</h3>
+      <pre><code>from lcore import template, TEMPLATE_PATH
+
+# Register template directory
+TEMPLATE_PATH.insert(0, os.path.join(os.path.dirname(__file__), 'templates'))
+
+@app.get('/', name='home', skip_versioning=True)
+def home():
+    """TaskFlow welcome page with API overview."""
+    return template('welcome',
+        title='TaskFlow API',
+        description='Project management API built with the Lcore framework',
+        version='0.0.1',
+        features=[
+            {'name': 'SQLite DB', 'desc': 'Real database with projects, tasks, users, comments'},
+            {'name': '.env Config', 'desc': 'Multi-source config loading + dataclass validation'},
+            # ...
+        ],
+        endpoint_groups=[
+            {'name': 'Auth', 'endpoints': [
+                {'method': 'POST', 'path': '/auth/login', 'desc': 'Login with credentials'},
+                # ...
+            ]},
+        ],
+    )</code></pre>
+
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!--  LIFECYCLE HOOKS                                   -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <h2 id="lifecycle-hooks">Lifecycle Hooks</h2>
+
+      <p>TaskFlow uses five lifecycle hooks to inject behavior at different points in the request lifecycle.</p>
+
+      <table>
+        <thead><tr><th>Hook</th><th>Where Used</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>on_request_start</code></td><td>app.py</td><td>Record request start time in <code>ctx.state</code></td></tr>
+          <tr><td><code>before_request</code></td><td>app.py, users.py</td><td>Log incoming request method and path</td></tr>
+          <tr><td><code>after_request</code></td><td>app.py</td><td>Add <code>X-Powered-By: Lcore</code> header</td></tr>
+          <tr><td><code>on_response_send</code></td><td>app.py</td><td>Log response status code and duration</td></tr>
+          <tr><td><code>on_module_mount</code></td><td>app.py</td><td>Log when sub-applications are mounted</td></tr>
+        </tbody>
+      </table>
+
+      <pre><code>@app.hook('on_request_start')
+def on_request_start():
+    ctx.state['start_time'] = time.time()
+
+@app.hook('before_request')
+def before_request():
+    logger.info(f"-&gt; {request.method} {request.path}")
+
+@app.hook('after_request')
+def after_request():
+    response.set_header('X-Powered-By', 'Lcore')
+
+@app.hook('on_response_send')
+def on_response_send():
+    start = ctx.state.get('start_time', 0)
+    duration = (time.time() - start) * 1000
+    logger.info(f"&lt;- {request.method} {request.path} [{response.status_code}] {duration:.1f}ms")
+
+@app.hook('on_module_mount')
+def on_module_mount(prefix, child):
+    logger.info(f"  Mounted module at {prefix}")</code></pre>
+
+      <p>The <code>before_request</code> hook is also used at the module level in users.py:</p>
+
+      <pre><code># modules/users.py
+@users_app.hook('before_request')
+def log_user_request():
+    print(f"  [Users] {request.method} {request.path}")</code></pre>
+
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!--  ERROR HANDLING                                    -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <h2 id="error-handling">Error Handling</h2>
+
+      <p>TaskFlow registers custom error handlers for HTTP 404, 500, 429, and 403. The 404 and 500 handlers perform content negotiation: they return JSON if the client sends <code>Accept: application/json</code>, or render an HTML template otherwise.</p>
+
+      <pre><code>@app.error(404)
+def error_404(error):
+    if 'application/json' in (request.get_header('Accept') or ''):
+        return {'error': 'Not Found', 'path': request.path, 'status': 404}
+    return template('error', status_code=404, status_text='Not Found',
+                     message=f"The path '{request.path}' does not exist.")
+
+@app.error(500)
+def error_500(error):
+    if 'application/json' in (request.get_header('Accept') or ''):
+        return {'error': 'Internal Server Error', 'status': 500}
+    return template('error', status_code=500, status_text='Internal Server Error',
+                     message='Something went wrong. Please try again later.')
+
+@app.error(429)
+def error_429(error):
+    return {'error': 'Too Many Requests', 'status': 429,
+            'message': 'Rate limit exceeded. Please slow down.'}
+
+@app.error(403)
+def error_403(error):
+    return {'error': 'Forbidden', 'status': 403,
+            'message': 'You do not have permission to access this resource.'}</code></pre>
+
+      <h3>Error Template (error.tpl)</h3>
+      <pre><code>&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+  &lt;title&gt;Error {{status_code}}&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;div class="card"&gt;
+    &lt;h1&gt;{{status_code}}&lt;/h1&gt;
+    &lt;h2&gt;{{status_text}}&lt;/h2&gt;
+    &lt;p&gt;{{message}}&lt;/p&gt;
+    &lt;p&gt;&lt;a href="/"&gt;Back to Home&lt;/a&gt;&lt;/p&gt;
+  &lt;/div&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!--  AUTO API DOCS                                     -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <h2 id="api-docs">Auto API Docs</h2>
+
+      <p>When running in debug mode, TaskFlow enables Lcore's built-in API documentation at <code>/docs</code>. This auto-generates an interactive page listing all registered routes with their methods, parameters, and docstrings.</p>
+
+      <pre><code>is_debug = str(app.config.get('debug', 'false')).lower() in ('true', '1', 'yes')
+if is_debug:
+    app.enable_docs()
+    logger.info("  API docs at /docs")</code></pre>
+
+      <p>This creates two endpoints:</p>
+      <table>
+        <thead><tr><th>Path</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>/docs</code></td><td>Interactive HTML documentation page</td></tr>
+          <tr><td><code>/docs/json</code></td><td>Raw JSON API schema</td></tr>
+        </tbody>
+      </table>
+
+      <div class="info-box warning">
+        <strong>Security</strong>
+        <p>API docs are only enabled when <code>debug=true</code> in the configuration. In production, they are disabled by default to avoid exposing your route structure publicly.</p>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!--  FRONTEND APPLICATION                               -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <h2 id="frontend">Frontend Application</h2>
+
+      <p>TaskFlow includes a complete single-page frontend at <code>/frontend</code>, built entirely with Lcore's <strong>SimpleTemplate</strong> engine. No build tools, no npm, no JavaScript frameworks &mdash; just HTML, CSS, and vanilla JavaScript served directly by the backend as a <code>.tpl</code> template.</p>
+
+      <h3>Pages</h3>
+
+      <table>
+        <thead><tr><th>Page</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>Login</td><td>Demo credential quick-fill, token stored in localStorage</td></tr>
+          <tr><td>Dashboard</td><td>Stats overview (projects, tasks, team, overdue), project summary table, recent activity feed</td></tr>
+          <tr><td>Projects</td><td>List all projects, create/delete (admin only)</td></tr>
+          <tr><td>Project Detail</td><td>Kanban task board (To Do / In Progress / Done), create new tasks with assignee, priority, due date</td></tr>
+          <tr><td>Task Detail</td><td>Full task view, status change buttons, comments thread, delete (admin only)</td></tr>
+          <tr><td>Team</td><td>Member list with role badges, add/remove members (admin only)</td></tr>
+          <tr><td>Notifications</td><td>Email history log, compose and send emails</td></tr>
+          <tr><td>My Profile</td><td>View and edit own username and email, account info and permissions summary</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Role-Based UI</h3>
+
+      <p>The frontend checks <code>state.user.role</code> to conditionally show admin-only UI elements:</p>
+
+      <pre><code>function isAdmin() {
+  return state.user && state.user.role === 'admin';
+}
+
+// Only admins see the create/delete buttons
+document.getElementById('topbar-actions').innerHTML =
+  isAdmin() ? '&lt;button onclick="openNewProjectModal()"&gt;+ New Project&lt;/button&gt;' : '';
+
+// Members see projects and tasks, but no destructive actions
+if (isAdmin()) html += '&lt;button onclick="deleteProject(id)"&gt;Delete&lt;/button&gt;';</code></pre>
+
+      <p><strong>Backend enforcement matches the UI:</strong> even if a member bypasses the frontend and calls the API directly, <code>_require_admin()</code> returns 403 Forbidden. The profile update (<code>PUT /api/users/&lt;id&gt;</code>) allows admin <em>or</em> the user updating their own account.</p>
+
+      <h3>How It Works</h3>
+
+      <p>The frontend is a single <code>frontend.tpl</code> file served by a Lcore route:</p>
+
+      <pre><code>@app.get('/frontend', name='frontend', skip_versioning=True)
+def frontend():
+    """TaskFlow frontend &mdash; full project management UI."""
+    return template('frontend')</code></pre>
+
+      <p>It uses <code>fetch()</code> to call the same API endpoints, with the Bearer token stored in <code>localStorage</code> for persistent login across page refreshes.</p>
+
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!--  TEST RESULTS                                      -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <h2 id="test-results">Test Results</h2>
+
+      <p>TaskFlow includes a comprehensive test suite that validates all 30 endpoints. Every test passes.</p>
+
+      <pre><code>  PASS: Unauthenticated = 401
+  PASS: Login
+  PASS: Register
+  PASS: Basic Auth
+  PASS: Health
+  PASS: List users
+  PASS: Get user
+  PASS: Create user
+  PASS: Patch user
+  PASS: Search users
+  PASS: List projects
+  PASS: Get project
+  PASS: Create project
+  PASS: List tasks
+  PASS: Create task
+  PASS: Update task
+  PASS: Get task
+  PASS: Add comment
+  PASS: Send email
+  PASS: Batch notify
+  PASS: History
+  PASS: Dashboard (async)
+  PASS: Activity
+  PASS: Admin (admin)
+  PASS: Admin (member=403)
+  PASS: Routes
+  PASS: Middleware
+  PASS: Config
+  PASS: Stats
+  PASS: Redirect 301
+
+  30 passed, 0 failed</code></pre>
+
+      <h3>Test Coverage by Feature</h3>
+      <table>
+        <thead><tr><th>Category</th><th>Tests</th><th>What is Verified</th></tr></thead>
+        <tbody>
+          <tr><td>Authentication</td><td>4</td><td>401 without token, login, register, Basic Auth</td></tr>
+          <tr><td>System</td><td>1</td><td>Health check endpoint</td></tr>
+          <tr><td>Users CRUD</td><td>5</td><td>List, get, create, patch, search</td></tr>
+          <tr><td>Projects &amp; Tasks</td><td>8</td><td>List/get/create projects, list/create/update/get tasks, add comment</td></tr>
+          <tr><td>Notifications</td><td>3</td><td>Send email, batch notify (async), history</td></tr>
+          <tr><td>Dashboard</td><td>2</td><td>Dashboard overview (async), activity feed</td></tr>
+          <tr><td>Admin &amp; RBAC</td><td>2</td><td>Admin access with admin token, 403 with member token. Endpoint-level guards on user/project write operations</td></tr>
+          <tr><td>Debug</td><td>4</td><td>Routes, middleware, config (redacted), stats</td></tr>
+          <tr><td>Redirect</td><td>1</td><td>301 redirect from /old-api to /api/projects/</td></tr>
+        </tbody>
+      </table>
+
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!--  WEBSOCKET NOTE                                    -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <h2 id="websocket-note">WebSocket Note</h2>
+
+      <p><strong>Lcore does not natively support WebSockets.</strong> Lcore is a WSGI (Web Server Gateway Interface) framework, and WSGI is fundamentally a synchronous request/response protocol. Each WSGI request follows a strict cycle: the server receives a request, passes it to the application, the application returns a response, and the connection closes.</p>
+
+      <p>WebSockets require persistent, bidirectional connections where both the client and server can send messages at any time. This model is incompatible with WSGI's one-request-one-response architecture. WSGI has no mechanism for keeping a connection open or pushing data to the client outside of a response.</p>
+
+      <div class="info-box">
+        <strong>Coming Soon</strong>
+        <p>A companion WebSocket library designed to work alongside the Lcore framework is currently in development and will be released in a later phase. This library will allow you to run a WebSocket server side-by-side with your Lcore application, sharing configuration, authentication, and application logic seamlessly.</p>
+      </div>
+
+      <p>In the meantime, if your application needs WebSocket support, you have two options:</p>
+
+      <table>
+        <thead><tr><th>Approach</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>Separate WebSocket server</td><td>Run a dedicated WebSocket server (e.g., <code>websockets</code>, <code>socket.io</code>) alongside Lcore on a different port</td></tr>
+          <tr><td>ASGI framework</td><td>Use an ASGI-based framework (e.g., Starlette, FastAPI) that natively supports both HTTP and WebSocket protocols</td></tr>
+        </tbody>
+      </table>
+
+      <div class="info-box warning">
+        <strong>Why Not ASGI?</strong>
+        <p>Lcore is intentionally WSGI-based for simplicity, broad server compatibility (Gunicorn, Waitress, uWSGI, etc.), and a straightforward programming model. WSGI remains the most widely deployed Python web standard. For the vast majority of REST APIs, WSGI is more than sufficient.</p>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="assets/script.js"></script>
+</body>
+</html>

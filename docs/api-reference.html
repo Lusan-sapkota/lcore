@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Reference - Lcore Documentation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="shortcut icon" href="lcore.png" type="image/x-icon">
+
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="index.html" class="logo"><img src="lcore.png" alt="Lcore" class="logo-icon"> Lcore</a>
+      <nav class="header-nav">
+        <a href="getting-started.html">Guide</a>
+        <a href="routing.html">Routing</a>
+        <a href="request-response.html">Request/Response</a>
+        <a href="middleware.html">Middleware</a>
+        <a href="plugins.html">Plugins</a>
+        <a href="advanced.html">Advanced</a>
+        <a href="api-reference.html">API</a>
+        <a href="real-world-example.html">Example</a>
+        <a href="https://play.lcore.lusansapkota.com.np/#code-playground">Playground</a>
+      </nav>
+      <div class="header-right">
+        <span class="version-badge">v0.0.1</span>
+        <a href="https://github.com/LusanSapkota/Lcore" class="github-link">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          GitHub
+        </a>
+        <button class="menu-toggle">&#9776;</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="doc-layout">
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-title">Getting Started</div>
+        <a href="getting-started.html#installation" class="sidebar-link">Installation</a>
+        <a href="getting-started.html#first-app" class="sidebar-link">Your First App</a>
+        <a href="getting-started.html#concepts" class="sidebar-link">Core Concepts</a>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-title">Core</div>
+        <a href="routing.html" class="sidebar-link">Routing</a>
+        <a href="request-response.html" class="sidebar-link">Request &amp; Response</a>
+        <a href="middleware.html" class="sidebar-link">Middleware</a>
+        <a href="plugins.html" class="sidebar-link">Plugins</a>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-title">API Reference</div>
+        <a href="api-reference.html#lcore-class" class="sidebar-link">Lcore</a>
+        <a href="api-reference.html#request-class" class="sidebar-link">BaseRequest</a>
+        <a href="api-reference.html#response-class" class="sidebar-link">BaseResponse</a>
+        <a href="api-reference.html#request-context" class="sidebar-link">RequestContext</a>
+        <a href="api-reference.html#router-class" class="sidebar-link">Router</a>
+        <a href="api-reference.html#route-class" class="sidebar-link">Route</a>
+        <a href="api-reference.html#config-class" class="sidebar-link">ConfigDict</a>
+        <a href="api-reference.html#middleware-classes" class="sidebar-link">Middleware</a>
+        <a href="api-reference.html#dependency-container" class="sidebar-link">DependencyContainer</a>
+        <a href="api-reference.html#exceptions" class="sidebar-link">Exceptions</a>
+        <a href="api-reference.html#data-structures" class="sidebar-link">Data Structures</a>
+        <a href="api-reference.html#utilities" class="sidebar-link">Utilities</a>
+        <a href="api-reference.html#security-utilities" class="sidebar-link">Security</a>
+        <a href="api-reference.html#test-client" class="sidebar-link">Test Client</a>
+        <a href="api-reference.html#background-task-pool" class="sidebar-link">Background Tasks</a>
+        <a href="api-reference.html#decorators" class="sidebar-link">Decorators</a>
+        <a href="api-reference.html#template-classes" class="sidebar-link">Templates</a>
+        <a href="api-reference.html#server-adapters" class="sidebar-link">Server Adapters</a>
+      </div>
+    </aside>
+
+    <main class="content">
+      <h1>API Reference</h1>
+      <p class="page-desc">Complete reference for all classes, functions, and constants in the Lcore framework.</p>
+
+      <!-- Lcore Class -->
+      <h2 id="lcore-class">Lcore</h2>
+      <p>The main application class. Creates a WSGI-compatible application.</p>
+
+      <div class="api-item">
+        <div class="api-header">
+          <span class="api-badge class">class</span>
+          <span class="api-name">Lcore</span>
+          <span class="api-sig">(**kwargs)</span>
+        </div>
+        <div class="api-body">
+          <p>Create a new Lcore application. Keyword arguments are added to <code>app.config</code>.</p>
+        </div>
+      </div>
+
+      <h3>Routing Methods</h3>
+      <table>
+        <thead><tr><th>Method</th><th>Signature</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>route</code></td><td><code>(path=None, method='GET', callback=None, name=None, apply=None, skip=None, **config)</code></td><td>Register a route. Use as decorator or direct call.</td></tr>
+          <tr><td><code>get</code></td><td><code>(path=None, **options)</code></td><td>Shorthand for <code>route(method='GET')</code></td></tr>
+          <tr><td><code>post</code></td><td><code>(path=None, **options)</code></td><td>Shorthand for <code>route(method='POST')</code></td></tr>
+          <tr><td><code>put</code></td><td><code>(path=None, **options)</code></td><td>Shorthand for <code>route(method='PUT')</code></td></tr>
+          <tr><td><code>delete</code></td><td><code>(path=None, **options)</code></td><td>Shorthand for <code>route(method='DELETE')</code></td></tr>
+          <tr><td><code>patch</code></td><td><code>(path=None, **options)</code></td><td>Shorthand for <code>route(method='PATCH')</code></td></tr>
+          <tr><td><code>error</code></td><td><code>(code=500, callback=None)</code></td><td>Register error handler for HTTP status code.</td></tr>
+          <tr><td><code>add_route</code></td><td><code>(route)</code></td><td>Add a <code>Route</code> object directly.</td></tr>
+          <tr><td><code>add_route_filter</code></td><td><code>(name, pattern, to_python=None, to_url=None)</code></td><td>Register a custom URL filter.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Mounting &amp; Merging</h3>
+      <table>
+        <thead><tr><th>Method</th><th>Signature</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>mount</code></td><td><code>(prefix, app, **options)</code></td><td>Mount a sub-app or WSGI app under a prefix.</td></tr>
+          <tr><td><code>merge</code></td><td><code>(routes)</code></td><td>Merge routes from another app.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Hook System</h3>
+      <table>
+        <thead><tr><th>Method</th><th>Signature</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>add_hook</code></td><td><code>(name, func)</code></td><td>Register a hook callback.</td></tr>
+          <tr><td><code>remove_hook</code></td><td><code>(name, func)</code></td><td>Remove a hook callback.</td></tr>
+          <tr><td><code>trigger_hook</code></td><td><code>(__name, *args, **kwargs)</code></td><td>Trigger all callbacks for a hook. Returns list of results.</td></tr>
+          <tr><td><code>hook</code></td><td><code>(name)</code></td><td>Decorator to register a hook callback.</td></tr>
+          <tr><td><code>add_module_hook</code></td><td><code>(prefix, hook_name, func)</code></td><td>Register hook for mounted module prefix.</td></tr>
+          <tr><td><code>module_hook</code></td><td><code>(prefix, hook_name)</code></td><td>Decorator for module-specific hooks.</td></tr>
+          <tr><td><code>trigger_module_hooks</code></td><td><code>(prefix, hook_name, *args, **kwargs)</code></td><td>Trigger module hooks.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Plugin System</h3>
+      <table>
+        <thead><tr><th>Method</th><th>Signature</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>install</code></td><td><code>(plugin)</code></td><td>Install a plugin. Calls <code>setup(app)</code>.</td></tr>
+          <tr><td><code>uninstall</code></td><td><code>(plugin)</code></td><td>Uninstall by name or instance.</td></tr>
+          <tr><td><code>reset</code></td><td><code>(route=None)</code></td><td>Reset route cache. Re-applies plugins.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Middleware &amp; DI</h3>
+      <table>
+        <thead><tr><th>Method</th><th>Signature</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>use</code></td><td><code>(middleware, routes=None, order=None)</code></td><td>Register middleware.</td></tr>
+          <tr><td><code>inject</code></td><td><code>(name, factory, lifetime='singleton')</code></td><td>Register a dependency. Lifetimes: <code>singleton</code>, <code>scoped</code>, <code>transient</code>.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Utility Methods</h3>
+      <table>
+        <thead><tr><th>Method</th><th>Signature</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>match</code></td><td><code>(environ)</code></td><td>Match a WSGI environ to a route.</td></tr>
+          <tr><td><code>get_url</code></td><td><code>(routename, **kargs)</code></td><td>Build URL from route name.</td></tr>
+          <tr><td><code>group</code></td><td><code>(prefix, **common_config)</code></td><td>Context manager for route grouping.</td></tr>
+          <tr><td><code>show_routes</code></td><td><code>()</code></td><td>List all routes as dicts.</td></tr>
+          <tr><td><code>show_middleware</code></td><td><code>()</code></td><td>List all middleware sorted by order.</td></tr>
+          <tr><td><code>api_docs</code></td><td><code>()</code></td><td>Generate API docs as dict.</td></tr>
+          <tr><td><code>api_docs_json</code></td><td><code>()</code></td><td>Generate API docs as JSON string.</td></tr>
+          <tr><td><code>run</code></td><td><code>(**kwargs)</code></td><td>Start server. Accepts <code>server</code>, <code>host</code>, <code>port</code>, <code>debug</code>, <code>reloader</code>.</td></tr>
+          <tr><td><code>close</code></td><td><code>()</code></td><td>Close app, trigger app_reset hooks.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Properties</h3>
+      <table>
+        <thead><tr><th>Property</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>config</code></td><td><code>ConfigDict</code></td><td>Application configuration.</td></tr>
+          <tr><td><code>routes</code></td><td><code>list[Route]</code></td><td>All registered routes.</td></tr>
+          <tr><td><code>router</code></td><td><code>Router</code></td><td>URL routing engine.</td></tr>
+          <tr><td><code>plugins</code></td><td><code>list</code></td><td>Installed plugins.</td></tr>
+          <tr><td><code>middleware</code></td><td><code>MiddlewarePipeline</code></td><td>Middleware pipeline.</td></tr>
+          <tr><td><code>resources</code></td><td><code>ResourceManager</code></td><td>File resource manager.</td></tr>
+          <tr><td><code>catchall</code></td><td><code>bool</code></td><td>Catch all exceptions (from config).</td></tr>
+        </tbody>
+      </table>
+
+      <!-- BaseRequest -->
+      <h2 id="request-class">BaseRequest</h2>
+
+      <div class="api-item">
+        <div class="api-header">
+          <span class="api-badge class">class</span>
+          <span class="api-name">BaseRequest</span>
+          <span class="api-sig">(environ=None)</span>
+        </div>
+        <div class="api-body">
+          <p>HTTP request wrapper around WSGI environ dict. Thread-local via <code>request</code> proxy.</p>
+        </div>
+      </div>
+
+      <h3>Properties</h3>
+      <table>
+        <thead><tr><th>Property</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>method</code></td><td><code>str</code></td><td>HTTP method (GET, POST, etc.)</td></tr>
+          <tr><td><code>path</code></td><td><code>str</code></td><td>Request path</td></tr>
+          <tr><td><code>url</code></td><td><code>str</code></td><td>Full URL</td></tr>
+          <tr><td><code>fullpath</code></td><td><code>str</code></td><td>Path with script_name</td></tr>
+          <tr><td><code>urlparts</code></td><td><code>SplitResult</code></td><td>Parsed URL components</td></tr>
+          <tr><td><code>query_string</code></td><td><code>str</code></td><td>Raw query string</td></tr>
+          <tr><td><code>script_name</code></td><td><code>str</code></td><td>WSGI SCRIPT_NAME</td></tr>
+          <tr><td><code>content_type</code></td><td><code>str</code></td><td>Content-Type header</td></tr>
+          <tr><td><code>content_length</code></td><td><code>int</code></td><td>Content-Length (-1 if invalid)</td></tr>
+          <tr><td><code>remote_addr</code></td><td><code>str</code></td><td>Client IP address</td></tr>
+          <tr><td><code>remote_route</code></td><td><code>list</code></td><td>IP chain from X-Forwarded-For</td></tr>
+          <tr><td><code>is_xhr</code></td><td><code>bool</code></td><td>XMLHttpRequest check</td></tr>
+          <tr><td><code>is_ajax</code></td><td><code>bool</code></td><td>Alias for is_xhr</td></tr>
+          <tr><td><code>auth</code></td><td><code>tuple</code></td><td>Parsed Basic auth (user, pass) or None</td></tr>
+          <tr><td><code>chunked</code></td><td><code>bool</code></td><td>Chunked transfer encoding</td></tr>
+          <tr><td><code>headers</code></td><td><code>WSGIHeaderDict</code></td><td>Request headers (case-insensitive)</td></tr>
+          <tr><td><code>cookies</code></td><td><code>FormsDict</code></td><td>Cookie values</td></tr>
+          <tr><td><code>query</code> / <code>GET</code></td><td><code>FormsDict</code></td><td>Query string parameters</td></tr>
+          <tr><td><code>forms</code></td><td><code>FormsDict</code></td><td>Form body fields</td></tr>
+          <tr><td><code>params</code></td><td><code>FormsDict</code></td><td>Combined query + forms</td></tr>
+          <tr><td><code>files</code></td><td><code>FormsDict</code></td><td>Uploaded files (FileUpload objects)</td></tr>
+          <tr><td><code>json</code></td><td><code>dict/None</code></td><td>Parsed JSON body</td></tr>
+          <tr><td><code>body</code></td><td><code>BytesIO</code></td><td>Raw request body stream</td></tr>
+          <tr><td><code>app</code></td><td><code>Lcore</code></td><td>Parent application</td></tr>
+          <tr><td><code>route</code></td><td><code>Route</code></td><td>Matched route</td></tr>
+          <tr><td><code>url_args</code></td><td><code>dict</code></td><td>URL parameter arguments</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Methods</h3>
+      <table>
+        <thead><tr><th>Method</th><th>Signature</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>get_header</code></td><td><code>(name, default=None)</code></td><td>Get a request header value.</td></tr>
+          <tr><td><code>get_cookie</code></td><td><code>(key, default=None, secret=None, digestmod=sha256)</code></td><td>Read cookie (with optional signature verification).</td></tr>
+          <tr><td><code>path_shift</code></td><td><code>(shift=1)</code></td><td>Shift path segments between script_name and path.</td></tr>
+          <tr><td><code>copy</code></td><td><code>()</code></td><td>Create a copy of this request.</td></tr>
+        </tbody>
+      </table>
+
+      <!-- BaseResponse -->
+      <h2 id="response-class">BaseResponse</h2>
+
+      <div class="api-item">
+        <div class="api-header">
+          <span class="api-badge class">class</span>
+          <span class="api-name">BaseResponse</span>
+          <span class="api-sig">(body='', status=None, headers=None, **more_headers)</span>
+        </div>
+        <div class="api-body">
+          <p>HTTP response builder. Thread-local via <code>response</code> proxy.</p>
+        </div>
+      </div>
+
+      <h3>Properties</h3>
+      <table>
+        <thead><tr><th>Property</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>status</code></td><td><code>int/str</code></td><td>HTTP status (read/write). Set with int or string.</td></tr>
+          <tr><td><code>status_code</code></td><td><code>int</code></td><td>Numeric status code (read-only).</td></tr>
+          <tr><td><code>status_line</code></td><td><code>str</code></td><td>Full status line like "200 OK" (read-only).</td></tr>
+          <tr><td><code>headers</code></td><td><code>HeaderDict</code></td><td>Response headers.</td></tr>
+          <tr><td><code>headerlist</code></td><td><code>list</code></td><td>Headers as list of (name, value) tuples.</td></tr>
+          <tr><td><code>content_type</code></td><td><code>str</code></td><td>Content-Type header.</td></tr>
+          <tr><td><code>content_length</code></td><td><code>int</code></td><td>Content-Length header.</td></tr>
+          <tr><td><code>expires</code></td><td><code>datetime</code></td><td>Expires header.</td></tr>
+          <tr><td><code>charset</code></td><td><code>str</code></td><td>Character set from Content-Type.</td></tr>
+          <tr><td><code>body</code></td><td><code>str/bytes</code></td><td>Response body.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Methods</h3>
+      <table>
+        <thead><tr><th>Method</th><th>Signature</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>set_header</code></td><td><code>(name, value)</code></td><td>Set header (replaces existing).</td></tr>
+          <tr><td><code>add_header</code></td><td><code>(name, value)</code></td><td>Add header (allows duplicates).</td></tr>
+          <tr><td><code>get_header</code></td><td><code>(name, default=None)</code></td><td>Get response header.</td></tr>
+          <tr><td><code>set_cookie</code></td><td><code>(name, value, secret=None, digestmod=sha256, **options)</code></td><td>Set cookie. Options: max_age, expires, path, domain, secure, httponly, samesite.</td></tr>
+          <tr><td><code>delete_cookie</code></td><td><code>(key, **kwargs)</code></td><td>Delete cookie by setting max_age=-1.</td></tr>
+          <tr><td><code>copy</code></td><td><code>(cls=None)</code></td><td>Copy this response.</td></tr>
+          <tr><td><code>close</code></td><td><code>()</code></td><td>Close body if file-like.</td></tr>
+        </tbody>
+      </table>
+
+      <!-- RequestContext -->
+      <h2 id="request-context">RequestContext</h2>
+
+      <div class="api-item">
+        <div class="api-header">
+          <span class="api-badge class">class</span>
+          <span class="api-name">RequestContext</span>
+          <span class="api-sig">(req=None, resp=None, app=None)</span>
+        </div>
+        <div class="api-body">
+          <p>Per-request context object carrying state across middleware and handlers. Thread-local via <code>ctx</code> proxy.</p>
+        </div>
+      </div>
+
+      <table>
+        <thead><tr><th>Attribute</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>request</code></td><td><code>BaseRequest</code></td><td>Current request.</td></tr>
+          <tr><td><code>response</code></td><td><code>BaseResponse</code></td><td>Current response.</td></tr>
+          <tr><td><code>app</code></td><td><code>Lcore</code></td><td>Application instance.</td></tr>
+          <tr><td><code>route</code></td><td><code>Route</code></td><td>Matched route.</td></tr>
+          <tr><td><code>request_id</code></td><td><code>str</code></td><td>Unique request ID.</td></tr>
+          <tr><td><code>user</code></td><td><code>any</code></td><td>User info (set by auth).</td></tr>
+          <tr><td><code>state</code></td><td><code>dict</code></td><td>Arbitrary per-request state.</td></tr>
+        </tbody>
+      </table>
+
+      <table>
+        <thead><tr><th>Method</th><th>Signature</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>lazy</code></td><td><code>(key, factory)</code></td><td>Register a lazy-loaded attribute.</td></tr>
+        </tbody>
+      </table>
+
+      <!-- Router -->
+      <h2 id="router-class">Router</h2>
+
+      <div class="api-item">
+        <div class="api-header">
+          <span class="api-badge class">class</span>
+          <span class="api-name">Router</span>
+          <span class="api-sig">(strict=False)</span>
+        </div>
+        <div class="api-body"><p>URL routing engine. Matches URL paths to route targets.</p></div>
+      </div>
+
+      <table>
+        <thead><tr><th>Method</th><th>Signature</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>add</code></td><td><code>(rule, method, target, name=None)</code></td><td>Add a route rule.</td></tr>
+          <tr><td><code>match</code></td><td><code>(environ)</code></td><td>Match WSGI environ to a route. Returns (target, url_args).</td></tr>
+          <tr><td><code>build</code></td><td><code>(_name, *anons, **query)</code></td><td>Build URL from route name.</td></tr>
+          <tr><td><code>add_filter</code></td><td><code>(name, func)</code></td><td>Add custom filter function.</td></tr>
+        </tbody>
+      </table>
+
+      <!-- Route -->
+      <h2 id="route-class">Route</h2>
+
+      <div class="api-item">
+        <div class="api-header">
+          <span class="api-badge class">class</span>
+          <span class="api-name">Route</span>
+          <span class="api-sig">(app, rule, method, callback, name=None, plugins=None, skiplist=None, **config)</span>
+        </div>
+        <div class="api-body"><p>Represents a single route with metadata, plugins, and configuration.</p></div>
+      </div>
+
+      <table>
+        <thead><tr><th>Property/Method</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>app</code></td><td><code>Lcore</code></td><td>Parent application.</td></tr>
+          <tr><td><code>rule</code></td><td><code>str</code></td><td>URL pattern.</td></tr>
+          <tr><td><code>method</code></td><td><code>str</code></td><td>HTTP method.</td></tr>
+          <tr><td><code>callback</code></td><td><code>callable</code></td><td>Original handler function.</td></tr>
+          <tr><td><code>name</code></td><td><code>str</code></td><td>Route name.</td></tr>
+          <tr><td><code>config</code></td><td><code>ConfigDict</code></td><td>Per-route configuration.</td></tr>
+          <tr><td><code>call</code></td><td><code>callable</code></td><td>Cached callback (after plugin application).</td></tr>
+          <tr><td><code>reset()</code></td><td>-</td><td>Reset cached call.</td></tr>
+          <tr><td><code>prepare()</code></td><td>-</td><td>Pre-compute callback with plugins.</td></tr>
+          <tr><td><code>all_plugins()</code></td><td><code>list</code></td><td>Get all applicable plugins.</td></tr>
+          <tr><td><code>get_undecorated_callback()</code></td><td><code>callable</code></td><td>Get original callback.</td></tr>
+          <tr><td><code>get_callback_args()</code></td><td><code>list</code></td><td>Get callback parameter names.</td></tr>
+        </tbody>
+      </table>
+
+      <!-- ConfigDict -->
+      <h2 id="config-class">ConfigDict</h2>
+
+      <div class="api-item">
+        <div class="api-header">
+          <span class="api-badge class">class</span>
+          <span class="api-name">ConfigDict</span>
+          <span class="api-sig">()</span>
+        </div>
+        <div class="api-body"><p>Configuration dictionary with metadata, overlays, and multi-source loading.</p></div>
+      </div>
+
+      <table>
+        <thead><tr><th>Method</th><th>Signature</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>load_module</code></td><td><code>(name, squash=True)</code></td><td>Load config from Python module.</td></tr>
+          <tr><td><code>load_config</code></td><td><code>(filename, **options)</code></td><td>Load from INI file.</td></tr>
+          <tr><td><code>load_dict</code></td><td><code>(source, namespace='')</code></td><td>Load from dict (flattens nested dicts).</td></tr>
+          <tr><td><code>load_env</code></td><td><code>(prefix='LCORE_', strip_prefix=True)</code></td><td>Load from environment variables.</td></tr>
+          <tr><td><code>load_json</code></td><td><code>(filename)</code></td><td>Load from JSON file.</td></tr>
+          <tr><td><code>load_dotenv</code></td><td><code>(filename='.env')</code></td><td>Load from .env file (validates key names).</td></tr>
+          <tr><td><code>validate_config</code></td><td><code>(schema)</code></td><td>Validate against dataclass schema.</td></tr>
+          <tr><td><code>update</code></td><td><code>(*a, **ka)</code></td><td>Update with optional prefix support.</td></tr>
+          <tr><td><code>setdefault</code></td><td><code>(key, value=None)</code></td><td>Set default value.</td></tr>
+          <tr><td><code>meta_get</code></td><td><code>(key, metafield, default=None)</code></td><td>Get metadata for a key.</td></tr>
+          <tr><td><code>meta_set</code></td><td><code>(key, metafield, value)</code></td><td>Set metadata for a key.</td></tr>
+        </tbody>
+      </table>
+
+      <!-- Middleware Classes -->
+      <h2 id="middleware-classes">Middleware Classes</h2>
+
+      <div class="api-item">
+        <div class="api-header">
+          <span class="api-badge class">class</span>
+          <span class="api-name">Middleware</span>
+        </div>
+        <div class="api-body"><p>Base class. Attrs: <code>name=None</code>, <code>order=50</code>. Override <code>__call__(self, ctx, next_handler)</code>.</p></div>
+      </div>
+
+      <div class="api-item">
+        <div class="api-header">
+          <span class="api-badge class">class</span>
+          <span class="api-name">MiddlewareHook</span>
+        </div>
+        <div class="api-body"><p>Hook-based middleware. Override <code>pre(ctx)</code> and <code>post(ctx, result)</code>.</p></div>
+      </div>
+
+      <div class="api-item">
+        <div class="api-header">
+          <span class="api-badge class">class</span>
+          <span class="api-name">MiddlewarePipeline</span>
+        </div>
+        <div class="api-body"><p>Manages middleware chain. Methods: <code>add(mw, routes, order)</code>, <code>remove(mw)</code>, <code>execute(ctx, handler)</code>.</p></div>
+      </div>
+
+      <h3>Built-in Middleware</h3>
+      <table>
+        <thead><tr><th>Class</th><th>Constructor</th><th>Order</th></tr></thead>
+        <tbody>
+          <tr><td><code>BodyLimitMiddleware</code></td><td><code>(max_size=10*1024*1024)</code></td><td>0</td></tr>
+          <tr><td><code>RequestIDMiddleware</code></td><td><code>()</code></td><td>1</td></tr>
+          <tr><td><code>RequestLoggerMiddleware</code></td><td><code>(logger=None)</code></td><td>2</td></tr>
+          <tr><td><code>CORSMiddleware</code></td><td><code>(allow_origins='*', allow_methods=None, allow_headers=None, expose_headers=None, allow_credentials=False, max_age=86400)</code></td><td>3</td></tr>
+          <tr><td><code>SecurityHeadersMiddleware</code></td><td><code>(hsts=False, hsts_max_age=31536000, **overrides)</code></td><td>5</td></tr>
+          <tr><td><code>CSRFMiddleware</code></td><td><code>(secret=None, cookie_name='_csrf_token', header_name='X-CSRF-Token', safe_methods=('GET','HEAD','OPTIONS'))</code></td><td>10</td></tr>
+          <tr><td><code>CompressionMiddleware</code></td><td><code>(min_size=256, level=6, content_types=None)</code></td><td>90</td></tr>
+        </tbody>
+      </table>
+
+      <!-- DependencyContainer -->
+      <h2 id="dependency-container">DependencyContainer</h2>
+
+      <div class="api-item">
+        <div class="api-header">
+          <span class="api-badge class">class</span>
+          <span class="api-name">DependencyContainer</span>
+          <span class="api-sig">()</span>
+        </div>
+        <div class="api-body"><p>Manages dependency injection with singleton, scoped, and transient lifetimes.</p></div>
+      </div>
+
+      <table>
+        <thead><tr><th>Method</th><th>Signature</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>register</code></td><td><code>(name, factory, lifetime='singleton')</code></td><td>Register a dependency factory.</td></tr>
+          <tr><td><code>resolve</code></td><td><code>(name, ctx=None)</code></td><td>Resolve dependency by name.</td></tr>
+          <tr><td><code>_begin_scope</code></td><td><code>(ctx)</code></td><td>Begin request scope.</td></tr>
+          <tr><td><code>_end_scope</code></td><td><code>(ctx)</code></td><td>End scope and close scoped deps.</td></tr>
+          <tr><td><code>__contains__</code></td><td><code>(name)</code></td><td>Check if dependency registered.</td></tr>
+          <tr><td><code>__len__</code></td><td><code>()</code></td><td>Count registered dependencies.</td></tr>
+        </tbody>
+      </table>
+
+      <!-- Exceptions -->
+      <h2 id="exceptions">Exceptions</h2>
+
+      <table>
+        <thead><tr><th>Exception</th><th>Parent</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>HTTPResponse</code></td><td><code>BaseResponse</code></td><td>Can be raised to send immediate response. <code>(body, status, headers)</code></td></tr>
+          <tr><td><code>HTTPError</code></td><td><code>HTTPResponse</code></td><td>Error response with exception info. <code>(status, body, exception, traceback)</code></td></tr>
+          <tr><td><code>LcoreException</code></td><td><code>Exception</code></td><td>Base framework exception.</td></tr>
+          <tr><td><code>RouteError</code></td><td><code>LcoreException</code></td><td>Routing error base.</td></tr>
+          <tr><td><code>RouterUnknownModeError</code></td><td><code>RouteError</code></td><td>Unknown router mode.</td></tr>
+          <tr><td><code>RouteSyntaxError</code></td><td><code>RouteError</code></td><td>Invalid route pattern syntax.</td></tr>
+          <tr><td><code>RouteBuildError</code></td><td><code>RouteError</code></td><td>URL build failure.</td></tr>
+          <tr><td><code>PluginError</code></td><td><code>LcoreException</code></td><td>Plugin conflict or error.</td></tr>
+          <tr><td><code>TemplateError</code></td><td><code>LcoreException</code></td><td>Template loading/rendering error.</td></tr>
+          <tr><td><code>MultipartError</code></td><td><code>HTTPError</code></td><td>Multipart parsing error (400).</td></tr>
+        </tbody>
+      </table>
+
+      <!-- Data Structures -->
+      <h2 id="data-structures">Data Structures</h2>
+
+      <div class="api-item">
+        <div class="api-header">
+          <span class="api-badge class">class</span>
+          <span class="api-name">MultiDict</span>
+          <span class="api-sig">(*a, **k)</span>
+        </div>
+        <div class="api-body">
+          <p>Dict supporting multiple values per key. Methods: <code>get(key, default, index, type)</code>, <code>append(key, value)</code>, <code>replace(key, value)</code>, <code>getall(key)</code>, <code>allitems()</code>.</p>
+        </div>
+      </div>
+
+      <div class="api-item">
+        <div class="api-header">
+          <span class="api-badge class">class</span>
+          <span class="api-name">FormsDict</span>
+        </div>
+        <div class="api-body">
+          <p>Form data dict. Extends MultiDict. Methods: <code>decode(encoding)</code>, <code>getunicode(name, default, encoding)</code>. Supports attribute access.</p>
+        </div>
+      </div>
+
+      <div class="api-item">
+        <div class="api-header">
+          <span class="api-badge class">class</span>
+          <span class="api-name">HeaderDict</span>
+        </div>
+        <div class="api-body">
+          <p>Case-insensitive header dict. Extends MultiDict. Method: <code>filter(names)</code> to remove headers.</p>
+        </div>
+      </div>
+
+      <div class="api-item">
+        <div class="api-header">
+          <span class="api-badge class">class</span>
+          <span class="api-name">WSGIHeaderDict</span>
+          <span class="api-sig">(environ)</span>
+        </div>
+        <div class="api-body">
+          <p>Read-only header dict wrapping WSGI environ. Method: <code>raw(key, default)</code> for raw environ value.</p>
+        </div>
+      </div>
+
+      <div class="api-item">
+        <div class="api-header">
+          <span class="api-badge class">class</span>
+          <span class="api-name">FileUpload</span>
+          <span class="api-sig">(fileobj, name, filename, headers=None)</span>
+        </div>
+        <div class="api-body">
+          <p>Uploaded file wrapper. Props: <code>filename</code> (sanitized), <code>content_type</code>, <code>content_length</code>, <code>file</code>. Methods: <code>save(dest, overwrite)</code>, <code>get_header(name)</code>.</p>
+        </div>
+      </div>
+
+      <div class="api-item">
+        <div class="api-header">
+          <span class="api-badge class">class</span>
+          <span class="api-name">ResourceManager</span>
+          <span class="api-sig">(base='./', opener=open, cachemode='all')</span>
+        </div>
+        <div class="api-body">
+          <p>File resource finder with caching. Methods: <code>add_path(path, base, index, create)</code>, <code>lookup(name)</code>, <code>open(name, mode)</code>.</p>
+        </div>
+      </div>
+
+      <div class="api-item">
+        <div class="api-header">
+          <span class="api-badge class">class</span>
+          <span class="api-name">AppStack</span>
+        </div>
+        <div class="api-body">
+          <p>Stack of Lcore apps. Methods: <code>push(value)</code> / <code>new_app()</code>. Callable returns default app. Property: <code>default</code>.</p>
+        </div>
+      </div>
+
+      <div class="api-item">
+        <div class="api-header">
+          <span class="api-badge class">class</span>
+          <span class="api-name">cached_property</span>
+          <span class="api-sig">(func)</span>
+        </div>
+        <div class="api-body"><p>Thread-safe cached property descriptor with double-checked locking (RLock).</p></div>
+      </div>
+
+      <!-- Utilities -->
+      <h2 id="utilities">Utility Functions</h2>
+
+      <table>
+        <thead><tr><th>Function</th><th>Signature</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>tob</code></td><td><code>(s, enc='utf8')</code></td><td>Convert to bytes. None &rarr; b''.</td></tr>
+          <tr><td><code>touni</code></td><td><code>(s, enc='utf8', err='strict')</code></td><td>Convert to unicode string.</td></tr>
+          <tr><td><code>html_escape</code></td><td><code>(string)</code></td><td>Escape HTML special characters.</td></tr>
+          <tr><td><code>html_quote</code></td><td><code>(string)</code></td><td>Quote an HTML string.</td></tr>
+          <tr><td><code>makelist</code></td><td><code>(data)</code></td><td>Wrap in list if not already.</td></tr>
+          <tr><td><code>parse_auth</code></td><td><code>(header)</code></td><td>Parse HTTP Basic Auth header. Returns (user, pass).</td></tr>
+          <tr><td><code>parse_date</code></td><td><code>(ims)</code></td><td>Parse HTTP date string to timestamp.</td></tr>
+          <tr><td><code>parse_range_header</code></td><td><code>(header, maxlen=0)</code></td><td>Parse Range header. Returns list of (start, end).</td></tr>
+          <tr><td><code>http_date</code></td><td><code>(value)</code></td><td>Format datetime/timestamp as HTTP date string.</td></tr>
+          <tr><td><code>redirect</code></td><td><code>(url, code=None)</code></td><td>Raise a redirect HTTPResponse.</td></tr>
+          <tr><td><code>abort</code></td><td><code>(code=500, text='Unknown Error.')</code></td><td>Raise an HTTPError.</td></tr>
+          <tr><td><code>static_file</code></td><td><code>(filename, root, mimetype=True, download=False, charset='UTF-8', etag=None, headers=None)</code></td><td>Serve a static file with caching, range requests, and security.</td></tr>
+          <tr><td><code>load</code></td><td><code>(target, **namespace)</code></td><td>Dynamically load module/attribute (safe getattr chain).</td></tr>
+          <tr><td><code>load_app</code></td><td><code>(target)</code></td><td>Load WSGI app from "module:app" string.</td></tr>
+          <tr><td><code>debug</code></td><td><code>(mode=True)</code></td><td>Enable/disable debug mode globally.</td></tr>
+          <tr><td><code>run</code></td><td><code>(app=None, server='wsgiref', host='127.0.0.1', port=8080, interval=1, reloader=False, quiet=False, plugins=None, debug=None, config=None, **kargs)</code></td><td>Start a WSGI server.</td></tr>
+          <tr><td><code>pretty_error_page</code></td><td><code>(exception, traceback_str=None)</code></td><td>Generate styled HTML error page.</td></tr>
+        </tbody>
+      </table>
+
+      <!-- Security Utilities -->
+      <h2 id="security-utilities">Security Utilities</h2>
+
+      <table>
+        <thead><tr><th>Function</th><th>Signature</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>hash_password</code></td><td><code>(password, iterations=600000)</code></td><td>Hash password using PBKDF2-SHA256 with random 32-byte salt. Returns <code>'pbkdf2:sha256:N$salt$hash'</code>.</td></tr>
+          <tr><td><code>verify_password</code></td><td><code>(password, hash_string)</code></td><td>Verify password against PBKDF2 hash. Timing-safe via <code>hmac.compare_digest</code>.</td></tr>
+        </tbody>
+      </table>
+
+      <!-- Test Client -->
+      <h2 id="test-client">Test Client</h2>
+
+      <div class="api-item">
+        <div class="api-header">
+          <span class="api-badge class">class</span>
+          <span class="api-name">TestClient</span>
+          <span class="api-sig">(app)</span>
+        </div>
+        <div class="api-body"><p>WSGI test client. Calls app directly without HTTP &mdash; no server needed.</p></div>
+      </div>
+
+      <table>
+        <thead><tr><th>Method</th><th>Signature</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>request</code></td><td><code>(method, path, body=b'', headers=None, query_string='', content_type=None, json=None)</code></td><td>Send any HTTP method. Returns <code>TestResponse</code>.</td></tr>
+          <tr><td><code>get</code></td><td><code>(path, **kw)</code></td><td>GET request</td></tr>
+          <tr><td><code>post</code></td><td><code>(path, **kw)</code></td><td>POST request</td></tr>
+          <tr><td><code>put</code></td><td><code>(path, **kw)</code></td><td>PUT request</td></tr>
+          <tr><td><code>patch</code></td><td><code>(path, **kw)</code></td><td>PATCH request</td></tr>
+          <tr><td><code>delete</code></td><td><code>(path, **kw)</code></td><td>DELETE request</td></tr>
+          <tr><td><code>head</code></td><td><code>(path, **kw)</code></td><td>HEAD request</td></tr>
+          <tr><td><code>options</code></td><td><code>(path, **kw)</code></td><td>OPTIONS request</td></tr>
+        </tbody>
+      </table>
+
+      <div class="api-item">
+        <div class="api-header">
+          <span class="api-badge class">class</span>
+          <span class="api-name">TestResponse</span>
+        </div>
+        <div class="api-body"><p>Response object returned by <code>TestClient</code> methods.</p></div>
+      </div>
+
+      <table>
+        <thead><tr><th>Property</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>.status</code></td><td><code>str</code></td><td>Full status line: <code>"200 OK"</code></td></tr>
+          <tr><td><code>.status_code</code></td><td><code>int</code></td><td>HTTP status code: <code>200</code></td></tr>
+          <tr><td><code>.headers</code></td><td><code>dict</code></td><td>Response headers</td></tr>
+          <tr><td><code>.body</code></td><td><code>bytes</code></td><td>Raw response body</td></tr>
+          <tr><td><code>.text</code></td><td><code>str</code></td><td>Body decoded as UTF-8</td></tr>
+          <tr><td><code>.json</code></td><td><code>dict/list</code></td><td>Body parsed as JSON</td></tr>
+        </tbody>
+      </table>
+
+      <!-- Background Task Pool -->
+      <h2 id="background-task-pool">BackgroundTaskPool</h2>
+
+      <div class="api-item">
+        <div class="api-header">
+          <span class="api-badge class">class</span>
+          <span class="api-name">BackgroundTaskPool</span>
+          <span class="api-sig">(max_workers=4)</span>
+        </div>
+        <div class="api-body"><p>Thread-pool for fire-and-forget background tasks. Wraps <code>concurrent.futures.ThreadPoolExecutor</code>.</p></div>
+      </div>
+
+      <table>
+        <thead><tr><th>Method / Property</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>.submit(fn, *args, **kwargs)</code></td><td>Queue callable for background execution. Returns <code>Future</code>.</td></tr>
+          <tr><td><code>.pending</code></td><td>Number of tasks still running or queued.</td></tr>
+          <tr><td><code>.shutdown(wait=True)</code></td><td>Shut down pool. Blocks if <code>wait=True</code>.</td></tr>
+        </tbody>
+      </table>
+
+      <!-- Decorators -->
+      <h2 id="decorators">Decorators</h2>
+
+      <table>
+        <thead><tr><th>Decorator</th><th>Signature</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>@auth_basic</code></td><td><code>(check, realm='private', text='Access denied')</code></td><td>HTTP Basic authentication. <code>check(user, pass)</code> must return True.</td></tr>
+          <tr><td><code>@rate_limit</code></td><td><code>(limit, per=60, max_buckets=10000)</code></td><td>Token bucket rate limiting per IP.</td></tr>
+          <tr><td><code>@validate_request</code></td><td><code>(body=None, query=None)</code></td><td>Validate request body/query against schema.</td></tr>
+          <tr><td><code>@on_shutdown</code></td><td><code>(func)</code></td><td>Register function to run on app shutdown.</td></tr>
+          <tr><td><code>@view</code></td><td><code>(tpl_name, **defaults)</code></td><td>Render SimpleTemplate when handler returns dict.</td></tr>
+          <tr><td><code>@jinja2_view</code></td><td><code>(tpl_name, **defaults)</code></td><td>Render Jinja2 template.</td></tr>
+          <tr><td><code>@mako_view</code></td><td><code>(tpl_name, **defaults)</code></td><td>Render Mako template.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Module-Level Wrappers</h3>
+      <p>These wrap the default app's methods for convenience:</p>
+      <pre><code>from lcore import route, get, post, put, delete, patch
+from lcore import error, mount, hook, install, uninstall, url, use</code></pre>
+
+      <!-- Template Classes -->
+      <h2 id="template-classes">Template Classes</h2>
+
+      <table>
+        <thead><tr><th>Class</th><th>Engine</th><th>Extensions</th></tr></thead>
+        <tbody>
+          <tr><td><code>BaseTemplate</code></td><td>Abstract base</td><td><code>.tpl .html .thtml .stpl</code></td></tr>
+          <tr><td><code>SimpleTemplate</code></td><td>Built-in</td><td>Uses <code>StplParser</code></td></tr>
+          <tr><td><code>Jinja2Template</code></td><td>Jinja2</td><td>Requires <code>jinja2</code></td></tr>
+          <tr><td><code>MakoTemplate</code></td><td>Mako</td><td>Requires <code>mako</code></td></tr>
+          <tr><td><code>CheetahTemplate</code></td><td>Cheetah</td><td>Requires <code>cheetah3</code></td></tr>
+        </tbody>
+      </table>
+
+      <p>All templates share: <code>search(name, lookup)</code>, <code>global_config(key)</code>, <code>prepare(**options)</code>, <code>render(*args, **kwargs)</code>.</p>
+
+      <!-- Server Adapters -->
+      <h2 id="server-adapters">Server Adapters</h2>
+
+      <div class="api-item">
+        <div class="api-header">
+          <span class="api-badge class">class</span>
+          <span class="api-name">ServerAdapter</span>
+          <span class="api-sig">(host='127.0.0.1', port=8080, **options)</span>
+        </div>
+        <div class="api-body"><p>Base class for all server adapters. Override <code>run(handler)</code> to start the server.</p></div>
+      </div>
+
+      <table>
+        <thead><tr><th>Adapter</th><th>Server Name</th><th>Package</th></tr></thead>
+        <tbody>
+          <tr><td><code>WSGIRefServer</code></td><td><code>wsgiref</code></td><td>Built-in</td></tr>
+          <tr><td><code>CherootServer</code></td><td><code>cheroot</code></td><td><code>cheroot</code></td></tr>
+          <tr><td><code>WaitressServer</code></td><td><code>waitress</code></td><td><code>waitress</code></td></tr>
+          <tr><td><code>GunicornServer</code></td><td><code>gunicorn</code></td><td><code>gunicorn</code></td></tr>
+          <tr><td><code>GeventServer</code></td><td><code>gevent</code></td><td><code>gevent</code></td></tr>
+          <tr><td><code>EventletServer</code></td><td><code>eventlet</code></td><td><code>eventlet</code></td></tr>
+          <tr><td><code>TornadoServer</code></td><td><code>tornado</code></td><td><code>tornado</code></td></tr>
+          <tr><td><code>TwistedServer</code></td><td><code>twisted</code></td><td><code>twisted</code></td></tr>
+          <tr><td><code>MeinheldServer</code></td><td><code>meinheld</code></td><td><code>meinheld</code></td></tr>
+          <tr><td><code>BjoernServer</code></td><td><code>bjoern</code></td><td><code>bjoern</code></td></tr>
+          <tr><td><code>AiohttpServer</code></td><td><code>aiohttp</code></td><td><code>aiohttp</code></td></tr>
+          <tr><td><code>AiohttpUVLoopServer</code></td><td><code>uvloop</code></td><td><code>aiohttp + uvloop</code></td></tr>
+          <tr><td><code>PasteServer</code></td><td><code>paste</code></td><td><code>paste</code></td></tr>
+          <tr><td><code>AutoServer</code></td><td><code>auto</code></td><td>Auto-detect</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Module Constants</h3>
+      <table>
+        <thead><tr><th>Constant</th><th>Value</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>__version__</code></td><td><code>'0.0.1'</code></td><td>Framework version.</td></tr>
+          <tr><td><code>__author__</code></td><td><code>'Lusan Sapkota'</code></td><td>Author.</td></tr>
+          <tr><td><code>__license__</code></td><td><code>'MIT'</code></td><td>License.</td></tr>
+          <tr><td><code>TEMPLATE_PATH</code></td><td><code>['./', './views/']</code></td><td>Template search paths.</td></tr>
+          <tr><td><code>HTTP_CODES</code></td><td>dict</td><td>HTTP status code descriptions.</td></tr>
+          <tr><td><code>DEBUG</code></td><td><code>False</code></td><td>Global debug flag.</td></tr>
+          <tr><td><code>request</code></td><td><code>LocalRequest</code></td><td>Thread-local request proxy.</td></tr>
+          <tr><td><code>response</code></td><td><code>LocalResponse</code></td><td>Thread-local response proxy.</td></tr>
+          <tr><td><code>ctx</code></td><td><code>LocalContext</code></td><td>Thread-local context proxy.</td></tr>
+          <tr><td><code>app</code> / <code>default_app</code></td><td><code>AppStack</code></td><td>Default application stack.</td></tr>
+        </tbody>
+      </table>
+
+    </main>
+  </div>
+
+  <script src="assets/script.js"></script>
+</body>
+</html>

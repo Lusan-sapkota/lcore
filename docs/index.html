@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lcore - Fast Python Microservice Framework</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="shortcut icon" href="lcore.png" type="image/x-icon">
+</head>
+<body class="index-page">
+
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="index.html" class="logo">
+        <img src="lcore.png" alt="Lcore" class="logo-icon">
+        Lcore
+      </a>
+      <nav class="header-nav">
+        <a href="getting-started.html">Guide</a>
+        <a href="routing.html">Routing</a>
+        <a href="request-response.html">Request/Response</a>
+        <a href="middleware.html">Middleware</a>
+        <a href="plugins.html">Plugins</a>
+        <a href="advanced.html">Advanced</a>
+        <a href="api-reference.html">API</a>
+        <a href="real-world-example.html">Example</a>
+        <a href="https://play.lcore.lusansapkota.com.np/#code-playground">Playground</a>
+      </nav>
+      <div class="header-right">
+        <span class="version-badge">v0.0.1</span>
+        <a href="https://github.com/LusanSapkota/Lcore" class="github-link">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          GitHub
+        </a>
+        <button class="menu-toggle">&#9776;</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- Hero -->
+    <section class="hero">
+      <h1>Build Microservices<br>at Lightning Speed</h1>
+      <p class="tagline">
+        A fast, lightweight, single-file Python WSGI framework with async support. Zero dependencies. Production-grade. One file.
+      </p>
+      <div class="hero-buttons">
+        <a href="getting-started.html" class="btn btn-primary">Get Started</a>
+        <a href="api-reference.html" class="btn btn-secondary">API Reference</a>
+        <a href="https://play.lcore.lusansapkota.com.np/#code-playground" class="btn btn-secondary">Live Playground</a>
+      </div>
+    </section>
+
+    <!-- Install -->
+    <section class="install-box">
+      <h2>Quick Install</h2>
+      <div class="install-cmd">
+        <span class="prompt">$</span>
+        pip install lcore
+      </div>
+    </section>
+
+    <!-- Hello World -->
+    <section class="section-centered">
+      <h2>Hello World</h2>
+      <pre><code>from lcore import Lcore
+
+app = Lcore()
+
+@app.route('/hello/&lt;name&gt;')
+def hello(name):
+    return {'message': f'Hello, {name}!'}
+
+app.run(host='0.0.0.0', port=8080)</code></pre>
+    </section>
+
+    <!-- Performance -->
+    <section class="features" id="performance">
+      <h2>Performance</h2>
+      <p class="perf-subtitle">WSGI throughput benchmark. 10,000 requests, single-threaded wsgiref. Measures pure framework overhead.</p>
+
+      <div class="perf-container">
+        <table>
+          <thead>
+            <tr><th>Framework</th><th>Plaintext (req/s)</th><th>JSON (req/s)</th><th>Params (req/s)</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Lcore</strong></td><td><strong>139,565</strong></td><td><strong>104,783</strong></td><td><strong>96,997</strong></td></tr>
+            <tr><td>Bottle 0.13</td><td>206,258</td><td>150,323</td><td>132,656</td></tr>
+            <tr><td>Flask 3.1</td><td>30,869</td><td>26,870</td><td>24,626</td></tr>
+          </tbody>
+        </table>
+
+        <div class="perf-bars">
+          <div class="perf-group">
+            <div class="perf-group-label">Plaintext (req/s)</div>
+            <div class="perf-row">
+              <span class="perf-label">Lcore</span>
+              <div class="perf-track"><div class="perf-bar primary w-68"></div></div>
+              <span class="perf-value primary">139,565</span>
+            </div>
+            <div class="perf-row">
+              <span class="perf-label">Bottle</span>
+              <div class="perf-track"><div class="perf-bar muted w-full"></div></div>
+              <span class="perf-value muted">206,258</span>
+            </div>
+            <div class="perf-row">
+              <span class="perf-label">Flask</span>
+              <div class="perf-track"><div class="perf-bar muted w-15"></div></div>
+              <span class="perf-value muted">30,869</span>
+            </div>
+          </div>
+        </div>
+
+        <p class="perf-note">Lcore is ~4.5x faster than Flask. Bottle is faster still but lacks middleware, DI, security stack, and lifecycle hooks.</p>
+      </div>
+    </section>
+
+    <!-- Feature Comparison -->
+    <section class="features" id="comparison">
+      <h2>Feature Comparison</h2>
+      <p class="comparison-subtitle">How Lcore compares to other Python microframeworks.</p>
+
+      <div class="comparison-container">
+        <table>
+          <thead>
+            <tr><th>Feature</th><th>Lcore</th><th>Flask</th><th>Bottle</th><th>FastAPI</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Single file / zero deps</td><td><strong>Yes</strong></td><td>No</td><td>Yes</td><td>No</td></tr>
+            <tr><td>WSGI</td><td><strong>Yes</strong></td><td>Yes</td><td>Yes</td><td>No</td></tr>
+            <tr><td>ASGI</td><td>No</td><td>No</td><td>No</td><td><strong>Yes</strong></td></tr>
+            <tr><td>Async route handlers</td><td><strong>Yes</strong></td><td>Yes (2.0+)</td><td>No</td><td>Yes</td></tr>
+            <tr><td>Typed route parameters</td><td><strong>Yes</strong></td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+            <tr><td>Custom route filters</td><td><strong>Yes</strong></td><td>Yes</td><td>Yes</td><td>No</td></tr>
+            <tr><td>Route groups</td><td><strong>Yes</strong></td><td>Blueprints</td><td>No</td><td>APIRouter</td></tr>
+            <tr><td>Built-in middleware</td><td><strong>7 included</strong></td><td>0</td><td>0</td><td>Several</td></tr>
+            <tr><td>CORS middleware</td><td><strong>Built-in</strong></td><td>Extension</td><td>Plugin</td><td>Built-in</td></tr>
+            <tr><td>CSRF protection</td><td><strong>Built-in</strong></td><td>Extension</td><td>No</td><td>No</td></tr>
+            <tr><td>Security headers</td><td><strong>Built-in</strong></td><td>Extension</td><td>No</td><td>No</td></tr>
+            <tr><td>Rate limiting</td><td><strong>Built-in</strong></td><td>Extension</td><td>No</td><td>Extension</td></tr>
+            <tr><td>Request validation</td><td><strong>Built-in</strong></td><td>Extension</td><td>No</td><td>Built-in</td></tr>
+            <tr><td>Dependency injection</td><td><strong>Built-in (3 lifetimes)</strong></td><td>No</td><td>No</td><td>Built-in</td></tr>
+            <tr><td>Plugin system</td><td><strong>Yes</strong></td><td>Extensions</td><td>Yes</td><td>No</td></tr>
+            <tr><td>Lifecycle hooks</td><td><strong>12 hook points</strong></td><td>Signals</td><td>6 hooks</td><td>Events</td></tr>
+            <tr><td>Module mounting</td><td><strong>Yes (WSGI)</strong></td><td>Blueprints</td><td>Yes</td><td>Sub-apps</td></tr>
+            <tr><td>Template engines</td><td><strong>4 engines</strong></td><td>Jinja2</td><td>SimpleTemplate</td><td>Jinja2</td></tr>
+            <tr><td>Signed cookies</td><td><strong>HMAC-SHA256</strong></td><td>itsdangerous</td><td>HMAC</td><td>No</td></tr>
+            <tr><td>Static file serving</td><td><strong>Yes (ETag, Range)</strong></td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+            <tr><td>Server adapters</td><td><strong>21 adapters</strong></td><td>Werkzeug</td><td>20+ adapters</td><td>Uvicorn</td></tr>
+            <tr><td>Hot reload</td><td><strong>Built-in + Watchdog</strong></td><td>Werkzeug</td><td>Yes</td><td>Uvicorn</td></tr>
+            <tr><td>CLI interface</td><td><strong>Yes</strong></td><td>Yes</td><td>No</td><td>No</td></tr>
+            <tr><td>Auto API docs (HTML + JSON)</td><td><strong>Built-in</strong></td><td>No</td><td>No</td><td>OpenAPI/Swagger</td></tr>
+            <tr><td>Body size limits</td><td><strong>Built-in</strong></td><td>Config</td><td>Config</td><td>Config</td></tr>
+            <tr><td>Gzip compression</td><td><strong>Built-in</strong></td><td>Extension</td><td>No</td><td>Middleware</td></tr>
+            <tr><td>Request ID tracking</td><td><strong>Built-in</strong></td><td>Extension</td><td>No</td><td>Extension</td></tr>
+            <tr><td>Password hashing</td><td><strong>PBKDF2-SHA256</strong></td><td>Extension</td><td>No</td><td>No</td></tr>
+            <tr><td>Test client</td><td><strong>Built-in</strong></td><td>Built-in</td><td>No</td><td>Built-in</td></tr>
+            <tr><td>Background tasks</td><td><strong>Built-in</strong></td><td>Celery</td><td>No</td><td>Built-in</td></tr>
+            <tr><td>Graceful shutdown</td><td><strong>Built-in</strong></td><td>Server</td><td>No</td><td>Server</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Features Grid -->
+    <section class="features" id="features">
+      <h2>Key Features</h2>
+      <div class="feature-grid">
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          </div>
+          <h3>Single File, Zero Dependencies</h3>
+          <p>The entire framework is one Python file. Drop it into any project. No pip headaches, no dependency conflicts.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 12l-4-4-4 4M12 16V8"/></svg>
+          </div>
+          <h3>Powerful Routing</h3>
+          <p>Typed parameters, wildcard filters, method decorators, route groups, and async/await support.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+          </div>
+          <h3>Security First</h3>
+          <p>CORS, CSRF, security headers, signed cookies, PBKDF2 password hashing, body limits, rate limiting, and timing-safe comparison built in.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M4 9h16M9 4v16"/></svg>
+          </div>
+          <h3>7 Built-in Middleware</h3>
+          <p>CORS, CSRF, security headers, compression, body limits, request ID, and structured logging out of the box.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24"/></svg>
+          </div>
+          <h3>Dependency Injection</h3>
+          <p>Register singleton, scoped, or transient dependencies. Auto-inject DB sessions, caches, and loggers per-request.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          </div>
+          <h3>Async/Await Ready</h3>
+          <p>Use async def route handlers. Lcore auto-detects coroutines and runs them seamlessly alongside sync routes.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          </div>
+          <h3>12 Lifecycle Hooks</h3>
+          <p>Fine-grained control at every stage: request start, auth, handler enter/exit, response build/send, and more.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          </div>
+          <h3>21 Server Adapters</h3>
+          <p>Gunicorn, Waitress, Gevent, Eventlet, Tornado, aiohttp, Bjoern, Meinheld, and more. Use <code>server='auto'</code>.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
+          </div>
+          <h3>Plugin Architecture</h3>
+          <p>JSON serialization, template rendering, and custom plugins with setup/apply lifecycle. Per-route skip support.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+          </div>
+          <h3>Module Mounting</h3>
+          <p>Mount sub-applications with isolated routes, hooks, and middleware. Compose microservices into larger systems.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>
+          </div>
+          <h3>Built-in Test Client</h3>
+          <p>Test routes without starting a server. TestClient calls WSGI directly &mdash; assert status codes, JSON bodies, and headers in unit tests.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <h3>Background Tasks</h3>
+          <p>Fire-and-forget work with BackgroundTaskPool. Send emails, run cleanup, or process analytics without blocking the response.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Production Example -->
+    <section class="section-centered">
+      <h2>Production Microservice</h2>
+      <pre><code>from lcore import (
+    Lcore, request, response, ctx,
+    CORSMiddleware, SecurityHeadersMiddleware,
+    RequestIDMiddleware, BodyLimitMiddleware,
+    rate_limit, validate_request, on_shutdown
+)
+
+app = Lcore()
+
+# Production middleware stack
+app.use(RequestIDMiddleware())
+app.use(SecurityHeadersMiddleware(hsts=True))
+app.use(CORSMiddleware(allow_origins=['https://myapp.com']))
+app.use(BodyLimitMiddleware(max_size=5 * 1024 * 1024))
+
+# Dependency injection
+app.inject('db', create_db_session, lifetime='scoped')
+app.inject('cache', RedisCache, lifetime='singleton')
+
+# Rate-limited, validated API endpoint
+@app.route('/api/users/&lt;id:int&gt;', method='GET')
+@rate_limit(100, per=60)
+def get_user(id):
+    user = ctx.db.query(User).get(id)
+    if not user:
+        abort(404, 'User not found')
+    return user.to_dict()
+
+@app.post('/api/users')
+@validate_request(body={'name': str, 'email': str})
+def create_user():
+    data = request.json
+    return {'id': ctx.db.insert(data), 'created': True}
+
+# Graceful shutdown
+@on_shutdown
+def cleanup():
+    close_all_connections()
+
+app.run(server='gunicorn', host='0.0.0.0', port=8080)</code></pre>
+    </section>
+
+    <footer class="site-footer">
+      <p>
+        Lcore Framework &mdash; Created by Lusan Sapkota &mdash; MIT License
+        <br>
+        <a href="https://play.lcore.lusansapkota.com.np">Live Demo</a> &bull;
+        <a href="https://play.lcore.lusansapkota.com.np/#code-playground">Code Playground</a> &bull;
+        <a href="https://github.com/LusanSapkota/Lcore">GitHub</a>
+      </p>
+    </footer>
+
+  </div>
+
+  <script src="assets/script.js"></script>
+</body>
+</html>

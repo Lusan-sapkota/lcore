@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Request &amp; Response - Lcore Documentation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="shortcut icon" href="lcore.png" type="image/x-icon">
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="index.html" class="logo"><img src="lcore.png" alt="Lcore" class="logo-icon"> Lcore</a>
+      <nav class="header-nav">
+        <a href="getting-started.html">Guide</a>
+        <a href="routing.html">Routing</a>
+        <a href="request-response.html">Request/Response</a>
+        <a href="middleware.html">Middleware</a>
+        <a href="plugins.html">Plugins</a>
+        <a href="advanced.html">Advanced</a>
+        <a href="api-reference.html">API</a>
+        <a href="real-world-example.html">Example</a>
+        <a href="https://play.lcore.lusansapkota.com.np/#code-playground">Playground</a>
+      </nav>
+      <div class="header-right">
+        <span class="version-badge">v0.0.1</span>
+        <a href="https://github.com/LusanSapkota/Lcore" class="github-link">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          GitHub
+        </a>
+        <button class="menu-toggle">&#9776;</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="doc-layout">
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-title">Getting Started</div>
+        <a href="getting-started.html#installation" class="sidebar-link">Installation</a>
+        <a href="getting-started.html#first-app" class="sidebar-link">Your First App</a>
+        <a href="getting-started.html#concepts" class="sidebar-link">Core Concepts</a>
+        <a href="getting-started.html#configuration" class="sidebar-link">Configuration</a>
+        <a href="getting-started.html#running" class="sidebar-link">Running Your App</a>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-title">Core</div>
+        <a href="routing.html" class="sidebar-link">Routing</a>
+        <a href="request-response.html" class="sidebar-link">Request &amp; Response</a>
+        <a href="request-response.html#request-object" class="sidebar-link sub">Request Object</a>
+        <a href="request-response.html#query-params" class="sidebar-link sub">Query Parameters</a>
+        <a href="request-response.html#form-data" class="sidebar-link sub">Form Data</a>
+        <a href="request-response.html#json-body" class="sidebar-link sub">JSON Body</a>
+        <a href="request-response.html#file-uploads" class="sidebar-link sub">File Uploads</a>
+        <a href="request-response.html#cookies" class="sidebar-link sub">Cookies</a>
+        <a href="request-response.html#headers" class="sidebar-link sub">Headers</a>
+        <a href="request-response.html#response-object" class="sidebar-link sub">Response Object</a>
+        <a href="request-response.html#static-files" class="sidebar-link sub">Static Files</a>
+        <a href="request-response.html#redirects" class="sidebar-link sub">Redirects</a>
+        <a href="middleware.html" class="sidebar-link">Middleware</a>
+        <a href="plugins.html" class="sidebar-link">Plugins</a>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-title">Advanced</div>
+        <a href="advanced.html#dependency-injection" class="sidebar-link">Dependency Injection</a>
+        <a href="advanced.html#mounting" class="sidebar-link">Module Mounting</a>
+        <a href="advanced.html#security" class="sidebar-link">Security</a>
+        <a href="advanced.html#production" class="sidebar-link">Production</a>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-title">Reference</div>
+        <a href="api-reference.html" class="sidebar-link">API Reference</a>
+      </div>
+    </aside>
+
+    <main class="content">
+      <h1>Request &amp; Response</h1>
+      <p class="page-desc">Access incoming request data and control outgoing responses through thread-safe proxy objects.</p>
+
+      <!-- Request Object -->
+      <h2 id="request-object">The Request Object</h2>
+
+      <p>The <code>request</code> object is a thread-local proxy to the current <code>BaseRequest</code>. Import it from <code>lcore</code>:</p>
+
+      <pre><code>from lcore import request
+
+@app.route('/info')
+def info():
+    return {
+        'method': request.method,        # 'GET', 'POST', etc.
+        'path': request.path,            # '/info'
+        'url': request.url,              # 'http://localhost:8080/info?q=test'
+        'fullpath': request.fullpath,    # '/info' (with script_name)
+        'ip': request.remote_addr,       # '127.0.0.1'
+        'content_type': request.content_type,
+        'content_length': request.content_length,
+        'is_ajax': request.is_xhr,       # True if X-Requested-With
+        'chunked': request.chunked,      # True if chunked encoding
+    }</code></pre>
+
+      <h3>Request Properties</h3>
+      <table>
+        <thead><tr><th>Property</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>method</code></td><td><code>str</code></td><td>HTTP method (<code>GET</code>, <code>POST</code>, etc.)</td></tr>
+          <tr><td><code>path</code></td><td><code>str</code></td><td>Request path without query string</td></tr>
+          <tr><td><code>url</code></td><td><code>str</code></td><td>Full request URL including scheme, host, path, query</td></tr>
+          <tr><td><code>fullpath</code></td><td><code>str</code></td><td>Path with <code>script_name</code> prefix</td></tr>
+          <tr><td><code>query_string</code></td><td><code>str</code></td><td>Raw query string</td></tr>
+          <tr><td><code>script_name</code></td><td><code>str</code></td><td>WSGI SCRIPT_NAME</td></tr>
+          <tr><td><code>remote_addr</code></td><td><code>str</code></td><td>Client IP address</td></tr>
+          <tr><td><code>remote_route</code></td><td><code>list</code></td><td>List of IPs from X-Forwarded-For</td></tr>
+          <tr><td><code>content_type</code></td><td><code>str</code></td><td>Content-Type header value</td></tr>
+          <tr><td><code>content_length</code></td><td><code>int</code></td><td>Content-Length (-1 if invalid)</td></tr>
+          <tr><td><code>is_xhr</code></td><td><code>bool</code></td><td>True if XMLHttpRequest</td></tr>
+          <tr><td><code>is_ajax</code></td><td><code>bool</code></td><td>Alias for <code>is_xhr</code></td></tr>
+          <tr><td><code>auth</code></td><td><code>tuple</code></td><td>Parsed Basic auth <code>(username, password)</code> or None</td></tr>
+          <tr><td><code>chunked</code></td><td><code>bool</code></td><td>True if chunked transfer encoding</td></tr>
+        </tbody>
+      </table>
+
+      <!-- Query Parameters -->
+      <h2 id="query-params">Query Parameters</h2>
+
+      <pre><code># GET /search?q=python&amp;page=2&amp;tag=web&amp;tag=api
+@app.route('/search')
+def search():
+    q = request.query.get('q', '')          # 'python'
+    page = request.query.get('page', '1')   # '2' (always strings)
+    tags = request.query.getall('tag')       # ['web', 'api']
+    return {'q': q, 'page': int(page), 'tags': tags}</code></pre>
+
+      <p><code>request.query</code> and <code>request.GET</code> are <code>FormsDict</code> instances. Use <code>request.params</code> to access combined query + form data.</p>
+
+      <!-- Form Data -->
+      <h2 id="form-data">Form Data</h2>
+
+      <pre><code># POST with application/x-www-form-urlencoded
+@app.post('/login')
+def login():
+    username = request.forms.get('username')
+    password = request.forms.get('password')
+    return {'user': username}</code></pre>
+
+      <p><code>request.forms</code> contains form fields from POST bodies. <code>request.POST</code> includes both form fields and file uploads from multipart requests.</p>
+
+      <!-- JSON Body -->
+      <h2 id="json-body">JSON Body</h2>
+
+      <pre><code># POST with application/json body
+@app.post('/api/users')
+def create_user():
+    data = request.json  # Auto-parsed dict
+    if data is None:
+        abort(400, 'Invalid JSON')
+    return {'created': data.get('name')}</code></pre>
+
+      <div class="info-box note">
+        <strong>Note</strong>
+        <p><code>request.json</code> returns <code>None</code> if the Content-Type is not <code>application/json</code> or the body cannot be parsed. Always check for <code>None</code>.</p>
+      </div>
+
+      <!-- File Uploads -->
+      <h2 id="file-uploads">File Uploads</h2>
+
+      <pre><code>@app.post('/upload')
+def upload():
+    upload = request.files.get('document')
+    if not upload:
+        abort(400, 'No file uploaded')
+
+    # FileUpload properties
+    name = upload.filename        # Sanitized filename
+    content_type = upload.content_type
+    size = upload.content_length
+
+    # Save to disk
+    upload.save('/tmp/uploads/', overwrite=True)
+
+    return {
+        'filename': name,
+        'content_type': content_type,
+        'size': size
+    }</code></pre>
+
+      <h3>FileUpload Object</h3>
+      <table>
+        <thead><tr><th>Property/Method</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>.filename</code></td><td>Sanitized filename (path components stripped)</td></tr>
+          <tr><td><code>.file</code></td><td>File-like object for reading content</td></tr>
+          <tr><td><code>.content_type</code></td><td>MIME type from Content-Type header</td></tr>
+          <tr><td><code>.content_length</code></td><td>File size in bytes</td></tr>
+          <tr><td><code>.get_header(name)</code></td><td>Get a specific multipart header</td></tr>
+          <tr><td><code>.save(dest, overwrite=False)</code></td><td>Save file to directory or path</td></tr>
+        </tbody>
+      </table>
+
+      <!-- Cookies -->
+      <h2 id="cookies">Cookies</h2>
+
+      <h3>Reading Cookies</h3>
+      <pre><code>@app.route('/read')
+def read_cookies():
+    # Plain cookies
+    session_id = request.cookies.get('session_id', 'none')
+
+    # Signed cookies (HMAC-SHA256 + JSON, tamper-proof)
+    user = request.get_cookie('user', secret='my-secret-key')
+
+    return {'session': session_id, 'user': user}</code></pre>
+
+      <h3>Setting Cookies</h3>
+      <pre><code>from datetime import timedelta
+
+@app.route('/set')
+def set_cookies():
+    # Plain cookie
+    response.set_cookie('session_id', 'abc123',
+        path='/',
+        httponly=True,
+        secure=True,
+        samesite='Lax'
+    )
+
+    # Signed cookie (tamper-proof)
+    response.set_cookie('user', 'alice',
+        secret='my-secret-key',
+        max_age=timedelta(days=7)
+    )
+
+    # Delete a cookie
+    response.delete_cookie('old_cookie')
+
+    return 'Cookies set!'</code></pre>
+
+      <h3>Cookie Options</h3>
+      <table class="params-table">
+        <thead><tr><th>Option</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>max_age</code></td><td><code>int</code> / <code>timedelta</code></td><td>Cookie lifetime in seconds (timedelta auto-converted)</td></tr>
+          <tr><td><code>expires</code></td><td><code>datetime</code></td><td>Absolute expiry time</td></tr>
+          <tr><td><code>path</code></td><td><code>str</code></td><td>Cookie path scope (default: current path)</td></tr>
+          <tr><td><code>domain</code></td><td><code>str</code></td><td>Cookie domain scope</td></tr>
+          <tr><td><code>secure</code></td><td><code>bool</code></td><td>Only send over HTTPS</td></tr>
+          <tr><td><code>httponly</code></td><td><code>bool</code></td><td>Prevent JavaScript access</td></tr>
+          <tr><td><code>samesite</code></td><td><code>str</code></td><td><code>Lax</code>, <code>Strict</code>, or <code>None</code></td></tr>
+        </tbody>
+      </table>
+
+      <div class="info-box tip">
+        <strong>Signed Cookie Security</strong>
+        <p>Signed cookies use <strong>HMAC-SHA256</strong> with <strong>JSON serialization</strong> (not pickle). The signature prevents tampering, and JSON ensures safe deserialization. Always use a strong secret key.</p>
+      </div>
+
+      <!-- Headers -->
+      <h2 id="headers">Headers</h2>
+
+      <h3>Request Headers</h3>
+      <pre><code>@app.route('/headers')
+def show_headers():
+    # Case-insensitive access
+    auth = request.headers.get('Authorization')
+    ct = request.get_header('Content-Type', 'none')
+    custom = request.headers.get('X-Custom-Header')
+    return {'auth': auth, 'content_type': ct, 'custom': custom}</code></pre>
+
+      <h3>Response Headers</h3>
+      <pre><code>@app.route('/api/data')
+def data():
+    response.set_header('X-Request-ID', 'abc-123')
+    response.set_header('Cache-Control', 'max-age=3600')
+    response.add_header('Set-Cookie', 'a=1')  # add_header allows duplicates
+    response.content_type = 'application/json'
+    return {'data': 'value'}</code></pre>
+
+      <table>
+        <thead><tr><th>Method</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>response.set_header(name, value)</code></td><td>Set header (replaces existing)</td></tr>
+          <tr><td><code>response.add_header(name, value)</code></td><td>Add header (allows multiple values)</td></tr>
+          <tr><td><code>response.get_header(name)</code></td><td>Read a response header</td></tr>
+        </tbody>
+      </table>
+
+      <!-- Response Object -->
+      <h2 id="response-object">The Response Object</h2>
+
+      <pre><code>from lcore import response
+
+@app.route('/custom')
+def custom_response():
+    response.status = 201
+    response.content_type = 'application/json'
+    response.set_header('X-Custom', 'value')
+    return {'status': 'created'}</code></pre>
+
+      <h3>Response Properties</h3>
+      <table>
+        <thead><tr><th>Property</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>status</code></td><td><code>int</code> / <code>str</code></td><td>Set with int (<code>200</code>) or string (<code>'200 OK'</code>)</td></tr>
+          <tr><td><code>status_code</code></td><td><code>int</code></td><td>Numeric status code (read-only)</td></tr>
+          <tr><td><code>status_line</code></td><td><code>str</code></td><td>Full status line (read-only)</td></tr>
+          <tr><td><code>content_type</code></td><td><code>str</code></td><td>Content-Type header (default: <code>text/html; charset=UTF-8</code>)</td></tr>
+          <tr><td><code>content_length</code></td><td><code>int</code></td><td>Content-Length header</td></tr>
+          <tr><td><code>charset</code></td><td><code>str</code></td><td>Character set from Content-Type</td></tr>
+          <tr><td><code>expires</code></td><td><code>datetime</code></td><td>Expires header</td></tr>
+          <tr><td><code>headers</code></td><td><code>HeaderDict</code></td><td>Mutable header dictionary</td></tr>
+          <tr><td><code>body</code></td><td><code>str</code>/<code>bytes</code></td><td>Response body</td></tr>
+        </tbody>
+      </table>
+
+      <h3>HTTPResponse for Immediate Return</h3>
+      <pre><code>from lcore import HTTPResponse
+
+@app.route('/immediate')
+def immediate():
+    # Raise HTTPResponse to skip normal processing
+    raise HTTPResponse(
+        body='{"error": "custom"}',
+        status=418,
+        headers={'Content-Type': 'application/json'}
+    )</code></pre>
+
+      <!-- Static Files -->
+      <h2 id="static-files">Static Files</h2>
+
+      <pre><code>from lcore import static_file
+
+@app.route('/static/&lt;filepath:path&gt;')
+def serve_static(filepath):
+    return static_file(filepath, root='./public')
+
+# With download mode
+@app.route('/download/&lt;filename&gt;')
+def download(filename):
+    return static_file(filename, root='./files', download=True)
+
+# Custom headers and mimetype
+@app.route('/assets/&lt;path:path&gt;')
+def assets(path):
+    return static_file(path, root='./assets',
+        headers={'Cache-Control': 'max-age=86400'}
+    )</code></pre>
+
+      <h3>static_file Parameters</h3>
+      <table class="params-table">
+        <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>filename</code></td><td><code>str</code></td><td>Relative file path</td></tr>
+          <tr><td><code>root</code></td><td><code>str</code></td><td>Root directory to serve from</td></tr>
+          <tr><td><code>mimetype</code></td><td><code>str</code>/<code>bool</code></td><td>Override MIME type (<code>True</code> = auto-detect)</td></tr>
+          <tr><td><code>download</code></td><td><code>bool</code>/<code>str</code></td><td><code>True</code> or filename for Content-Disposition</td></tr>
+          <tr><td><code>charset</code></td><td><code>str</code></td><td>Character set for text files (default: UTF-8)</td></tr>
+          <tr><td><code>etag</code></td><td><code>str</code></td><td>Custom ETag (default: SHA256 auto-generated)</td></tr>
+          <tr><td><code>headers</code></td><td><code>dict</code></td><td>Additional response headers</td></tr>
+        </tbody>
+      </table>
+
+      <div class="info-box tip">
+        <strong>Security</strong>
+        <p><code>static_file</code> uses <code>os.path.realpath()</code> to resolve symlinks and prevent path traversal attacks. Download filenames are sanitized with <code>os.path.basename()</code>. ETags use SHA256.</p>
+      </div>
+
+      <!-- Redirects -->
+      <h2 id="redirects">Redirects</h2>
+
+      <pre><code>from lcore import redirect
+
+@app.route('/old-page')
+def old_page():
+    redirect('/new-page')           # 303 See Other (default)
+
+@app.route('/moved')
+def moved():
+    redirect('/new-location', 301)  # Permanent redirect
+
+@app.route('/login-required')
+def login_required():
+    redirect('/login', 307)         # Temporary, preserves method</code></pre>
+
+      <h3>Redirect Codes</h3>
+      <table>
+        <thead><tr><th>Code</th><th>Name</th><th>Use Case</th></tr></thead>
+        <tbody>
+          <tr><td><code>301</code></td><td>Moved Permanently</td><td>URL has permanently changed (SEO)</td></tr>
+          <tr><td><code>302</code></td><td>Found</td><td>Temporary redirect (legacy)</td></tr>
+          <tr><td><code>303</code></td><td>See Other</td><td>Redirect after POST (default)</td></tr>
+          <tr><td><code>307</code></td><td>Temporary Redirect</td><td>Preserves HTTP method</td></tr>
+          <tr><td><code>308</code></td><td>Permanent Redirect</td><td>Permanent, preserves method</td></tr>
+        </tbody>
+      </table>
+
+    </main>
+  </div>
+
+  <script src="assets/script.js"></script>
+</body>
+</html>

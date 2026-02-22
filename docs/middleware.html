@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Middleware &amp; Hooks - Lcore Documentation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="shortcut icon" href="lcore.png" type="image/x-icon">
+
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="index.html" class="logo"><img src="lcore.png" alt="Lcore" class="logo-icon"> Lcore</a>
+      <nav class="header-nav">
+        <a href="getting-started.html">Guide</a>
+        <a href="routing.html">Routing</a>
+        <a href="request-response.html">Request/Response</a>
+        <a href="middleware.html">Middleware</a>
+        <a href="plugins.html">Plugins</a>
+        <a href="advanced.html">Advanced</a>
+        <a href="api-reference.html">API</a>
+        <a href="real-world-example.html">Example</a>
+        <a href="https://play.lcore.lusansapkota.com.np/#code-playground">Playground</a>
+      </nav>
+      <div class="header-right">
+        <span class="version-badge">v0.0.1</span>
+        <a href="https://github.com/LusanSapkota/Lcore" class="github-link">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          GitHub
+        </a>
+        <button class="menu-toggle">&#9776;</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="doc-layout">
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-title">Getting Started</div>
+        <a href="getting-started.html#installation" class="sidebar-link">Installation</a>
+        <a href="getting-started.html#first-app" class="sidebar-link">Your First App</a>
+        <a href="getting-started.html#concepts" class="sidebar-link">Core Concepts</a>
+        <a href="getting-started.html#configuration" class="sidebar-link">Configuration</a>
+        <a href="getting-started.html#running" class="sidebar-link">Running Your App</a>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-title">Core</div>
+        <a href="routing.html" class="sidebar-link">Routing</a>
+        <a href="request-response.html" class="sidebar-link">Request &amp; Response</a>
+        <a href="middleware.html" class="sidebar-link">Middleware</a>
+        <a href="middleware.html#overview" class="sidebar-link sub">Overview</a>
+        <a href="middleware.html#built-in" class="sidebar-link sub">Built-in Middleware</a>
+        <a href="middleware.html#custom" class="sidebar-link sub">Custom Middleware</a>
+        <a href="middleware.html#middleware-hooks" class="sidebar-link sub">Middleware Hooks</a>
+        <a href="middleware.html#hooks" class="sidebar-link sub">Lifecycle Hooks</a>
+        <a href="middleware.html#pipeline" class="sidebar-link sub">Pipeline</a>
+        <a href="plugins.html" class="sidebar-link">Plugins</a>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-title">Advanced</div>
+        <a href="advanced.html#dependency-injection" class="sidebar-link">Dependency Injection</a>
+        <a href="advanced.html#mounting" class="sidebar-link">Module Mounting</a>
+        <a href="advanced.html#security" class="sidebar-link">Security</a>
+        <a href="advanced.html#production" class="sidebar-link">Production</a>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-title">Reference</div>
+        <a href="api-reference.html" class="sidebar-link">API Reference</a>
+      </div>
+    </aside>
+
+    <main class="content">
+      <h1>Middleware &amp; Hooks</h1>
+      <p class="page-desc">Intercept and transform requests and responses with composable middleware and lifecycle hooks.</p>
+
+      <!-- Overview -->
+      <h2 id="overview">Overview</h2>
+
+      <p>Middleware wraps the entire request-handling pipeline. Each middleware receives a <code>ctx</code> (RequestContext) and a <code>next_handler</code> callable, and can:</p>
+      <ul>
+        <li>Inspect or modify the request before the handler runs</li>
+        <li>Short-circuit the request (return early without calling the handler)</li>
+        <li>Modify the response after the handler runs</li>
+        <li>Add headers, log requests, enforce security policies</li>
+      </ul>
+
+      <pre><code>from lcore import Lcore, CORSMiddleware, SecurityHeadersMiddleware
+
+app = Lcore()
+
+# Register middleware with app.use()
+app.use(CORSMiddleware(allow_origins='*'))
+app.use(SecurityHeadersMiddleware(hsts=True))</code></pre>
+
+      <p>Middleware execution order is controlled by the <code>order</code> attribute (lowest runs first).</p>
+
+      <!-- Built-in Middleware -->
+      <h2 id="built-in">Built-in Middleware</h2>
+
+      <table>
+        <thead><tr><th>Middleware</th><th>Order</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>BodyLimitMiddleware</code></td><td>0</td><td>Enforce request body size limit</td></tr>
+          <tr><td><code>RequestIDMiddleware</code></td><td>1</td><td>Add unique request ID header</td></tr>
+          <tr><td><code>RequestLoggerMiddleware</code></td><td>2</td><td>Structured JSON request logging</td></tr>
+          <tr><td><code>CORSMiddleware</code></td><td>3</td><td>Cross-origin resource sharing headers</td></tr>
+          <tr><td><code>SecurityHeadersMiddleware</code></td><td>5</td><td>Security headers (XSS, frame, CSP)</td></tr>
+          <tr><td><code>CSRFMiddleware</code></td><td>10</td><td>CSRF token validation</td></tr>
+          <tr><td><code>CompressionMiddleware</code></td><td>90</td><td>Gzip response compression</td></tr>
+        </tbody>
+      </table>
+
+      <h3>RequestIDMiddleware</h3>
+      <p>Adds a unique <code>X-Request-ID</code> header to every response and sets <code>ctx.request_id</code>:</p>
+      <pre><code>from lcore import RequestIDMiddleware
+app.use(RequestIDMiddleware())</code></pre>
+
+      <h3>RequestLoggerMiddleware</h3>
+      <p>Logs every request as structured JSON with method, path, status, and duration:</p>
+      <pre><code>from lcore import RequestLoggerMiddleware
+import logging
+
+logger = logging.getLogger('myapp')
+app.use(RequestLoggerMiddleware(logger=logger))</code></pre>
+
+      <h3>CORSMiddleware</h3>
+      <p>Full CORS support with origin validation and preflight handling:</p>
+      <pre><code>from lcore import CORSMiddleware
+
+# Allow all origins
+app.use(CORSMiddleware(allow_origins='*'))
+
+# Restrict to specific origins
+app.use(CORSMiddleware(
+    allow_origins=['https://myapp.com', 'https://admin.myapp.com'],
+    allow_methods=['GET', 'POST', 'PUT', 'DELETE'],
+    allow_headers=['Content-Type', 'Authorization'],
+    expose_headers=['X-Request-ID'],
+    allow_credentials=True,
+    max_age=86400
+))</code></pre>
+
+      <table class="params-table">
+        <thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>allow_origins</code></td><td><code>'*'</code></td><td>Allowed origins: <code>'*'</code>, single string, or list</td></tr>
+          <tr><td><code>allow_methods</code></td><td><code>['GET','POST','PUT','DELETE','PATCH','OPTIONS']</code></td><td>Allowed HTTP methods</td></tr>
+          <tr><td><code>allow_headers</code></td><td><code>['Content-Type','Authorization','X-Requested-With']</code></td><td>Allowed request headers</td></tr>
+          <tr><td><code>expose_headers</code></td><td><code>[]</code></td><td>Headers visible to the browser</td></tr>
+          <tr><td><code>allow_credentials</code></td><td><code>False</code></td><td>Allow cookies/auth headers</td></tr>
+          <tr><td><code>max_age</code></td><td><code>86400</code></td><td>Preflight cache duration (seconds)</td></tr>
+        </tbody>
+      </table>
+
+      <h3>SecurityHeadersMiddleware</h3>
+      <p>Adds best-practice security headers to every response:</p>
+      <pre><code>from lcore import SecurityHeadersMiddleware
+
+app.use(SecurityHeadersMiddleware(hsts=True, hsts_max_age=31536000))
+
+# Override specific headers
+app.use(SecurityHeadersMiddleware(
+    hsts=True,
+    **{'Content-Security-Policy': "default-src 'self'"}
+))</code></pre>
+      <p>Default headers set: <code>X-Content-Type-Options: nosniff</code>, <code>X-Frame-Options: DENY</code>, <code>X-XSS-Protection: 1; mode=block</code>, <code>Referrer-Policy: strict-origin-when-cross-origin</code>, <code>Content-Security-Policy: default-src 'self'</code>.</p>
+
+      <h3>CSRFMiddleware</h3>
+      <p>Validates CSRF tokens on state-changing requests:</p>
+      <pre><code>from lcore import CSRFMiddleware
+
+app.use(CSRFMiddleware(
+    secret='my-csrf-secret',
+    cookie_name='_csrf_token',
+    header_name='X-CSRF-Token',
+    safe_methods=('GET', 'HEAD', 'OPTIONS')
+))</code></pre>
+
+      <h3>BodyLimitMiddleware</h3>
+      <p>Rejects requests with bodies exceeding the limit (returns 413):</p>
+      <pre><code>from lcore import BodyLimitMiddleware
+
+# Limit request bodies to 5MB
+app.use(BodyLimitMiddleware(max_size=5 * 1024 * 1024))</code></pre>
+
+      <h3>CompressionMiddleware</h3>
+      <p>Gzip-compresses responses when the client accepts it:</p>
+      <pre><code>from lcore import CompressionMiddleware
+
+app.use(CompressionMiddleware(
+    min_size=256,       # Don't compress small responses
+    level=6,            # Compression level (1-9)
+    content_types=None  # Compress all content types
+))</code></pre>
+
+      <!-- Custom Middleware -->
+      <h2 id="custom">Custom Middleware</h2>
+
+      <p>Create custom middleware by subclassing <code>Middleware</code>:</p>
+
+      <pre><code>from lcore import Middleware
+import time
+
+class TimingMiddleware(Middleware):
+    name = 'timing'
+    order = 2
+
+    def __call__(self, ctx, next_handler):
+        start = time.time()
+        result = next_handler(ctx)  # Continue the chain
+        duration = time.time() - start
+        ctx.response.set_header('X-Response-Time',
+            f'{duration*1000:.2f}ms')
+        return result
+
+app.use(TimingMiddleware())</code></pre>
+
+      <h3>Short-Circuiting</h3>
+      <p>Return a response early without calling <code>next_handler</code>:</p>
+
+      <pre><code>from lcore import Middleware, HTTPResponse
+
+class AuthMiddleware(Middleware):
+    name = 'auth'
+    order = 5
+
+    def __call__(self, ctx, next_handler):
+        token = ctx.request.get_header('Authorization')
+        if not token or not self.validate(token):
+            ctx.response.status = 401
+            return {'error': 'Unauthorized'}
+        ctx.user = self.decode(token)
+        return next_handler(ctx)
+
+    def validate(self, token):
+        return token.startswith('Bearer ')
+
+    def decode(self, token):
+        return {'sub': token.split(' ')[1]}</code></pre>
+
+      <h3>Route-Specific Middleware</h3>
+      <p>Apply middleware only to specific route patterns:</p>
+      <pre><code># Only applies to /api/* routes
+app.use(AuthMiddleware(), routes='/api/*')
+
+# Multiple patterns
+app.use(RateLimitMiddleware(), routes=['/api/*', '/webhook/*'])</code></pre>
+
+      <!-- Middleware Hooks -->
+      <h2 id="middleware-hooks">Middleware Hooks</h2>
+
+      <p>For a cleaner separation of concerns, use <code>MiddlewareHook</code> with explicit <code>pre()</code> and <code>post()</code> methods:</p>
+
+      <pre><code>from lcore import MiddlewareHook, HTTPResponse
+
+class AuditHook(MiddlewareHook):
+    name = 'audit'
+    order = 3
+
+    def pre(self, ctx):
+        # Runs before the handler
+        # Return HTTPResponse to short-circuit
+        if ctx.request.path.startswith('/admin'):
+            if not ctx.request.get_header('X-Admin-Key'):
+                return HTTPResponse('Forbidden', status=403)
+
+    def post(self, ctx, result):
+        # Runs after the handler
+        # Can modify and return the result
+        log_access(ctx.request.path, ctx.response.status_code)
+        return result
+
+app.use(AuditHook())</code></pre>
+
+      <table>
+        <thead><tr><th>Method</th><th>Signature</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>pre(ctx)</code></td><td>Returns <code>None</code> or <code>HTTPResponse</code></td><td>Before handler. Return response to short-circuit.</td></tr>
+          <tr><td><code>post(ctx, result)</code></td><td>Returns the (possibly modified) result</td><td>After handler. Can transform the response.</td></tr>
+        </tbody>
+      </table>
+
+      <!-- Lifecycle Hooks -->
+      <h2 id="hooks">Lifecycle Hooks</h2>
+
+      <p>Hooks are lightweight callbacks fired at specific points during request processing:</p>
+
+      <pre><code>@app.hook('before_request')
+def log_request():
+    print(f'{request.method} {request.path}')
+
+@app.hook('after_request')
+def add_header():
+    response.set_header('X-Powered-By', 'Lcore')</code></pre>
+
+      <h3>All Hook Points</h3>
+      <table>
+        <thead><tr><th>Hook Name</th><th>Trigger Point</th><th>Direction</th></tr></thead>
+        <tbody>
+          <tr><td><code>before_request</code></td><td>Before route matching</td><td>Forward</td></tr>
+          <tr><td><code>after_request</code></td><td>After response is built</td><td>Reversed</td></tr>
+          <tr><td><code>on_request_start</code></td><td>Very start of request handling</td><td>Forward</td></tr>
+          <tr><td><code>on_auth_resolved</code></td><td>After authentication resolves</td><td>Forward</td></tr>
+          <tr><td><code>on_handler_enter</code></td><td>Just before handler executes</td><td>Forward</td></tr>
+          <tr><td><code>on_handler_exit</code></td><td>Just after handler returns</td><td>Reversed</td></tr>
+          <tr><td><code>on_response_build</code></td><td>After response object is built</td><td>Reversed</td></tr>
+          <tr><td><code>on_response_send</code></td><td>Just before response is sent</td><td>Reversed</td></tr>
+          <tr><td><code>on_module_mount</code></td><td>When a sub-app is mounted</td><td>Forward</td></tr>
+          <tr><td><code>on_module_request</code></td><td>Request to a mounted module</td><td>Forward</td></tr>
+          <tr><td><code>app_reset</code></td><td>When app.reset() is called</td><td>Forward</td></tr>
+          <tr><td><code>config</code></td><td>When config changes</td><td>Forward</td></tr>
+        </tbody>
+      </table>
+
+      <div class="info-box note">
+        <strong>Reversed Hooks</strong>
+        <p>Hooks marked "Reversed" fire callbacks in reverse registration order (LIFO). This ensures cleanup hooks run in the opposite order of setup hooks.</p>
+      </div>
+
+      <h3>Programmatic Hook API</h3>
+      <pre><code># Register
+app.add_hook('on_request_start', my_callback)
+
+# Remove
+app.remove_hook('on_request_start', my_callback)
+
+# Trigger manually
+results = app.trigger_hook('on_request_start')</code></pre>
+
+      <h3>Module-Specific Hooks</h3>
+      <p>Scope hooks to specific mounted sub-applications:</p>
+      <pre><code># Fire only for requests to /api/* routes
+app.add_module_hook('/api/', 'before_request', check_api_key)
+
+# Decorator form
+@app.module_hook('/admin/', 'after_request')
+def admin_log():
+    log_admin_action(request.path)</code></pre>
+
+      <!-- Pipeline -->
+      <h2 id="pipeline">Middleware Pipeline</h2>
+
+      <p>The <code>MiddlewarePipeline</code> manages middleware execution order and caching:</p>
+
+      <ul>
+        <li><strong>Ordering</strong>: Middleware is sorted by <code>order</code> attribute (lowest first)</li>
+        <li><strong>Caching</strong>: The global middleware chain is cached after first build and invalidated when middleware is added or removed</li>
+        <li><strong>Route matching</strong>: Middleware with <code>routes=</code> parameter is only included for matching paths</li>
+      </ul>
+
+      <h3>Inspect the Stack</h3>
+      <pre><code>for mw in app.show_middleware():
+    print(f"[{mw['order']:3d}] {mw['name']:20s} {mw['type']}")
+
+# [  0] body_limit           BodyLimitMiddleware
+# [  1] request_id           RequestIDMiddleware
+# [  3] cors                 CORSMiddleware
+# [  5] security_headers     SecurityHeadersMiddleware
+# [ 90] compression          CompressionMiddleware</code></pre>
+
+      <h3>Remove Middleware</h3>
+      <pre><code># Remove by instance
+cors = CORSMiddleware()
+app.use(cors)
+app.middleware.remove(cors)</code></pre>
+
+    </main>
+  </div>
+
+  <script src="assets/script.js"></script>
+</body>
+</html>

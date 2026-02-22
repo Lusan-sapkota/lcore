@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Routing - Lcore Documentation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="shortcut icon" href="lcore.png" type="image/x-icon">
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="index.html" class="logo"><img src="lcore.png" alt="Lcore" class="logo-icon"> Lcore</a>
+      <nav class="header-nav">
+        <a href="getting-started.html">Guide</a>
+        <a href="routing.html">Routing</a>
+        <a href="request-response.html">Request/Response</a>
+        <a href="middleware.html">Middleware</a>
+        <a href="plugins.html">Plugins</a>
+        <a href="advanced.html">Advanced</a>
+        <a href="api-reference.html">API</a>
+        <a href="real-world-example.html">Example</a>
+        <a href="https://play.lcore.lusansapkota.com.np/#code-playground">Playground</a>
+      </nav>
+      <div class="header-right">
+        <span class="version-badge">v0.0.1</span>
+        <a href="https://github.com/LusanSapkota/Lcore" class="github-link">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          GitHub
+        </a>
+        <button class="menu-toggle">&#9776;</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="doc-layout">
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-title">Getting Started</div>
+        <a href="getting-started.html#installation" class="sidebar-link">Installation</a>
+        <a href="getting-started.html#first-app" class="sidebar-link">Your First App</a>
+        <a href="getting-started.html#concepts" class="sidebar-link">Core Concepts</a>
+        <a href="getting-started.html#configuration" class="sidebar-link">Configuration</a>
+        <a href="getting-started.html#running" class="sidebar-link">Running Your App</a>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-title">Core</div>
+        <a href="routing.html" class="sidebar-link">Routing</a>
+        <a href="routing.html#basic-routing" class="sidebar-link sub">Basic Routing</a>
+        <a href="routing.html#http-methods" class="sidebar-link sub">HTTP Methods</a>
+        <a href="routing.html#dynamic-routes" class="sidebar-link sub">Dynamic Routes</a>
+        <a href="routing.html#async-routes" class="sidebar-link sub">Async Routes</a>
+        <a href="routing.html#route-filters" class="sidebar-link sub">Route Filters</a>
+        <a href="routing.html#route-groups" class="sidebar-link sub">Route Groups</a>
+        <a href="routing.html#error-routes" class="sidebar-link sub">Error Routes</a>
+        <a href="routing.html#url-building" class="sidebar-link sub">URL Building</a>
+        <a href="routing.html#route-inspection" class="sidebar-link sub">Route Inspection</a>
+        <a href="request-response.html" class="sidebar-link">Request &amp; Response</a>
+        <a href="middleware.html" class="sidebar-link">Middleware</a>
+        <a href="plugins.html" class="sidebar-link">Plugins</a>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-title">Advanced</div>
+        <a href="advanced.html#dependency-injection" class="sidebar-link">Dependency Injection</a>
+        <a href="advanced.html#mounting" class="sidebar-link">Module Mounting</a>
+        <a href="advanced.html#templates" class="sidebar-link">Templates</a>
+        <a href="advanced.html#security" class="sidebar-link">Security</a>
+        <a href="advanced.html#production" class="sidebar-link">Production</a>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-title">Reference</div>
+        <a href="api-reference.html" class="sidebar-link">API Reference</a>
+      </div>
+    </aside>
+
+    <main class="content">
+      <h1>Routing</h1>
+      <p class="page-desc">Map URLs to handler functions using expressive route patterns with typed parameters, wildcards, and regex filters.</p>
+
+      <!-- Basic Routing -->
+      <h2 id="basic-routing">Basic Routing</h2>
+
+      <p>Routes map URL patterns to Python functions. Use the <code>@app.route()</code> decorator to register a handler:</p>
+
+      <pre><code>from lcore import Lcore
+
+app = Lcore()
+
+@app.route('/')
+def index():
+    return 'Welcome home'
+
+@app.route('/about')
+def about():
+    return 'About page'</code></pre>
+
+      <h3>Return Types</h3>
+      <p>Handlers can return various types, and Lcore handles them automatically:</p>
+      <table>
+        <thead><tr><th>Return Type</th><th>Behavior</th></tr></thead>
+        <tbody>
+          <tr><td><code>str</code></td><td>Sent as <code>text/html</code> response</td></tr>
+          <tr><td><code>bytes</code></td><td>Sent as raw bytes</td></tr>
+          <tr><td><code>dict</code> / <code>list</code></td><td>Serialized as JSON with <code>application/json</code> Content-Type</td></tr>
+          <tr><td><code>HTTPResponse</code></td><td>Sent as-is with custom status/headers</td></tr>
+          <tr><td>File-like object</td><td>Streamed to client</td></tr>
+          <tr><td><code>None</code></td><td>Empty 200 response</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Named Routes</h3>
+      <pre><code>@app.route('/users/&lt;id:int&gt;', name='user_detail')
+def user_detail(id):
+    return {'id': id}
+
+# Build URL from name
+url = app.get_url('user_detail', id=42)
+# -&gt; '/users/42'</code></pre>
+
+      <!-- HTTP Methods -->
+      <h2 id="http-methods">HTTP Methods</h2>
+
+      <p>By default, routes respond to <code>GET</code> requests. Specify other methods with the <code>method</code> parameter:</p>
+
+      <pre><code>@app.route('/items', method='POST')
+def create_item():
+    return {'created': True}
+
+# Multiple methods on one route
+@app.route('/items/&lt;id:int&gt;', method=['GET', 'PUT', 'DELETE'])
+def item(id):
+    if request.method == 'GET':
+        return get_item(id)
+    elif request.method == 'PUT':
+        return update_item(id)
+    elif request.method == 'DELETE':
+        return delete_item(id)</code></pre>
+
+      <h3>Shorthand Decorators</h3>
+      <table>
+        <thead><tr><th>Decorator</th><th>Method</th><th>Example</th></tr></thead>
+        <tbody>
+          <tr><td><code>@app.get(path)</code></td><td><span class="method get">GET</span></td><td>Retrieve resources</td></tr>
+          <tr><td><code>@app.post(path)</code></td><td><span class="method post">POST</span></td><td>Create resources</td></tr>
+          <tr><td><code>@app.put(path)</code></td><td><span class="method put">PUT</span></td><td>Replace resources</td></tr>
+          <tr><td><code>@app.delete(path)</code></td><td><span class="method delete">DELETE</span></td><td>Remove resources</td></tr>
+          <tr><td><code>@app.patch(path)</code></td><td><span class="method patch">PATCH</span></td><td>Partial updates</td></tr>
+        </tbody>
+      </table>
+
+      <pre><code>@app.get('/users')
+def list_users():
+    return {'users': []}
+
+@app.post('/users')
+def create_user():
+    data = request.json
+    return {'id': 1, **data}
+
+@app.put('/users/&lt;id:int&gt;')
+def replace_user(id):
+    return {'id': id, 'replaced': True}
+
+@app.delete('/users/&lt;id:int&gt;')
+def remove_user(id):
+    return {'deleted': True}</code></pre>
+
+      <div class="info-box tip">
+        <strong>Tip</strong>
+        <p><code>HEAD</code> requests are automatically handled for any <code>GET</code> route. The response body is stripped, but headers (including <code>Content-Length</code>) are preserved.</p>
+      </div>
+
+      <p>If a URL matches a route but not the HTTP method, Lcore returns <strong>405 Method Not Allowed</strong> with an <code>Allow</code> header listing valid methods.</p>
+
+      <!-- Dynamic Routes -->
+      <h2 id="dynamic-routes">Dynamic Routes</h2>
+
+      <p>Capture URL segments as parameters using angle brackets. Parameters are passed as keyword arguments to your handler:</p>
+
+      <pre><code>@app.route('/hello/&lt;name&gt;')
+def hello(name):
+    return f'Hello, {name}!'
+
+# GET /hello/Alice -&gt; "Hello, Alice!"</code></pre>
+
+      <h3>Typed Parameters</h3>
+      <p>Add a filter to constrain and convert parameter types:</p>
+
+      <table>
+        <thead><tr><th>Filter</th><th>Pattern</th><th>Python Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>&lt;name&gt;</code></td><td><code>[^/]+</code></td><td><code>str</code></td><td>Matches one path segment (default)</td></tr>
+          <tr><td><code>&lt;name:int&gt;</code></td><td><code>\d+</code></td><td><code>int</code></td><td>Matches digits, converts to integer</td></tr>
+          <tr><td><code>&lt;name:float&gt;</code></td><td><code>\d+\.\d+</code></td><td><code>float</code></td><td>Matches decimal numbers</td></tr>
+          <tr><td><code>&lt;name:path&gt;</code></td><td><code>.+</code></td><td><code>str</code></td><td>Matches multiple segments (including <code>/</code>)</td></tr>
+          <tr><td><code>&lt;name:re:pattern&gt;</code></td><td>Custom regex</td><td><code>str</code></td><td>Matches custom regex pattern</td></tr>
+        </tbody>
+      </table>
+
+      <pre><code># Integer parameter
+@app.route('/users/&lt;id:int&gt;')
+def get_user(id):
+    return {'id': id, 'type': type(id).__name__}
+# GET /users/42 -&gt; {"id": 42, "type": "int"}
+# GET /users/abc -&gt; 404
+
+# Float parameter
+@app.route('/coords/&lt;lat:float&gt;/&lt;lon:float&gt;')
+def location(lat, lon):
+    return {'lat': lat, 'lon': lon}
+
+# Path parameter (matches slashes)
+@app.route('/files/&lt;filepath:path&gt;')
+def serve_file(filepath):
+    return static_file(filepath, root='./public')
+# GET /files/docs/guide/intro.pdf -&gt; serves the file
+
+# Regex parameter
+@app.route('/api/v&lt;version:re:[0-9]+&gt;/status')
+def api_status(version):
+    return {'api_version': version}
+
+# Multiple parameters
+@app.route('/&lt;year:int&gt;/&lt;month:int&gt;/&lt;slug&gt;')
+def article(year, month, slug):
+    return {'year': year, 'month': month, 'slug': slug}</code></pre>
+
+      <!-- Async Routes -->
+      <h2 id="async-routes">Async Routes</h2>
+
+      <p>Lcore supports <code>async def</code> route handlers. Async handlers are automatically detected and executed with <code>asyncio.run()</code>, making it easy to use async libraries without changing your app structure:</p>
+
+      <pre><code>import asyncio
+from lcore import Lcore, request
+
+app = Lcore()
+
+@app.route('/fast')
+async def fast_handler():
+    # Use async/await naturally
+    data = await fetch_from_service()
+    return {'result': data}
+
+@app.route('/parallel')
+async def parallel():
+    # Run multiple async operations concurrently
+    users, products = await asyncio.gather(
+        fetch_users(),
+        fetch_products()
+    )
+    return {'users': users, 'products': products}
+
+@app.route('/delayed')
+async def delayed():
+    await asyncio.sleep(1)
+    return {'message': 'Done after 1 second'}
+
+# Mix sync and async routes freely
+@app.route('/sync')
+def sync_handler():
+    return {'type': 'sync'}</code></pre>
+
+      <div class="info-box note">
+        <strong>How Async Works in Lcore</strong>
+        <p>Lcore is a <strong>WSGI framework</strong>, not ASGI. Async handlers are executed using <code>asyncio.run()</code> (or a <code>ThreadPoolExecutor</code> if an event loop is already running). This means you can use <code>async/await</code> syntax for cleaner code when calling async libraries, but the underlying server is still synchronous per-request. For true async concurrency, use an async server adapter like <strong>gevent</strong>, <strong>eventlet</strong>, or <strong>aiohttp</strong>.</p>
+      </div>
+
+      <h3>Async Middleware</h3>
+      <p>Middleware can also be async:</p>
+      <pre><code>from lcore import Middleware
+
+class AsyncTimingMiddleware(Middleware):
+    name = 'async_timing'
+    order = 2
+
+    async def __call__(self, ctx, next_handler):
+        import time
+        start = time.time()
+        result = next_handler(ctx)
+        duration = time.time() - start
+        ctx.response.set_header('X-Time', f'{duration:.4f}s')
+        return result</code></pre>
+
+      <!-- Route Filters -->
+      <h2 id="route-filters">Route Filters</h2>
+
+      <p>Create custom route filters for reusable parameter validation and conversion:</p>
+
+      <pre><code># Custom UUID filter
+import re
+
+app.add_route_filter(
+    'uuid',
+    r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}',
+    to_python=lambda val: val,
+    to_url=lambda val: str(val)
+)
+
+@app.route('/items/&lt;item_id:uuid&gt;')
+def get_item(item_id):
+    return {'item_id': item_id}
+# GET /items/550e8400-e29b-41d4-a716-446655440000 -&gt; matches
+# GET /items/invalid -&gt; 404</code></pre>
+
+      <p>The <code>add_route_filter</code> method accepts:</p>
+      <table class="params-table">
+        <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>name</code></td><td><code>str</code></td><td>Filter name used in route patterns</td></tr>
+          <tr><td><code>pattern</code></td><td><code>str</code></td><td>Regex pattern to match</td></tr>
+          <tr><td><code>to_python</code></td><td><code>callable</code></td><td>Convert matched string to Python type</td></tr>
+          <tr><td><code>to_url</code></td><td><code>callable</code></td><td>Convert Python value back to URL string</td></tr>
+        </tbody>
+      </table>
+
+      <!-- Route Groups -->
+      <h2 id="route-groups">Route Groups</h2>
+
+      <p>Group routes under a common prefix using the <code>app.group()</code> context manager:</p>
+
+      <pre><code>with app.group('/api/v1'):
+    @app.route('/users')
+    def list_users():
+        return {'users': []}
+
+    @app.route('/users/&lt;id:int&gt;')
+    def get_user(id):
+        return {'id': id}
+
+    @app.route('/products')
+    def list_products():
+        return {'products': []}
+
+# Routes registered:
+#   /api/v1/users
+#   /api/v1/users/&lt;id:int&gt;
+#   /api/v1/products</code></pre>
+
+      <p>Groups can share common configuration:</p>
+      <pre><code>with app.group('/admin', auth_required=True):
+    @app.route('/dashboard')
+    def dashboard():
+        return 'Admin Dashboard'</code></pre>
+
+      <!-- Error Routes -->
+      <h2 id="error-routes">Error Routes</h2>
+
+      <p>Define custom error pages with the <code>@app.error()</code> decorator:</p>
+
+      <pre><code>@app.error(404)
+def not_found(error):
+    return {'error': 'Not found', 'path': request.path}
+
+@app.error(500)
+def server_error(error):
+    return {'error': 'Internal server error'}
+
+# The error handler receives an HTTPError object with:
+#   error.status_code  - HTTP status code
+#   error.body         - Error message
+#   error.exception    - Original exception (if any)
+#   error.traceback    - Traceback string (if debug)</code></pre>
+
+      <h3>Raising Errors</h3>
+      <pre><code>from lcore import abort, HTTPError
+
+@app.route('/protected')
+def protected():
+    # Quick abort
+    abort(403, 'Access denied')
+
+    # Or raise with more control
+    raise HTTPError(
+        status=422,
+        body='Invalid input',
+        headers={'X-Error': 'validation'}
+    )</code></pre>
+
+      <!-- URL Building -->
+      <h2 id="url-building">URL Building</h2>
+
+      <p>Build URLs from route names to avoid hardcoding paths:</p>
+
+      <pre><code>@app.route('/users/&lt;id:int&gt;', name='user_detail')
+def user_detail(id):
+    return {'id': id}
+
+@app.route('/users/&lt;id:int&gt;/posts/&lt;post_id:int&gt;', name='user_post')
+def user_post(id, post_id):
+    return {'user': id, 'post': post_id}
+
+# Build URLs
+app.get_url('user_detail', id=42)
+# -&gt; '/users/42'
+
+app.get_url('user_post', id=42, post_id=7)
+# -&gt; '/users/42/posts/7'</code></pre>
+
+      <div class="info-box note">
+        <strong>Note</strong>
+        <p>If a route has no explicit <code>name</code>, it defaults to <code>None</code> and cannot be used for URL building. Always name routes you intend to reference.</p>
+      </div>
+
+      <!-- Route Inspection -->
+      <h2 id="route-inspection">Route Inspection</h2>
+
+      <h3>List Routes</h3>
+      <p>Use <code>app.show_routes()</code> to get a structured list of all registered routes:</p>
+      <pre><code>routes = app.show_routes()
+for r in routes:
+    print(f"{r['method']:6s} {r['rule']:30s} {r['name'] or '-'}")
+
+# GET    /                              index
+# GET    /users                         list_users
+# POST   /users                         create_user
+# GET    /users/&lt;id:int&gt;                user_detail</code></pre>
+
+      <p>Each route dict contains: <code>method</code>, <code>rule</code>, <code>name</code>, <code>callback</code>, <code>plugins</code>.</p>
+
+      <h3>Auto-Generated API Docs</h3>
+      <p>Generate API documentation automatically from your routes, docstrings, and parameter types:</p>
+
+      <pre><code>@app.route('/api/users/&lt;id:int&gt;', method='GET', name='get_user')
+def get_user(id):
+    """Fetch a single user by their unique ID."""
+    return {'id': id}
+
+# Get docs as dict
+docs = app.api_docs()
+print(docs['routes'][0])
+# {'method': 'GET', 'rule': '/api/users/&lt;id:int&gt;',
+#  'name': 'get_user', 'docstring': 'Fetch a single user...',
+#  'parameters': [{'name': 'id', 'type': 'int'}], ...}
+
+# Get docs as JSON string
+json_docs = app.api_docs_json()
+
+# Serve docs as an endpoint
+@app.route('/docs')
+def docs():
+    return app.api_docs()</code></pre>
+
+    </main>
+  </div>
+
+  <script src="assets/script.js"></script>
+</body>
+</html>
