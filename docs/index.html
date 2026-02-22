@@ -52,6 +52,9 @@
         <a href="api-reference.html" class="btn btn-secondary">API Reference</a>
         <a href="https://play.lcore.lusansapkota.com.np/#code-playground" class="btn btn-secondary">Live Playground</a>
       </div>
+      <p style="margin-top:18px;font-size:0.82em;color:#94a3b8;letter-spacing:0.03em">
+        Python 3.8+ &nbsp;|&nbsp; v0.0.1 &nbsp;|&nbsp; Early Release &nbsp;|&nbsp; MIT &nbsp;|&nbsp; Zero Dependencies
+      </p>
     </section>
 
     <!-- Install -->
@@ -210,6 +213,110 @@ app.run(host='0.0.0.0', port=8080)</code></pre>
             <tr><td>Graceful shutdown</td><td><strong>Built-in</strong></td><td>Server</td><td>No</td><td>Server</td></tr>
           </tbody>
         </table>
+      </div>
+    </section>
+
+    <!-- Why Lcore Exists -->
+    <section class="features" id="why-lcore">
+      <h2>Why Lcore Exists</h2>
+      <p style="line-height:1.8;color:#94a3b8">Most Python frameworks make one of two trade-offs: simple and fast (Bottle) but with no middleware, no DI, and no security stack -- or full-featured (Flask, Django) but dependent on many extensions and slower under load. Lcore closes that gap.</p>
+      <div class="feature-grid" style="margin-top:28px">
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          </div>
+          <h3>Bottle fills the speed and simplicity slot</h3>
+          <p>Single file, zero deps, fast. But no middleware stack, no dependency injection, no security primitives, no lifecycle hooks. You build all of that yourself.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2v-4M9 21H5a2 2 0 01-2-2v-4m0 0h18"/></svg>
+          </div>
+          <h3>Flask fills the familiarity slot</h3>
+          <p>Popular and well-documented. But you need flask-cors, flask-limiter, flask-login, and many more before you have a production API -- and each is a dependency.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+          </div>
+          <h3>Lcore fills the gap in between</h3>
+          <p>Single file, zero deps, 3 to 4x faster than Flask, with CORS, CSRF, security headers, rate limiting, PBKDF2 hashing, DI, 12 lifecycle hooks, and a test client all built in. Nothing to install beyond Lcore itself.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Design Philosophy -->
+    <section class="features" id="design-philosophy">
+      <h2>Design Philosophy</h2>
+      <div class="feature-grid">
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <h3>One file only</h3>
+          <p>The entire framework is <code>lcore.py</code>. No package structure, no sub-modules, no build step. Drop it into any project and import it.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+          </div>
+          <h3>Zero external dependencies</h3>
+          <p>Every import is from Python's standard library. Works in air-gapped environments, containers, and serverless functions where <code>pip</code> may not be available.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+          </div>
+          <h3>Production features built in, not bolted on</h3>
+          <p>CORS, CSRF, security headers, rate limiting, signed cookies, and password hashing ship with the framework. You should not need five extensions to secure a production API.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </div>
+          <h3>Honest about limitations</h3>
+          <p>Lcore is WSGI. It documents and warns loudly when a feature has constraints -- async handlers, per-process rate limiting, thread-blocking timeouts. No surprises.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          </div>
+          <h3>Standard Python throughout</h3>
+          <p>No metaclass magic, no descriptor abuse, no import-time side effects beyond what is declared. The source is meant to be read and understood.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>
+          </div>
+          <h3>449 tests, zero test dependencies</h3>
+          <p>The test suite uses only <code>unittest</code> from the standard library. Run it anywhere with <code>python -m pytest tests/</code> after installing pytest.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- When NOT to use Lcore -->
+    <section class="features" id="when-not-to-use">
+      <h2>When NOT to use Lcore</h2>
+      <p style="max-width:720px;line-height:1.8;color:#94a3b8;margin-bottom:20px">Lcore is a strong fit for synchronous WSGI workloads. It is the wrong choice in these situations:</p>
+      <div class="comparison-container">
+        <table>
+          <thead>
+            <tr><th>Situation</th><th>Better choice</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>You need WebSockets or real-time async I/O</td><td>FastAPI, Starlette, Quart</td></tr>
+            <tr><td>You need true async concurrency (async DB drivers, hundreds of simultaneous outbound calls)</td><td>FastAPI, Starlette</td></tr>
+            <tr><td>Your team is already on Flask and migration cost outweighs any benefit</td><td>Stay on Flask</td></tr>
+            <tr><td>You need automatic OpenAPI / Swagger generation</td><td>FastAPI</td></tr>
+            <tr><td>You need ASGI and Uvicorn / Daphne today</td><td>FastAPI, Starlette</td></tr>
+            <tr><td>Your workload is I/O-bound and you want event-loop concurrency</td><td>FastAPI, Starlette</td></tr>
+            <tr><td>You need a full MVC framework with ORM, admin panel, and migrations</td><td>Django</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="info-box tip" style="margin-top:20px">
+        <strong>Lcore is a good fit when...</strong>
+        <p>Your workload is primarily synchronous: REST APIs, internal services, background job APIs, or microservices that talk to SQL databases via sync drivers (<code>psycopg2</code>, <code>sqlite3</code>, <code>mysqlclient</code>). If you want maximum feature density in a single file with no installation ceremony, Lcore is built for that.</p>
       </div>
     </section>
 

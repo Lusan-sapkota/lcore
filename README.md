@@ -16,6 +16,14 @@
   <a href="https://lcore.lusansapkota.com.np/api-reference.html">API Reference</a>
 </p>
 
+<p align="center">
+  <img src="https://img.shields.io/badge/python-3.8%2B-blue" alt="Python 3.8+">
+  <img src="https://img.shields.io/badge/version-0.0.1-informational" alt="v0.0.1">
+  <img src="https://img.shields.io/badge/status-early%20release-orange" alt="Early Release">
+  <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT">
+  <img src="https://img.shields.io/badge/dependencies-none-brightgreen" alt="Zero Dependencies">
+</p>
+
 ---
 
 ## Installation
@@ -42,6 +50,10 @@ def hello():
 app.run(host='0.0.0.0', port=8080)
 ```
 
+> **Async note:** `async def` route handlers are accepted but the worker thread is blocked for the duration -- there is no concurrency benefit. See the [async caveat](https://lcore.lusansapkota.com.np/routing.html#async-routes) before using them.
+
+**Performance:** In internal benchmarks, Lcore processes roughly 90,000 -- 120,000 requests/sec on simple JSON and plaintext routes (single process, no I/O), which is approximately 3 -- 4x higher throughput than Flask under the same conditions. Results vary by hardware and workload.
+
 ## Features
 
 - **Single file, zero dependencies** -- drop `lcore.py` into any project
@@ -59,7 +71,43 @@ app.run(host='0.0.0.0', port=8080)
 - **Module mounting** -- compose sub-applications with isolated routes and middleware
 - **21 server adapters** -- use `server='auto'` to auto-select the best available
 
-## Live Demo & Playground
+## Why Lcore Exists
+
+Most Python web frameworks make one of two trade-offs:
+
+- **Simple and fast** (Bottle) -- single file, zero deps, but no middleware stack, no DI, no security primitives, no lifecycle hooks.
+- **Full-featured** (Flask, Django) -- lots of extensions, but each extension is a dependency, and the base framework is slow.
+
+Lcore was built to close that gap. The goal is a framework that you can drop into any environment as a single file with no `pip install`, that includes a production-ready middleware stack, security primitives, dependency injection, and lifecycle hooks out of the box -- without reaching for extensions.
+
+It is inspired by the minimalism of [Bottle](https://bottlepy.org) and uses the same single-file approach, but ships with the features that Bottle leaves to you.
+
+## Design Philosophy
+
+- **One file only.** The entire framework is `lcore.py`. No package structure, no sub-modules, no build step. Drop it in, import it, done.
+- **Zero external dependencies.** Every import is from Python's standard library (`hashlib`, `threading`, `json`, `gzip`, `logging`, `asyncio`, `http`). Works in air-gapped environments, containers, and serverless functions where `pip` may not be available.
+- **Production features built-in, not bolted on.** CORS, CSRF, security headers, rate limiting, signed cookies, and password hashing are part of the framework. You should not need to install five extensions to secure a production API.
+- **Honest about limitations.** Lcore is WSGI. It documents and warns loudly when a feature has constraints (async handlers, per-process rate limiting, thread-blocking timeouts). No surprises.
+- **Standard Python throughout.** No metaclass magic, no descriptor abuse, no import-time side effects beyond what is declared. The source is meant to be read.
+- **449 tests, zero external test dependencies.** The test suite uses only `unittest` from the standard library.
+
+## When NOT to use Lcore
+
+Lcore is the right choice for many synchronous WSGI workloads, but it is the wrong choice in these situations:
+
+| Situation | Better choice |
+|-----------|---------------|
+| You need WebSockets or real-time async I/O | FastAPI, Starlette, Quart |
+| You need true async concurrency (hundreds of simultaneous outbound HTTP calls, async DB drivers) | FastAPI, Starlette |
+| Your team is already on Flask and the migration cost outweighs any benefit | Stay on Flask |
+| You need automatic OpenAPI / Swagger generation | FastAPI |
+| You need ASGI and Uvicorn / Daphne | FastAPI, Starlette |
+| Your workload is I/O-bound and you want event-loop concurrency | FastAPI, Starlette |
+| You need a full MVC framework with ORM, admin panel, and migrations | Django |
+
+If your workload is primarily synchronous -- REST APIs, internal services, background job APIs, microservices that talk to SQL databases via sync drivers -- Lcore is a strong fit.
+
+
 
 | Link | Description |
 |------|-------------|
