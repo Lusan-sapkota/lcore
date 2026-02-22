@@ -25,7 +25,7 @@ pip install lcore
 
 > **Note:** `pip install lcore` pulls the latest **stable, tagged release** and is the recommended way to install.
 >
-> Copying `lcore.py` directly from the `main` branch may include unreleased or experimental changes. If you prefer copying the file, always use a **tagged release** (e.g. `v0.0.1`) from the [Releases](https://github.com/LusanSapkota/Lcore/releases) page to ensure stability.
+> Copying `lcore.py` directly from the `main` branch may include unreleased or experimental changes. If you prefer copying the file, always use a **tagged release** (e.g. `v0.0.1`) from the [Releases](https://github.com/Lusan-sapkota/lcore/releases) page to ensure stability.
 
 ## Quick Start
 
@@ -34,9 +34,9 @@ from lcore import Lcore
 
 app = Lcore()
 
-@app.route('/hello/<name>')
-def hello(name):
-    return {'message': f'Hello, {name}!'}
+@app.route('/hello')
+def hello():
+    return {'message': 'Hello, World!'}
 
 app.run(host='0.0.0.0', port=8080)
 ```

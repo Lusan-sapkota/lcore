@@ -30,7 +30,7 @@
       </nav>
       <div class="header-right">
         <span class="version-badge">v0.0.1</span>
-        <a href="https://github.com/LusanSapkota/Lcore" class="github-link">
+        <a href="https://github.com/Lusan-sapkota/lcore" class="github-link">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
           GitHub
         </a>
@@ -70,9 +70,9 @@
 
 app = Lcore()
 
-@app.route('/hello/&lt;name&gt;')
-def hello(name):
-    return {'message': f'Hello, {name}!'}
+@app.route('/hello')
+def hello():
+    return {'message': 'Hello, World!'}
 
 app.run(host='0.0.0.0', port=8080)</code></pre>
     </section>
@@ -80,17 +80,21 @@ app.run(host='0.0.0.0', port=8080)</code></pre>
     <!-- Performance -->
     <section class="features" id="performance">
       <h2>Performance</h2>
-      <p class="perf-subtitle">WSGI throughput benchmark. 10,000 requests, single-threaded wsgiref. Measures pure framework overhead.</p>
+      <p class="perf-subtitle">WSGI throughput benchmark — 50,000 iterations &times; 3 runs, best of 3. Measures pure framework overhead.</p>
 
       <div class="perf-container">
         <table>
           <thead>
-            <tr><th>Framework</th><th>Plaintext (req/s)</th><th>JSON (req/s)</th><th>Params (req/s)</th></tr>
+            <tr><th>Test</th><th><strong>Lcore</strong></th><th>Flask 3.1</th><th>Bottle 0.13</th><th>Lcore vs Flask</th></tr>
           </thead>
           <tbody>
-            <tr><td><strong>Lcore</strong></td><td><strong>139,565</strong></td><td><strong>104,783</strong></td><td><strong>96,997</strong></td></tr>
-            <tr><td>Bottle 0.13</td><td>206,258</td><td>150,323</td><td>132,656</td></tr>
-            <tr><td>Flask 3.1</td><td>30,869</td><td>26,870</td><td>24,626</td></tr>
+            <tr><td>Plaintext</td><td><strong>123,337</strong></td><td>29,075</td><td>201,028</td><td><strong>4.2x</strong></td></tr>
+            <tr><td>JSON</td><td><strong>95,847</strong></td><td>25,001</td><td>142,712</td><td><strong>3.8x</strong></td></tr>
+            <tr><td>Route Params</td><td><strong>90,175</strong></td><td>23,969</td><td>126,885</td><td><strong>3.8x</strong></td></tr>
+            <tr><td>Middleware (2 layers)</td><td><strong>51,383</strong></td><td>23,065</td><td>119,102</td><td><strong>2.2x</strong></td></tr>
+            <tr><td>404 Miss</td><td><strong>36,107</strong></td><td>16,000</td><td>41,785</td><td><strong>2.3x</strong></td></tr>
+            <tr><td>Multi-Route (50 routes)</td><td><strong>97,933</strong></td><td>26,014</td><td>145,950</td><td><strong>3.8x</strong></td></tr>
+            <tr><td>POST JSON</td><td><strong>59,078</strong></td><td>20,146</td><td>99,553</td><td><strong>2.9x</strong></td></tr>
           </tbody>
         </table>
 
@@ -99,23 +103,61 @@ app.run(host='0.0.0.0', port=8080)</code></pre>
             <div class="perf-group-label">Plaintext (req/s)</div>
             <div class="perf-row">
               <span class="perf-label">Lcore</span>
-              <div class="perf-track"><div class="perf-bar primary w-68"></div></div>
-              <span class="perf-value primary">139,565</span>
+              <div class="perf-track"><div class="perf-bar primary w-61"></div></div>
+              <span class="perf-value primary">123,337</span>
             </div>
             <div class="perf-row">
               <span class="perf-label">Bottle</span>
               <div class="perf-track"><div class="perf-bar muted w-full"></div></div>
-              <span class="perf-value muted">206,258</span>
+              <span class="perf-value muted">201,028</span>
             </div>
             <div class="perf-row">
               <span class="perf-label">Flask</span>
-              <div class="perf-track"><div class="perf-bar muted w-15"></div></div>
-              <span class="perf-value muted">30,869</span>
+              <div class="perf-track"><div class="perf-bar muted w-14"></div></div>
+              <span class="perf-value muted">29,075</span>
+            </div>
+          </div>
+
+          <div class="perf-group">
+            <div class="perf-group-label">JSON (req/s)</div>
+            <div class="perf-row">
+              <span class="perf-label">Lcore</span>
+              <div class="perf-track"><div class="perf-bar primary w-67"></div></div>
+              <span class="perf-value primary">95,847</span>
+            </div>
+            <div class="perf-row">
+              <span class="perf-label">Bottle</span>
+              <div class="perf-track"><div class="perf-bar muted w-full"></div></div>
+              <span class="perf-value muted">142,712</span>
+            </div>
+            <div class="perf-row">
+              <span class="perf-label">Flask</span>
+              <div class="perf-track"><div class="perf-bar muted w-18"></div></div>
+              <span class="perf-value muted">25,001</span>
+            </div>
+          </div>
+
+          <div class="perf-group">
+            <div class="perf-group-label">Middleware Stack (req/s)</div>
+            <div class="perf-row">
+              <span class="perf-label">Lcore</span>
+              <div class="perf-track"><div class="perf-bar primary w-43"></div></div>
+              <span class="perf-value primary">51,383</span>
+            </div>
+            <div class="perf-row">
+              <span class="perf-label">Bottle</span>
+              <div class="perf-track"><div class="perf-bar muted w-full"></div></div>
+              <span class="perf-value muted">119,102</span>
+            </div>
+            <div class="perf-row">
+              <span class="perf-label">Flask</span>
+              <div class="perf-track"><div class="perf-bar muted w-19"></div></div>
+              <span class="perf-value muted">23,065</span>
             </div>
           </div>
         </div>
 
-        <p class="perf-note">Lcore is ~4.5x faster than Flask. Bottle is faster still but lacks middleware, DI, security stack, and lifecycle hooks.</p>
+        <p class="perf-note">Lcore is <strong>2.2x – 4.2x faster than Flask</strong> across all 7 test scenarios. Bottle is faster still but lacks middleware, DI, security stack, and lifecycle hooks that Lcore provides out of the box.</p>
       </div>
     </section>
 
@@ -304,11 +346,11 @@ app.run(server='gunicorn', host='0.0.0.0', port=8080)</code></pre>
 
     <footer class="site-footer">
       <p>
-        Lcore Framework &mdash; Created by Lusan Sapkota &mdash; MIT License
+        Lcore Framework &mdash; Created by <a href="https://lusansapkota.com.np" target="_blank" rel="noopener noreferrer">Lusan Sapkota</a> &mdash; MIT License
         <br>
         <a href="https://play.lcore.lusansapkota.com.np">Live Demo</a> &bull;
         <a href="https://play.lcore.lusansapkota.com.np/#code-playground">Code Playground</a> &bull;
-        <a href="https://github.com/LusanSapkota/Lcore">GitHub</a>
+        <a href="https://github.com/Lusan-sapkota/lcore">GitHub</a>
       </p>
     </footer>
 
