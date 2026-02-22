@@ -34,7 +34,7 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html { scroll-behavior: smooth; scroll-padding-top: calc(var(--header-height) + 24px); }
+html { scroll-behavior: smooth; scroll-padding-top: calc(var(--header-height) + 24px); overflow-x: hidden; }
 
 body {
   font-family: var(--font-sans);
@@ -205,7 +205,6 @@ a:hover { color: var(--accent-hover); }
   margin-left: var(--sidebar-width);
   flex: 1;
   min-width: 0;
-  max-width: 900px;
   padding: 40px 56px 80px;
 }
 
@@ -646,7 +645,7 @@ td code {
   .menu-toggle { display: block; }
   .sidebar { transform: translateX(-100%); transition: transform 0.3s; }
   .sidebar.open { transform: translateX(0); }
-  .content { margin-left: 0; padding: 24px 16px 60px; }
+  .content { margin-left: 0; padding: 24px 16px 60px; max-width: 100vw; overflow-x: hidden; }
   .hero { padding: 80px 16px 40px; }
   .hero h1 { font-size: 28px; }
   .hero .tagline { font-size: 15px; }
@@ -660,16 +659,18 @@ td code {
   .section-centered h2 { font-size: 20px; }
   .install-box { margin-bottom: 40px; }
   .install-cmd { font-size: 13px; padding: 12px 16px; }
-  pre { padding: 14px 12px; font-size: 12px; }
-  pre code { font-size: 12px; }
+  pre { padding: 14px 12px; font-size: 12px; max-width: calc(100vw - 32px); }
+  pre code { font-size: 12px; white-space: pre; word-break: break-all; }
   .content h1 { font-size: 24px; }
   .content h2 { font-size: 18px; margin-top: 32px; }
   .content h3 { font-size: 15px; }
   .comparison-container { overflow-x: auto; }
   .comparison-container table { min-width: 600px; }
-  table { font-size: 12px; }
+  table { font-size: 12px; display: block; overflow-x: auto; max-width: calc(100vw - 32px); }
+  thead, tbody, tr, th, td { white-space: normal; }
   thead th { padding: 8px 10px; font-size: 11px; }
   tbody td { padding: 8px 10px; }
+  td code { white-space: normal; word-break: break-word; }
   .api-header { flex-wrap: wrap; gap: 6px; padding: 10px 14px; }
   .api-sig { margin-left: 0; font-size: 11px; width: 100%; }
   .api-body { padding: 12px 14px; }

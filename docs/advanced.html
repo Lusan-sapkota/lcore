@@ -497,6 +497,12 @@ app.use(CSRFMiddleware(secret='your-csrf-secret'))</code></pre>
           <tr><td>Rate limiting</td><td>Token bucket with memory cleanup</td></tr>
           <tr><td>ETag hashing</td><td>SHA256 (not SHA1)</td></tr>
           <tr><td>Password hashing</td><td>PBKDF2-SHA256 with random salt</td></tr>
+          <tr><td>Symlink traversal</td><td>Blocked in <code>static_file()</code> if symlink points outside root</td></tr>
+          <tr><td>Header injection</td><td>Newlines stripped from Content-Disposition filenames</td></tr>
+          <tr><td>Form field DoS</td><td>Max 1,000 fields per request (prevents memory exhaustion)</td></tr>
+          <tr><td>CORS validation</td><td><code>allow_credentials=True</code> rejects wildcard origins</td></tr>
+          <tr><td>Graceful shutdown</td><td>SIGTERM handled for container/orchestrator compatibility</td></tr>
+          <tr><td>Thread-safe singletons</td><td>DependencyContainer uses locking for singleton resolution</td></tr>
         </tbody>
       </table>
 
@@ -654,7 +660,7 @@ app.use(RequestIDMiddleware())
 app.use(RequestLoggerMiddleware(logger=logging.getLogger('http')))
 app.use(SecurityHeadersMiddleware(hsts=True))
 app.use(CORSMiddleware(
-    allow_origins=app.config.get('cors_origins', '*').split(','),
+    allow_origins=app.config.get('cors_origins', 'https://myapp.com').split(','),
     allow_credentials=True
 ))
 
@@ -696,14 +702,23 @@ app.run(server='gunicorn', host='0.0.0.0', port=8080)</code></pre>
         <strong>Production Checklist</strong>
         <p>
           1. Use a production server (Gunicorn, Waitress, Gevent)<br>
-          2. Set <code>debug=False</code> (default)<br>
-          3. Enable HSTS and security headers<br>
-          4. Configure CORS with explicit origins<br>
-          5. Set body size limits<br>
-          6. Register shutdown hooks for cleanup<br>
+          2. Set <code>debug=False</code> (default) &mdash; debug mode exposes tracebacks to users<br>
+          3. Enable HSTS and security headers via <code>SecurityHeadersMiddleware</code><br>
+          4. Configure CORS with <strong>explicit origins</strong> &mdash; never use <code>'*'</code> with <code>allow_credentials=True</code><br>
+          5. Set body size limits via <code>BodyLimitMiddleware</code><br>
+          6. Register shutdown hooks with <code>@on_shutdown</code> for cleanup<br>
           7. Use signed cookies with a strong secret<br>
-          8. Load config from environment variables
+          8. Load config from environment variables, not hardcoded<br>
+          9. Use <code>hash_password()</code> / <code>verify_password()</code> &mdash; never store plaintext passwords<br>
+          10. Set <code>secure=True</code> on CSRF cookies when serving over HTTPS<br>
+          11. Enable gzip compression via <code>CompressionMiddleware</code><br>
+          12. Enable request ID tracking via <code>RequestIDMiddleware</code>
         </p>
+      </div>
+
+      <div class="info-box">
+        <strong>Zero Dependencies</strong>
+        <p>Lcore is built entirely on Python's standard library. No <code>pip install</code> required beyond Lcore itself. Every module it uses &mdash; <code>hashlib</code>, <code>gzip</code>, <code>json</code>, <code>concurrent.futures</code>, <code>threading</code>, <code>asyncio</code>, <code>logging</code> &mdash; ships with Python 3.8+. It works anywhere Python runs: containers, serverless, air-gapped networks.</p>
       </div>
 
       <!-- Hot Reload -->

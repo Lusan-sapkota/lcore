@@ -150,7 +150,7 @@ app.use(CORSMiddleware(
           <tr><td><code>allow_methods</code></td><td><code>['GET','POST','PUT','DELETE','PATCH','OPTIONS']</code></td><td>Allowed HTTP methods</td></tr>
           <tr><td><code>allow_headers</code></td><td><code>['Content-Type','Authorization','X-Requested-With']</code></td><td>Allowed request headers</td></tr>
           <tr><td><code>expose_headers</code></td><td><code>[]</code></td><td>Headers visible to the browser</td></tr>
-          <tr><td><code>allow_credentials</code></td><td><code>False</code></td><td>Allow cookies/auth headers</td></tr>
+          <tr><td><code>allow_credentials</code></td><td><code>False</code></td><td>Allow cookies/auth headers. <strong>Cannot be used with <code>allow_origins='*'</code></strong> &mdash; specify explicit origins instead.</td></tr>
           <tr><td><code>max_age</code></td><td><code>86400</code></td><td>Preflight cache duration (seconds)</td></tr>
         </tbody>
       </table>
@@ -169,15 +169,28 @@ app.use(SecurityHeadersMiddleware(
       <p>Default headers set: <code>X-Content-Type-Options: nosniff</code>, <code>X-Frame-Options: DENY</code>, <code>X-XSS-Protection: 1; mode=block</code>, <code>Referrer-Policy: strict-origin-when-cross-origin</code>, <code>Content-Security-Policy: default-src 'self'</code>.</p>
 
       <h3>CSRFMiddleware</h3>
-      <p>Validates CSRF tokens on state-changing requests:</p>
+      <p>Validates CSRF tokens on state-changing requests. Tokens are checked in the header first, then in form data:</p>
       <pre><code>from lcore import CSRFMiddleware
 
 app.use(CSRFMiddleware(
     secret='my-csrf-secret',
     cookie_name='_csrf_token',
     header_name='X-CSRF-Token',
-    safe_methods=('GET', 'HEAD', 'OPTIONS')
+    form_field='_csrf_token',
+    safe_methods=('GET', 'HEAD', 'OPTIONS'),
+    secure=True   # Set cookie with Secure flag (HTTPS only)
 ))</code></pre>
+      <table class="params-table">
+        <thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>secret</code></td><td><code>None</code></td><td>HMAC secret. Auto-generated if not set (not persistent across restarts).</td></tr>
+          <tr><td><code>cookie_name</code></td><td><code>'_csrf_token'</code></td><td>Cookie name for the CSRF token.</td></tr>
+          <tr><td><code>header_name</code></td><td><code>'X-CSRF-Token'</code></td><td>Header to check for the token (AJAX).</td></tr>
+          <tr><td><code>form_field</code></td><td><code>'_csrf_token'</code></td><td>Form field name to check for the token.</td></tr>
+          <tr><td><code>safe_methods</code></td><td><code>('GET','HEAD','OPTIONS')</code></td><td>HTTP methods that skip CSRF validation.</td></tr>
+          <tr><td><code>secure</code></td><td><code>False</code></td><td>Set <code>Secure</code> flag on cookie (requires HTTPS).</td></tr>
+        </tbody>
+      </table>
 
       <h3>BodyLimitMiddleware</h3>
       <p>Rejects requests with bodies exceeding the limit (returns 413):</p>
