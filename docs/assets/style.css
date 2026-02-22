@@ -783,11 +783,16 @@ pre:hover .copy-btn { opacity: 1; }
 }
 
 .perf-bar.w-full { width: 100%; }
+.perf-bar.w-70 { width: 70%; }
 .perf-bar.w-67 { width: 67%; }
+.perf-bar.w-63 { width: 63%; }
 .perf-bar.w-61 { width: 61%; }
+.perf-bar.w-45 { width: 45%; }
 .perf-bar.w-43 { width: 43%; }
+.perf-bar.w-21 { width: 21%; }
 .perf-bar.w-19 { width: 19%; }
 .perf-bar.w-18 { width: 18%; }
+.perf-bar.w-16 { width: 16%; }
 .perf-bar.w-14 { width: 14%; }
 
 .perf-bar.primary { background: linear-gradient(90deg, #1565C0, #00B8D9); }

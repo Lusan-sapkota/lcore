@@ -107,7 +107,17 @@ Lcore is the right choice for many synchronous WSGI workloads, but it is the wro
 
 If your workload is primarily synchronous -- REST APIs, internal services, background job APIs, microservices that talk to SQL databases via sync drivers -- Lcore is a strong fit.
 
+## Ideal Use Cases
 
+- **Internal REST APIs** -- admin panels, dashboards, data pipelines that talk to a SQL database via psycopg2, sqlite3, or mysqlclient
+- **Microservices with no async I/O** -- services that call other services synchronously, process files, hash passwords, or do CPU-bound work
+- **Rapid prototyping** -- drop in a single file, no virtual environment ceremony, start handling requests in minutes
+- **Air-gapped or restricted environments** -- zero external dependencies means no supply-chain risk and no `pip` access required
+- **Embedded or constrained deployments** -- containers, serverless functions, or edge nodes where you want the smallest possible footprint
+- **Teams moving off Bottle** -- familiar single-file philosophy with middleware, DI, and security built in
+- **Scripts that occasionally serve HTTP** -- background workers, CLI tools, or data jobs that also expose a health check or webhook endpoint
+
+## Live Demo & Documentation
 
 | Link | Description |
 |------|-------------|

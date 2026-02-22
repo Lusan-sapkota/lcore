@@ -84,7 +84,7 @@ app.run(host='0.0.0.0', port=8080)</code></pre>
     <!-- Performance -->
     <section class="features" id="performance">
       <h2>Performance</h2>
-      <p class="perf-subtitle">WSGI throughput benchmark — 50,000 iterations &times; 3 runs, best of 3. Measures pure framework overhead.</p>
+      <p class="perf-subtitle">WSGI throughput benchmark — 100,000 iterations &times; 3 runs, best of 3. Measures pure framework overhead.</p>
 
       <div class="perf-container">
         <table>
@@ -92,13 +92,13 @@ app.run(host='0.0.0.0', port=8080)</code></pre>
             <tr><th>Test</th><th><strong>Lcore</strong></th><th>Flask 3.1</th><th>Bottle 0.13</th><th>Lcore vs Flask</th></tr>
           </thead>
           <tbody>
-            <tr><td>Plaintext</td><td><strong>123,337</strong></td><td>29,075</td><td>201,028</td><td><strong>4.2x</strong></td></tr>
-            <tr><td>JSON</td><td><strong>95,847</strong></td><td>25,001</td><td>142,712</td><td><strong>3.8x</strong></td></tr>
-            <tr><td>Route Params</td><td><strong>90,175</strong></td><td>23,969</td><td>126,885</td><td><strong>3.8x</strong></td></tr>
-            <tr><td>Middleware (2 layers)</td><td><strong>51,383</strong></td><td>23,065</td><td>119,102</td><td><strong>2.2x</strong></td></tr>
-            <tr><td>404 Miss</td><td><strong>36,107</strong></td><td>16,000</td><td>41,785</td><td><strong>2.3x</strong></td></tr>
-            <tr><td>Multi-Route (50 routes)</td><td><strong>97,933</strong></td><td>26,014</td><td>145,950</td><td><strong>3.8x</strong></td></tr>
-            <tr><td>POST JSON</td><td><strong>59,078</strong></td><td>20,146</td><td>99,553</td><td><strong>2.9x</strong></td></tr>
+            <tr><td>Plaintext</td><td><strong>122,715</strong></td><td>30,500</td><td>193,368</td><td><strong>4.0x</strong></td></tr>
+            <tr><td>JSON</td><td><strong>95,910</strong></td><td>26,403</td><td>137,070</td><td><strong>3.6x</strong></td></tr>
+            <tr><td>Route Params</td><td><strong>90,332</strong></td><td>24,784</td><td>126,465</td><td><strong>3.6x</strong></td></tr>
+            <tr><td>Middleware (2 layers)</td><td><strong>53,113</strong></td><td>24,261</td><td>117,348</td><td><strong>2.2x</strong></td></tr>
+            <tr><td>404 Miss</td><td><strong>37,191</strong></td><td>16,802</td><td>44,651</td><td><strong>2.2x</strong></td></tr>
+            <tr><td>Multi-Route (50 routes)</td><td><strong>96,812</strong></td><td>27,488</td><td>145,595</td><td><strong>3.5x</strong></td></tr>
+            <tr><td>POST JSON</td><td><strong>62,963</strong></td><td>21,149</td><td>95,544</td><td><strong>3.0x</strong></td></tr>
           </tbody>
         </table>
 
@@ -107,18 +107,18 @@ app.run(host='0.0.0.0', port=8080)</code></pre>
             <div class="perf-group-label">Plaintext (req/s)</div>
             <div class="perf-row">
               <span class="perf-label">Lcore</span>
-              <div class="perf-track"><div class="perf-bar primary w-61"></div></div>
-              <span class="perf-value primary">123,337</span>
+              <div class="perf-track"><div class="perf-bar primary w-63"></div></div>
+              <span class="perf-value primary">122,715</span>
             </div>
             <div class="perf-row">
               <span class="perf-label">Bottle</span>
               <div class="perf-track"><div class="perf-bar muted w-full"></div></div>
-              <span class="perf-value muted">201,028</span>
+              <span class="perf-value muted">193,368</span>
             </div>
             <div class="perf-row">
               <span class="perf-label">Flask</span>
-              <div class="perf-track"><div class="perf-bar muted w-14"></div></div>
-              <span class="perf-value muted">29,075</span>
+              <div class="perf-track"><div class="perf-bar muted w-16"></div></div>
+              <span class="perf-value muted">30,500</span>
             </div>
           </div>
 
@@ -126,18 +126,18 @@ app.run(host='0.0.0.0', port=8080)</code></pre>
             <div class="perf-group-label">JSON (req/s)</div>
             <div class="perf-row">
               <span class="perf-label">Lcore</span>
-              <div class="perf-track"><div class="perf-bar primary w-67"></div></div>
-              <span class="perf-value primary">95,847</span>
+              <div class="perf-track"><div class="perf-bar primary w-70"></div></div>
+              <span class="perf-value primary">95,910</span>
             </div>
             <div class="perf-row">
               <span class="perf-label">Bottle</span>
               <div class="perf-track"><div class="perf-bar muted w-full"></div></div>
-              <span class="perf-value muted">142,712</span>
+              <span class="perf-value muted">137,070</span>
             </div>
             <div class="perf-row">
               <span class="perf-label">Flask</span>
-              <div class="perf-track"><div class="perf-bar muted w-18"></div></div>
-              <span class="perf-value muted">25,001</span>
+              <div class="perf-track"><div class="perf-bar muted w-19"></div></div>
+              <span class="perf-value muted">26,403</span>
             </div>
           </div>
 
@@ -145,23 +145,23 @@ app.run(host='0.0.0.0', port=8080)</code></pre>
             <div class="perf-group-label">Middleware Stack (req/s)</div>
             <div class="perf-row">
               <span class="perf-label">Lcore</span>
-              <div class="perf-track"><div class="perf-bar primary w-43"></div></div>
-              <span class="perf-value primary">51,383</span>
+              <div class="perf-track"><div class="perf-bar primary w-45"></div></div>
+              <span class="perf-value primary">53,113</span>
             </div>
             <div class="perf-row">
               <span class="perf-label">Bottle</span>
               <div class="perf-track"><div class="perf-bar muted w-full"></div></div>
-              <span class="perf-value muted">119,102</span>
+              <span class="perf-value muted">117,348</span>
             </div>
             <div class="perf-row">
               <span class="perf-label">Flask</span>
-              <div class="perf-track"><div class="perf-bar muted w-19"></div></div>
-              <span class="perf-value muted">23,065</span>
+              <div class="perf-track"><div class="perf-bar muted w-21"></div></div>
+              <span class="perf-value muted">24,261</span>
             </div>
           </div>
         </div>
 
-        <p class="perf-note">Lcore is <strong>2.2x – 4.2x faster than Flask</strong> across all 7 test scenarios. Bottle is faster still but lacks middleware, DI, security stack, and lifecycle hooks that Lcore provides out of the box.</p>
+        <p class="perf-note">Lcore is <strong>2.2x – 4.0x faster than Flask</strong> across all 7 test scenarios. Bottle is faster still but lacks middleware, DI, security stack, and lifecycle hooks that Lcore provides out of the box.</p>
       </div>
     </section>
 
@@ -317,6 +317,76 @@ app.run(host='0.0.0.0', port=8080)</code></pre>
       <div class="info-box tip" style="margin-top:20px">
         <strong>Lcore is a good fit when...</strong>
         <p>Your workload is primarily synchronous: REST APIs, internal services, background job APIs, or microservices that talk to SQL databases via sync drivers (<code>psycopg2</code>, <code>sqlite3</code>, <code>mysqlclient</code>). If you want maximum feature density in a single file with no installation ceremony, Lcore is built for that.</p>
+      </div>
+    </section>
+
+    <!-- Ideal Use Cases -->
+    <section class="features" id="ideal-use-cases">
+      <h2>Ideal Use Cases</h2>
+      <div class="feature-grid">
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          </div>
+          <h3>Internal REST APIs</h3>
+          <p>Admin panels, dashboards, and data pipelines that talk to a SQL database via <code>psycopg2</code>, <code>sqlite3</code>, or <code>mysqlclient</code>. No async I/O needed.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+          </div>
+          <h3>Microservices with No Async I/O</h3>
+          <p>Services that call other services synchronously, process files, hash passwords, or do CPU-bound work. Straightforward WSGI with a full feature set.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          </div>
+          <h3>Rapid Prototyping</h3>
+          <p>Drop in a single file, no virtual environment ceremony, start handling requests in minutes. No extensions to install before you have auth, CORS, and rate limiting.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+          </div>
+          <h3>Air-Gapped or Restricted Environments</h3>
+          <p>Zero external dependencies means no supply-chain risk and no <code>pip</code> access required. Works anywhere Python 3.8+ runs.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+          </div>
+          <h3>Embedded and Constrained Deployments</h3>
+          <p>Containers, serverless functions, or edge nodes where you want the smallest possible footprint. One file, no transitive dependencies.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
+          </div>
+          <h3>Teams Moving Off Bottle</h3>
+          <p>Familiar single-file philosophy with the middleware, DI, security, and lifecycle hooks that Bottle leaves you to build yourself.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </div>
+          <h3>Scripts That Occasionally Serve HTTP</h3>
+          <p>Background workers, CLI tools, or data jobs that also expose a health check or webhook endpoint. No separate web framework install needed.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+          </div>
+          <h3>Webhook Receivers and Event Processors</h3>
+          <p>Ingest webhooks from Stripe, GitHub, Slack, or any third-party service. Validate HMAC signatures, parse JSON, and dispatch to handlers -- all with built-in security primitives.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+          </div>
+          <h3>Learning Python Web Development</h3>
+          <p>A single readable file with no magic, no metaclasses, and no hidden layers. Ideal for understanding how WSGI, routing, middleware, and request/response cycles actually work.</p>
+        </div>
       </div>
     </section>
 
