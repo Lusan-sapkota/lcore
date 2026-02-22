@@ -76,7 +76,7 @@
       <!-- Installation -->
       <h2 id="installation">Installation</h2>
 
-      <p>Lcore requires <strong>Python 3.7+</strong> and has <strong>zero required dependencies</strong>. The entire framework is a single file you can drop into any project.</p>
+      <p>Lcore requires <strong>Python 3.8+</strong> and has <strong>zero required dependencies</strong>. The entire framework is a single file you can drop into any project. Every module Lcore uses ships with Python itself &mdash; no <code>pip install</code> needed beyond Lcore.</p>
 
       <h3>Via pip</h3>
       <pre><code>pip install lcore</code></pre>
@@ -85,16 +85,38 @@
       <p>Since Lcore is a single Python file, you can simply copy <code>lcore.py</code> into your project directory:</p>
       <pre><code>curl -O https://raw.githubusercontent.com/LusanSapkota/Lcore/main/lcore.py</code></pre>
 
+      <h3>Standard Library Only</h3>
+      <p>Lcore is built entirely on Python's standard library. Here's what powers it under the hood &mdash; all included with every Python installation:</p>
+      <table>
+        <thead><tr><th>Module</th><th>Used For</th></tr></thead>
+        <tbody>
+          <tr><td><code>hashlib</code>, <code>hmac</code></td><td>Password hashing (PBKDF2-SHA256), cookie signing, CSRF tokens</td></tr>
+          <tr><td><code>gzip</code></td><td>Response compression middleware</td></tr>
+          <tr><td><code>json</code></td><td>JSON serialization/deserialization</td></tr>
+          <tr><td><code>concurrent.futures</code></td><td>Background task pool (ThreadPoolExecutor)</td></tr>
+          <tr><td><code>threading</code></td><td>Thread-local request/response, concurrency safety</td></tr>
+          <tr><td><code>asyncio</code></td><td>Async route handler support</td></tr>
+          <tr><td><code>http.cookies</code></td><td>Cookie parsing and formatting</td></tr>
+          <tr><td><code>mimetypes</code></td><td>Static file content type detection</td></tr>
+          <tr><td><code>re</code></td><td>Route pattern matching and URL parsing</td></tr>
+          <tr><td><code>logging</code></td><td>Structured request logging middleware</td></tr>
+          <tr><td><code>os</code>, <code>sys</code>, <code>time</code>, <code>uuid</code></td><td>Core utilities, request IDs, file serving</td></tr>
+        </tbody>
+      </table>
+      <p>This means Lcore works anywhere Python runs &mdash; containers, serverless, air-gapped networks, embedded systems &mdash; with zero network access needed for dependencies.</p>
+
       <h3>Optional Dependencies</h3>
       <table>
         <thead><tr><th>Package</th><th>Purpose</th></tr></thead>
         <tbody>
+          <tr><td><code>ujson</code></td><td>Faster JSON parsing (auto-detected, falls back to stdlib <code>json</code>)</td></tr>
           <tr><td><code>watchdog</code></td><td>Efficient file watching for hot reload</td></tr>
           <tr><td><code>jinja2</code></td><td>Jinja2 template engine support</td></tr>
           <tr><td><code>mako</code></td><td>Mako template engine support</td></tr>
           <tr><td><code>gunicorn</code></td><td>Production WSGI server (Linux/macOS)</td></tr>
           <tr><td><code>waitress</code></td><td>Production WSGI server (Windows-compatible)</td></tr>
           <tr><td><code>gevent</code></td><td>Async WSGI server with coroutines</td></tr>
+          <tr><td><code>eventlet</code></td><td>Alternative async WSGI server</td></tr>
         </tbody>
       </table>
 

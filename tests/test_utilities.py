@@ -89,7 +89,7 @@ class TestCookieSigning(unittest.TestCase):
         secret = 'test-secret'
         encoded = cookie_encode(('key', 'value'), secret)
         decoded = cookie_decode(encoded, secret)
-        self.assertEqual(decoded, ('key', 'value'))
+        self.assertEqual(decoded, ['key', 'value'])
 
     def test_is_encoded(self):
         secret = 'test-secret'

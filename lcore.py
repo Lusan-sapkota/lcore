@@ -67,7 +67,7 @@ from urllib.parse import urlencode, quote as urlquote, unquote as urlunquote
 from http.cookies import SimpleCookie, Morsel, CookieError
 from collections.abc import MutableMapping as DictMixin
 from types import ModuleType as new_module
-import pickle
+
 from io import BytesIO
 import configparser
 from datetime import timezone
@@ -1939,12 +1939,14 @@ class CSRFMiddleware(Middleware):
     order = 10
 
     def __init__(self, secret=None, cookie_name='_csrf_token',
-                 header_name='X-CSRF-Token',
-                 safe_methods=('GET', 'HEAD', 'OPTIONS')):
+                 header_name='X-CSRF-Token', form_field='_csrf_token',
+                 safe_methods=('GET', 'HEAD', 'OPTIONS'), secure=False):
         self.secret = secret or hashlib.sha256(os.urandom(32)).hexdigest()
         self.cookie_name = cookie_name
         self.header_name = header_name
+        self.form_field = form_field
         self.safe_methods = safe_methods
+        self.secure = secure
 
     def _generate_token(self):
         return hashlib.sha256(os.urandom(32)).hexdigest()
@@ -1954,12 +1956,13 @@ class CSRFMiddleware(Middleware):
         if not token:
             token = self._generate_token()
             ctx.response.set_cookie(self.cookie_name, token,
-                                     httponly=True, samesite='Strict')
+                                     httponly=True, samesite='Strict',
+                                     secure=self.secure)
         ctx.csrf_token = token
 
         if ctx.request.method not in self.safe_methods:
             submitted = (ctx.request.get_header(self.header_name)
-                         or ctx.request.forms.get(self.cookie_name))
+                         or ctx.request.forms.get(self.form_field))
             if not submitted or not _lscmp(submitted, token):
                 raise HTTPError(403, 'CSRF token validation failed')
 
@@ -1972,6 +1975,10 @@ class CORSMiddleware(Middleware):
     def __init__(self, allow_origins='*', allow_methods=None,
                  allow_headers=None, expose_headers=None,
                  allow_credentials=False, max_age=86400):
+        if allow_credentials and allow_origins == '*':
+            raise ValueError(
+                "CORS: allow_credentials=True cannot be used with allow_origins='*'. "
+                "Specify explicit origins instead.")
         self.allow_origins = allow_origins
         self.allow_methods = allow_methods or ['GET', 'POST', 'PUT', 'DELETE',
                                                'PATCH', 'OPTIONS']
@@ -2050,9 +2057,23 @@ class CompressionMiddleware(Middleware):
             return result
         if ctx.response.get_header('Content-Encoding'):
             return result
-        body = result if isinstance(result, bytes) else tob(str(result))
+        if isinstance(result, bytes):
+            body = result
+        elif isinstance(result, str):
+            body = result.encode('utf-8')
+        else:
+            # Generators/iterators: collect all chunks first
+            try:
+                chunks = []
+                for chunk in result:
+                    chunks.append(tob(chunk) if not isinstance(chunk, bytes) else chunk)
+                body = b''.join(chunks)
+            except Exception:
+                return result
+            finally:
+                _try_close(result)
         if len(body) < self.min_size:
-            return result
+            return body
         compressed = gzip.compress(body, compresslevel=self.level)
         ctx.response.set_header('Content-Encoding', 'gzip')
         ctx.response.set_header('Content-Length', str(len(compressed)))
@@ -2107,6 +2128,7 @@ class DependencyContainer:
     def __init__(self):
         self._registry = {}
         self._singletons = {}
+        self._lock = threading.Lock()
 
     def register(self, name, factory, lifetime='singleton'):
         if lifetime not in (self.SINGLETON, self.SCOPED, self.TRANSIENT):
@@ -2118,9 +2140,10 @@ class DependencyContainer:
             raise KeyError("Dependency %r not registered" % name)
         factory, lifetime = self._registry[name]
         if lifetime == self.SINGLETON:
-            if name not in self._singletons:
-                self._singletons[name] = factory()
-            return self._singletons[name]
+            with self._lock:
+                if name not in self._singletons:
+                    self._singletons[name] = factory()
+                return self._singletons[name]
         elif lifetime == self.SCOPED:
             if ctx is None:
                 raise RuntimeError("Scoped dependency %r requires a request context" % name)
@@ -2153,7 +2176,8 @@ class DependencyContainer:
                         if inspect.iscoroutine(result):
                             _run_async(result)
                     except Exception:
-                        pass
+                        logging.getLogger('lcore').debug(
+                            "Error closing scoped dependency %r", val, exc_info=True)
             scoped.clear()
 
     def __contains__(self, name):
@@ -2831,7 +2855,7 @@ def _try_close(obj):
         if hasattr(obj, 'close'):
             obj.close()
     except Exception:
-        pass
+        logging.getLogger('lcore').debug("Error closing %r", obj, exc_info=True)
 
 class ResourceManager:
 
@@ -3009,6 +3033,8 @@ def static_file(filename, root,
 
     if not filename.startswith(root):
         return HTTPError(403, "Access denied.")
+    if os.path.islink(filename) and not os.path.realpath(filename).startswith(root):
+        return HTTPError(403, "Access denied.")
     if not os.path.isfile(filename):
         return HTTPError(404, "File does not exist.")
     if not os.access(filename, os.R_OK):
@@ -3034,6 +3060,7 @@ def static_file(filename, root,
 
     if download:
         download = os.path.basename(download).replace('"', '')
+        download = download.replace('\r', '').replace('\n', '')
         headers['Content-Disposition'] = 'attachment; filename="%s"' % download
 
     stats = os.stat(filename)
@@ -3065,6 +3092,7 @@ def static_file(filename, root,
     if range_header:
         ranges = list(parse_range_header(range_header, clen))
         if not ranges:
+            if hasattr(body, 'close'): body.close()
             return HTTPError(416, "Requested Range Not Satisfiable")
         offset, end = ranges[0]
         rlen = end - offset
@@ -3151,10 +3179,12 @@ def _parse_http_header(h):
             lop = tok
     return values
 
-def _parse_qsl(qs, encoding="utf8"):
+def _parse_qsl(qs, encoding="utf8", max_fields=1000):
     r = []
     for pair in qs.split('&'):
         if not pair: continue
+        if len(r) >= max_fields:
+            raise HTTPError(413, "Too many form fields (limit: %d)" % max_fields)
         nv = pair.split('=', 1)
         if len(nv) != 2: nv.append('')
         key = urlunquote(nv[0].replace('+', ' '), encoding)
@@ -3172,7 +3202,7 @@ def cookie_encode(data, key, digestmod=None):
     depr(0, 13, "cookie_encode() will be removed soon.",
                 "Do not use this API directly.")
     digestmod = digestmod or hashlib.sha256
-    msg = base64.b64encode(pickle.dumps(data, -1))
+    msg = base64.b64encode(tob(json_dumps(data)))
     sig = base64.b64encode(hmac.new(tob(key), msg, digestmod=digestmod).digest())
     return b'!' + sig + b'?' + msg
 
@@ -3185,7 +3215,7 @@ def cookie_decode(data, key, digestmod=None):
         digestmod = digestmod or hashlib.sha256
         hashed = hmac.new(tob(key), msg, digestmod=digestmod).digest()
         if _lscmp(sig[1:], base64.b64encode(hashed)):
-            return pickle.loads(base64.b64decode(msg))
+            return json_loads(base64.b64decode(msg))
     return None
 
 def cookie_is_encoded(data):
@@ -3988,7 +4018,8 @@ def _run_shutdown_hooks():
             if inspect.iscoroutine(result):
                 _run_async(result)
         except Exception:
-            pass
+            logging.getLogger('lcore').warning(
+                "Error in shutdown hook %r", hook, exc_info=True)
 
 def run(app=None,
         server='wsgiref',
@@ -4029,6 +4060,12 @@ def run(app=None,
         return
 
     try:
+        import signal
+        def _sigterm_handler(signum, frame):
+            raise KeyboardInterrupt()
+        if threading.current_thread() is threading.main_thread():
+            signal.signal(signal.SIGTERM, _sigterm_handler)
+
         if debug is not None: _debug(debug)
         app = app or default_app()
         if isinstance(app, str):
@@ -4076,7 +4113,7 @@ def run(app=None,
         pass
     except (SystemExit, MemoryError):
         raise
-    except:
+    except Exception:
         if not reloader: raise
         if not getattr(server, 'quiet', quiet):
             print_exc()
