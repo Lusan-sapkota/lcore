@@ -1,9 +1,7 @@
 include LICENSE
 include README.md
 include lcore.py
-
-exclude pyproject.toml
-exclude MANIFEST.in
+include pyproject.toml
 
 prune tests
 prune backend

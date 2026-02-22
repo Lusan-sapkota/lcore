@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/lcore.png" alt="Lcore" width="80">
+  <img src="https://lcore.lusansapkota.com.np/lcore.png" alt="Lcore" width="80">
 </p>
 
 <h1 align="center">Lcore</h1>

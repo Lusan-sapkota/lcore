@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lcore"
-version = "0.0.1"
+version = "0.0.2"
 description = "A fast, lightweight, single-file Python WSGI framework with zero dependencies."
 readme = "README.md"
 license = "MIT"
