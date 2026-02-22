@@ -230,41 +230,100 @@ def article(year, month, slug):
       <!-- Async Routes -->
       <h2 id="async-routes">Async Routes</h2>
 
-      <p>Lcore supports <code>async def</code> route handlers. Async handlers are automatically detected and executed with <code>asyncio.run()</code>, making it easy to use async libraries without changing your app structure:</p>
+      <div class="info-box danger">
+        <strong>Critical: Async Handlers Block the Worker Thread</strong>
+        <p>
+          Lcore is a <strong>synchronous WSGI framework</strong>. WSGI (PEP 3333) is a synchronous
+          protocol by design. Each request occupies exactly one OS thread from start to finish.
+          This is <em>not</em> a flaw in Lcore; it is a hard constraint of the WSGI specification itself.
+        </p>
+        <p style="margin-top:8px">When you write an <code>async def</code> handler, Lcore accepts it and
+          executes it by calling <code>asyncio.run()</code> inside a dedicated thread, which
+          <strong>blocks that thread</strong> until the coroutine finishes. Consequences:</p>
+        <ul style="margin:8px 0 0 18px;line-height:1.8">
+          <li><strong>No concurrency benefit.</strong> <code>await asyncio.sleep(1)</code> blocks the
+            worker thread for 1 second, identical to <code>time.sleep(1)</code>. Under gunicorn
+            with 4 threads, 4 concurrent async handlers bring the server to a halt.</li>
+          <li><strong>No persistent event loop.</strong> Each handler invocation gets a brand-new
+            event loop that is destroyed on return. Loop-bound libraries such as
+            <code>httpx</code>, <code>aiohttp</code>, <code>asyncpg</code>, <code>motor</code>,
+            <code>redis.asyncio</code>, and <code>tortoise-orm</code>
+            <strong>will not work correctly</strong> inside Lcore async handlers because they
+            require a single long-lived event loop and connection pools that persist across calls.</li>
+          <li><strong>Higher overhead.</strong> Every async route invocation spawns a new thread
+            and a new event loop, adding roughly 0.5 to 2 ms per request versus a plain sync handler.</li>
+        </ul>
+        <p style="margin-top:10px">
+          Lcore will emit a <code>UserWarning</code> at startup for every <code>async def</code> route
+          you register, so you are always informed.
+        </p>
+      </div>
+
+      <h3>When async def is acceptable in Lcore</h3>
+      <p>There is one scenario where using <code>async def</code> in Lcore is harmless: calling an
+        async helper that is <strong>pure CPU work wrapped in a coroutine</strong> with no I/O and no
+        loop-bound state. In practice this is rare. For everything else, prefer sync equivalents.</p>
 
       <pre><code>import asyncio
-from lcore import Lcore, request
+from lcore import Lcore
 
-app = Lcore()
+app = Lcore()  # Lcore will emit a UserWarning for each async route below
 
-@app.route('/fast')
-async def fast_handler():
-    # Use async/await naturally
-    data = await fetch_from_service()
-    return {'result': data}
+# OK: works, but provides NO concurrency advantage.
+# The worker thread is blocked for the duration of the coroutine.
+@app.route('/ok-simple')
+async def simple():
+    # Fine: fast pure-Python computation inside a coroutine.
+    return {'result': sum(range(1000))}
 
-@app.route('/parallel')
-async def parallel():
-    # Run multiple async operations concurrently
-    users, products = await asyncio.gather(
-        fetch_users(),
-        fetch_products()
-    )
+# INCORRECT: asyncio.gather() does run both coroutines, but the entire
+# gather() blocks the worker thread until both complete. No parallelism.
+@app.route('/broken-parallel')
+async def broken_parallel():
+    # Not concurrent in a WSGI context. Both still run sequentially
+    # from the perspective of the OS thread scheduler.
+    users, products = await asyncio.gather(fetch_users(), fetch_products())
     return {'users': users, 'products': products}
 
-@app.route('/delayed')
-async def delayed():
-    await asyncio.sleep(1)
-    return {'message': 'Done after 1 second'}
+# INCORRECT: async libraries that require a persistent event loop will
+# fail or silently misbehave because each request gets a brand-new loop.
+# import httpx
+# import asyncpg
+# async def broken_db():
+#     conn = await asyncpg.connect(...)  # new loop every call, pool unusable
+#     ...
 
-# Mix sync and async routes freely
-@app.route('/sync')
+# CORRECT: write synchronous handlers.
+# Use requests, psycopg2, redis-py, etc.
+@app.route('/correct')
 def sync_handler():
+    # Fast, no overhead, works correctly with every WSGI server.
     return {'type': 'sync'}</code></pre>
 
-      <div class="info-box note">
-        <strong>How Async Works in Lcore</strong>
-        <p>Lcore is a <strong>WSGI framework</strong>, not ASGI. Async handlers are executed using <code>asyncio.run()</code> (or a <code>ThreadPoolExecutor</code> if an event loop is already running). This means you can use <code>async/await</code> syntax for cleaner code when calling async libraries, but the underlying server is still synchronous per-request. For true async concurrency, use an async server adapter like <strong>gevent</strong>, <strong>eventlet</strong>, or <strong>aiohttp</strong>.</p>
+      <div class="info-box tip">
+        <strong>Coming Soon: <code>lcore-asgi</code></strong>
+        <p>A companion library, <strong><code>lcore-asgi</code></strong>, is currently in development.
+          It will bring full ASGI support to the Lcore ecosystem, including:</p>
+        <ul style="margin:6px 0 0 18px;line-height:1.8">
+          <li><strong>WebSockets</strong> - bidirectional real-time connections</li>
+          <li><strong>True async concurrency</strong> - non-blocking I/O with a persistent event loop</li>
+          <li><strong>Async-native libraries</strong> - full compatibility with <code>httpx</code>, <code>asyncpg</code>, <code>aiohttp</code>, <code>motor</code>, and others</li>
+          <li><strong>HTTP/2 and Server-Sent Events</strong></li>
+          <li><strong>Familiar Lcore API</strong> - same routing, middleware, and plugin model you already know</li>
+        </ul>
+        <p style="margin-top:8px">Until <code>lcore-asgi</code> is released, async workloads should use a dedicated ASGI framework (see below).</p>
+      </div>
+
+      <div class="info-box warning">
+        <strong>Need genuine async concurrency right now?</strong>
+        <p>If your use case requires concurrent async I/O such as WebSockets, many simultaneous
+          outbound HTTP calls, streaming, or async database drivers, use an
+          <strong>ASGI framework</strong> in the meantime. Lcore does not currently provide an ASGI interface.</p>
+        <ul style="margin:6px 0 0 18px;line-height:1.8">
+          <li><strong>FastAPI</strong> - async-first, automatic OpenAPI, Pydantic validation</li>
+          <li><strong>Starlette</strong> - lightweight ASGI toolkit, full async support</li>
+          <li><strong>Quart</strong> - Flask-compatible async WSGI/ASGI hybrid</li>
+        </ul>
       </div>
 
       <h3>Async Middleware</h3>

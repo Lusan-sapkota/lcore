@@ -5,7 +5,8 @@
 <h1 align="center">Lcore</h1>
 
 <p align="center">
-  A fast, lightweight, single-file Python WSGI framework with zero dependencies.
+  A fast, lightweight, single-file Python WSGI framework with zero dependencies.<br>
+  Inspired by the simplicity of <a href="https://bottlepy.org">Bottle</a>.
 </p>
 
 <p align="center">
@@ -45,7 +46,7 @@ app.run(host='0.0.0.0', port=8080)
 
 - **Single file, zero dependencies** -- drop `lcore.py` into any project
 - **Full WSGI compliance** -- works with Gunicorn, uWSGI, Waitress, Gevent, and 17 more server adapters
-- **Async/await** -- async route handlers run seamlessly alongside sync routes
+- **Async/await** -- `async def` route handlers are accepted; note that the worker thread is blocked for the duration (WSGI constraint). See [async caveat](https://lcore.lusansapkota.com.np/routing.html#async-routes).
 - **7 built-in middleware** -- CORS, CSRF, security headers, gzip compression, body limits, request ID, structured logging
 - **Security** -- PBKDF2 password hashing, HMAC-SHA256 signed cookies, rate limiting, timing-safe comparison
 - **Dependency injection** -- singleton, scoped, and transient lifetimes
@@ -108,7 +109,7 @@ def register():
     return {'created': True}
 
 @app.post('/login')
-@rate_limit(5, per=300)
+@rate_limit(5, per=300)  # NOTE: per-process — see "Multi-worker" note below
 def login():
     data = request.json
     user = db.find_user(data['username'])
@@ -122,6 +123,51 @@ def cleanup():
     tasks.shutdown(wait=True)
 
 app.run(server='gunicorn', host='0.0.0.0', port=8080, workers=4)
+```
+
+## Production Notes
+
+### Rate limiter is per-process
+`@rate_limit` uses an in-process token bucket with 64-stripe locking. Under a
+multi-worker server (e.g. `gunicorn -w 4`) each worker has its own independent
+bucket store, so the effective per-client rate limit is `N × limit`.
+**Lcore ships a built-in `RedisRateLimitBackend` — no extra code required:**
+
+```bash
+pip install redis
+```
+
+```python
+from lcore import RedisRateLimitBackend, rate_limit
+
+_rl = RedisRateLimitBackend('redis://localhost:6379/0')
+
+@app.post('/api/login')
+@rate_limit(5, per=300, backend=_rl)   # enforced across all workers
+def login(): ...
+```
+
+If Redis is unavailable the backend **fails open** (allows the request) and logs
+a warning so a Redis outage does not take down your application.
+
+Temporary workaround (no Redis): `@rate_limit(5 // num_workers, per=300)`.
+
+### Reverse proxies — always use ProxyFixMiddleware
+Without it, `request.remote_addr` returns the proxy's IP, not the real client, and
+`request.url` may use the wrong scheme (`http` instead of `https`). Add it first:
+
+```python
+app.use(ProxyFixMiddleware(trusted_proxies=['10.0.0.1']))  # your proxy's IP(s)
+```
+
+### Request timeouts
+`TimeoutMiddleware` uses a **persistent thread pool** (not per-request), so it is safe to use
+under load. It returns 503 to the client when the deadline is exceeded, but the handler thread
+continues running in the background — Python has no safe way to kill a thread. Avoid handlers
+that block indefinitely.
+
+```python
+app.use(TimeoutMiddleware(timeout=30))
 ```
 
 ## Testing
@@ -181,5 +227,5 @@ MIT -- see [LICENSE](LICENSE) for details.
 ---
 
 <p align="center">
-  Built by <a href="https://lusansapkota.com.np">Lusan Sapkota</a>
+  Built by <a href="https://lusansapkota.com.np">Lusan Sapkota</a> &bull; Inspired by <a href="https://bottlepy.org">Bottle</a>
 </p>

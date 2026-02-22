@@ -9,7 +9,7 @@ import re
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from helpers import run_request
+from helpers import create_environ, run_request
 from lcore import Lcore, RequestIDMiddleware, RequestLoggerMiddleware, ctx
 
 
@@ -280,8 +280,13 @@ class TestRequestLoggerMiddlewareLogs(unittest.TestCase):
         def handler():
             return 'ok'
 
-        run_request(self.app, 'GET', '/test',
-                    headers={'X-Forwarded-For': '192.168.1.100'})
+        environ = create_environ('GET', '/test')
+        environ['REMOTE_ADDR'] = '192.168.1.100'
+        status_holder = {}
+        def start_response(status, headers, exc_info=None):
+            status_holder['status'] = status
+        body = self.app(environ, start_response)
+        if hasattr(body, 'close'): body.close()
         data = self._get_logged_data()
         self.assertEqual(data['remote_addr'], '192.168.1.100')
 

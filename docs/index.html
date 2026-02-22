@@ -45,7 +45,7 @@
     <section class="hero">
       <h1>Build Microservices<br>at Lightning Speed</h1>
       <p class="tagline">
-        A fast, lightweight, single-file Python WSGI framework with async support. Zero dependencies. Production-grade. One file.
+        A fast, lightweight, single-file Python WSGI framework. Zero dependencies. Production-grade. One file. <a href="routing.html#async-routes" style="color:#fcd34d">async def supported with caveats &#9888;</a>
       </p>
       <div class="hero-buttons">
         <a href="getting-started.html" class="btn btn-primary">Get Started</a>
@@ -176,7 +176,11 @@ app.run(host='0.0.0.0', port=8080)</code></pre>
             <tr><td>Single file / zero deps</td><td><strong>Yes</strong></td><td>No</td><td>Yes</td><td>No</td></tr>
             <tr><td>WSGI</td><td><strong>Yes</strong></td><td>Yes</td><td>Yes</td><td>No</td></tr>
             <tr><td>ASGI</td><td>No</td><td>No</td><td>No</td><td><strong>Yes</strong></td></tr>
-            <tr><td>Async route handlers</td><td><strong>Yes</strong></td><td>Yes (2.0+)</td><td>No</td><td>Yes</td></tr>
+            <tr>
+              <td>Async route handlers</td>
+              <td><strong>Yes</strong> <span title="WSGI constraint: async handlers block the worker thread. No concurrency benefit. Loop-bound async libraries (httpx, aiohttp, asyncpg) will NOT work correctly. See routing docs." style="cursor:help;color:#f59e0b">&#9888;</span></td>
+              <td>Yes (2.0+)</td><td>No</td><td>Yes</td>
+            </tr>
             <tr><td>Typed route parameters</td><td><strong>Yes</strong></td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
             <tr><td>Custom route filters</td><td><strong>Yes</strong></td><td>Yes</td><td>Yes</td><td>No</td></tr>
             <tr><td>Route groups</td><td><strong>Yes</strong></td><td>Blueprints</td><td>No</td><td>APIRouter</td></tr>
@@ -184,7 +188,7 @@ app.run(host='0.0.0.0', port=8080)</code></pre>
             <tr><td>CORS middleware</td><td><strong>Built-in</strong></td><td>Extension</td><td>Plugin</td><td>Built-in</td></tr>
             <tr><td>CSRF protection</td><td><strong>Built-in</strong></td><td>Extension</td><td>No</td><td>No</td></tr>
             <tr><td>Security headers</td><td><strong>Built-in</strong></td><td>Extension</td><td>No</td><td>No</td></tr>
-            <tr><td>Rate limiting</td><td><strong>Built-in</strong></td><td>Extension</td><td>No</td><td>Extension</td></tr>
+            <tr><td>Rate limiting</td><td><strong>Built-in (per-process; pass <code>backend=</code> for shared)</strong></td><td>Extension</td><td>No</td><td>Extension</td></tr>
             <tr><td>Request validation</td><td><strong>Built-in</strong></td><td>Extension</td><td>No</td><td>Built-in</td></tr>
             <tr><td>Dependency injection</td><td><strong>Built-in (3 lifetimes)</strong></td><td>No</td><td>No</td><td>Built-in</td></tr>
             <tr><td>Plugin system</td><td><strong>Yes</strong></td><td>Extensions</td><td>Yes</td><td>No</td></tr>
@@ -225,7 +229,7 @@ app.run(host='0.0.0.0', port=8080)</code></pre>
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 12l-4-4-4 4M12 16V8"/></svg>
           </div>
           <h3>Powerful Routing</h3>
-          <p>Typed parameters, wildcard filters, method decorators, route groups, and async/await support.</p>
+          <p>Typed parameters, wildcard filters, method decorators, and route groups. <code>async def</code> handlers are accepted with automatic wrapping &mdash; <a href="routing.html#async-routes">see the async caveat</a>.</p>
         </div>
         <div class="feature">
           <div class="feature-icon">
@@ -252,8 +256,23 @@ app.run(host='0.0.0.0', port=8080)</code></pre>
           <div class="feature-icon">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
           </div>
-          <h3>Async/Await Ready</h3>
-          <p>Use async def route handlers. Lcore auto-detects coroutines and runs them seamlessly alongside sync routes.</p>
+          <h3>Async/Await <span
+              id="wsgi-badge"
+              onclick="(function(){var p=document.getElementById('lcore-asgi-soon');p.style.display=p.style.display==='none'?'block':'none';})()"
+              title="Click to see what is coming"
+              style="font-size:0.8em;color:#f59e0b;border:1px solid rgba(245,158,11,0.4);border-radius:4px;padding:1px 7px;cursor:pointer;user-select:none;transition:background 0.15s"
+              onmouseover="this.style.background='rgba(245,158,11,0.12)'"
+              onmouseout="this.style.background='transparent'"
+            >WSGI Limitation</span></h3>
+          <p>
+            Lcore accepts <code>async def</code> route handlers, but the worker thread is blocked
+            for the full duration. No concurrency benefit.
+            <a href="routing.html#async-routes">Full details</a>
+          </p>
+          <div id="lcore-asgi-soon" style="display:none;margin-top:10px;padding:10px 12px;background:rgba(16,185,129,0.08);border-left:3px solid #10b981;border-radius:4px;font-size:0.88em;line-height:1.6">
+            <strong style="font-size:1em">Coming Soon: <code>lcore-asgi</code></strong>
+            <p style="margin:5px 0 0">A companion library bringing full ASGI support to the Lcore ecosystem: WebSockets, true async I/O, persistent event loop, HTTP/2, Server-Sent Events, and full compatibility with async libraries like <code>asyncpg</code>, <code>httpx</code>, and <code>aiohttp</code>. Same familiar Lcore API.</p>
+          </div>
         </div>
         <div class="feature">
           <div class="feature-icon">

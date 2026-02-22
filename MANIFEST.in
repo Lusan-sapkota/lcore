@@ -1,0 +1,13 @@
+include LICENSE
+include README.md
+include lcore.py
+
+exclude pyproject.toml
+exclude MANIFEST.in
+
+prune tests
+prune backend
+prune benchmarks
+prune docs
+prune __pycache__
+prune .github

@@ -1,0 +1,66 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lcore"
+version = "0.0.1"
+description = "A fast, lightweight, single-file Python WSGI framework with zero dependencies."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.8"
+authors = [
+    { name = "Lusan Sapkota", email = "sapkotalusan@gmail.com" },
+]
+keywords = [
+    "web", "framework", "wsgi", "microframework", "api",
+    "rest", "http", "server", "middleware", "routing",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Internet :: WWW/HTTP :: WSGI",
+    "Topic :: Internet :: WWW/HTTP :: WSGI :: Application",
+    "Topic :: Internet :: WWW/HTTP :: WSGI :: Middleware",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+]
+
+[project.urls]
+Homepage = "https://lcore.lusansapkota.com.np"
+Documentation = "https://lcore.lusansapkota.com.np"
+Repository = "https://github.com/LusanSapkota/Lcore"
+Issues = "https://github.com/LusanSapkota/Lcore/issues"
+Changelog = "https://github.com/LusanSapkota/Lcore/releases"
+
+[project.scripts]
+lcore = "lcore:main"
+
+[project.optional-dependencies]
+ujson = ["ujson"]
+jinja2 = ["jinja2"]
+mako = ["mako"]
+gunicorn = ["gunicorn"]
+waitress = ["waitress"]
+gevent = ["gevent"]
+eventlet = ["eventlet"]
+watchdog = ["watchdog"]
+dev = ["pytest", "ujson"]
+
+[tool.setuptools]
+py-modules = ["lcore"]
+
+[tool.setuptools.packages.find]
+exclude = ["tests*", "backend*", "benchmarks*", "docs*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [".", "tests"]

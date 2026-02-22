@@ -221,7 +221,7 @@ Accessed via `ctx.cache`, `ctx.db`, `ctx.trace_id`.
 
 - **`@validate_request(body={...})`** — Validate JSON body fields and types
 - **`@validate_request(query={...})`** — Validate query parameters
-- **`@rate_limit(n, per=60)`** — Token bucket rate limiting per IP
+- **`@rate_limit(n, per=60)`** — Token bucket rate limiting per IP (**per-process** — pass `backend=` for multi-worker deployments; see framework docs)
 
 ### Templates (SimpleTemplate)
 

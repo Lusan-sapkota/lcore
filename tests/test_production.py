@@ -1042,13 +1042,14 @@ class TestHookTriggerOptimization(unittest.TestCase):
             return 'ok'
 
         result = app.trigger_hook('on_request_start')
-        self.assertEqual(result, [])
+        self.assertIsNone(result)
 
     def test_hook_with_callbacks(self):
         app = Lcore()
-        app.add_hook('on_request_start', lambda: 'fired')
-        result = app.trigger_hook('on_request_start')
-        self.assertEqual(result, ['fired'])
+        results = []
+        app.add_hook('on_request_start', lambda: results.append('fired'))
+        app.trigger_hook('on_request_start')
+        self.assertEqual(results, ['fired'])
 
 
 class TestCompressionMiddlewareFix(unittest.TestCase):

@@ -430,12 +430,14 @@
       <table>
         <thead><tr><th>Class</th><th>Constructor</th><th>Order</th></tr></thead>
         <tbody>
+          <tr><td><code>ProxyFixMiddleware</code></td><td><code>(trusted_proxies=None, num_proxies=1)</code></td><td>-10 — run first</td></tr>
+          <tr><td><code>TimeoutMiddleware</code></td><td><code>(timeout=30, max_workers=None)</code></td><td>-5 — run early<br><small>Uses a persistent thread pool (not per-request). Returns 503 on deadline. Handler thread is not killed — it finishes in the background.</small></td></tr>
           <tr><td><code>BodyLimitMiddleware</code></td><td><code>(max_size=10*1024*1024)</code></td><td>0</td></tr>
           <tr><td><code>RequestIDMiddleware</code></td><td><code>()</code></td><td>1</td></tr>
           <tr><td><code>RequestLoggerMiddleware</code></td><td><code>(logger=None)</code></td><td>2</td></tr>
           <tr><td><code>CORSMiddleware</code></td><td><code>(allow_origins='*', allow_methods=None, allow_headers=None, expose_headers=None, allow_credentials=False, max_age=86400)</code></td><td>3</td></tr>
           <tr><td><code>SecurityHeadersMiddleware</code></td><td><code>(hsts=False, hsts_max_age=31536000, **overrides)</code></td><td>5</td></tr>
-          <tr><td><code>CSRFMiddleware</code></td><td><code>(secret=None, cookie_name='_csrf_token', header_name='X-CSRF-Token', safe_methods=('GET','HEAD','OPTIONS'))</code></td><td>10</td></tr>
+          <tr><td><code>CSRFMiddleware</code></td><td><code>(secret=None, cookie_name='_csrf_token', header_name='X-CSRF-Token', safe_methods=('GET','HEAD','OPTIONS'))</code></td><td>10 — cookie is <code>httponly=False</code> so JS/SPA clients can read and echo it as <code>X-CSRF-Token</code>; HMAC signing prevents cookie-tossing bypass</td></tr>
           <tr><td><code>CompressionMiddleware</code></td><td><code>(min_size=256, level=6, content_types=None)</code></td><td>90</td></tr>
         </tbody>
       </table>
@@ -680,7 +682,7 @@
         <thead><tr><th>Decorator</th><th>Signature</th><th>Description</th></tr></thead>
         <tbody>
           <tr><td><code>@auth_basic</code></td><td><code>(check, realm='private', text='Access denied')</code></td><td>HTTP Basic authentication. <code>check(user, pass)</code> must return True.</td></tr>
-          <tr><td><code>@rate_limit</code></td><td><code>(limit, per=60, max_buckets=10000)</code></td><td>Token bucket rate limiting per IP.</td></tr>
+          <tr><td><code>@rate_limit</code></td><td><code>(limit, per=60, max_buckets=10000, backend=None)</code></td><td>Token bucket rate limiting per IP. <strong>In-process by default</strong> (each worker has independent buckets; effective limit per client = <code>N&nbsp;&times;&nbsp;limit</code> under N workers). Pass a <code>RedisRateLimitBackend</code> to enforce limits across all workers.</td></tr>
           <tr><td><code>@validate_request</code></td><td><code>(body=None, query=None)</code></td><td>Validate request body/query against schema.</td></tr>
           <tr><td><code>@on_shutdown</code></td><td><code>(func)</code></td><td>Register function to run on app shutdown.</td></tr>
           <tr><td><code>@view</code></td><td><code>(tpl_name, **defaults)</code></td><td>Render SimpleTemplate when handler returns dict.</td></tr>
@@ -693,6 +695,60 @@
       <p>These wrap the default app's methods for convenience:</p>
       <pre><code>from lcore import route, get, post, put, delete, patch
 from lcore import error, mount, hook, install, uninstall, url, use</code></pre>
+
+      <!-- Rate Limit Backends -->
+      <h2 id="rate-limit-backends">Rate Limit Backends</h2>
+
+      <div class="api-item">
+        <div class="api-header">
+          <span class="api-badge class">class</span>
+          <span class="api-name">RateLimitBackend</span>
+          <span class="api-sig">(abc.ABC)</span>
+        </div>
+        <div class="api-body">
+          <p>Abstract base class for custom rate-limit storage. Subclass it and implement
+          <code>consume(key, limit, per)</code> to plug any atomic store into
+          <code>@rate_limit(backend=...)</code>.</p>
+          <table>
+            <thead><tr><th>Method</th><th>Signature</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td><code>consume</code></td><td><code>(key, limit, per) -&gt; bool</code></td><td><strong>Abstract.</strong> Atomically consume one token. Return <code>True</code> = allowed, <code>False</code> = blocked (429).</td></tr>
+              <tr><td><code>close</code></td><td><code>()</code></td><td>Optional. Release resources. Called on process exit if registered via <code>@on_shutdown</code>.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="api-item">
+        <div class="api-header">
+          <span class="api-badge class">class</span>
+          <span class="api-name">RedisRateLimitBackend</span>
+          <span class="api-sig">(redis_url='redis://localhost:6379/0', prefix='lcore:rl:', socket_connect_timeout=2, health_check_interval=30)</span>
+        </div>
+        <div class="api-body">
+          <p>Built-in Redis-backed backend. Enforces per-IP limits <strong>across all worker
+          processes</strong> via an atomic Lua script (<code>INCR</code> + <code>EXPIRE</code>
+          in one round-trip). Requires: <code>pip install redis</code>.</p>
+          <p>Fails <strong>open</strong> (allows request, logs warning) when Redis is
+          unavailable so a Redis outage cannot take down your application.</p>
+          <table>
+            <thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td><code>redis_url</code></td><td><code>'redis://localhost:6379/0'</code></td><td>Redis connection URL (<code>redis://</code>, <code>rediss://</code>, or <code>unix://</code>).</td></tr>
+              <tr><td><code>prefix</code></td><td><code>'lcore:rl:'</code></td><td>Key prefix used in Redis. Change it to namespace multiple apps.</td></tr>
+              <tr><td><code>socket_connect_timeout</code></td><td><code>2</code></td><td>Seconds before a connection attempt gives up.</td></tr>
+              <tr><td><code>health_check_interval</code></td><td><code>30</code></td><td>Seconds between background health-check pings to Redis.</td></tr>
+            </tbody>
+          </table>
+          <pre><code>from lcore import RedisRateLimitBackend, rate_limit
+
+_rl = RedisRateLimitBackend('redis://localhost:6379/0')
+
+@app.post('/api/login')
+@rate_limit(5, per=300, backend=_rl)   # shared across all workers
+def login(): ...</code></pre>
+        </div>
+      </div>
 
       <!-- Template Classes -->
       <h2 id="template-classes">Template Classes</h2>

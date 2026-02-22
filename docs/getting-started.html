@@ -178,8 +178,8 @@ app.run(port=8080, debug=True)</code></pre>
       <!-- Core Concepts -->
       <h2 id="concepts">Core Concepts</h2>
 
-      <h3>WSGI Application with Async Support</h3>
-      <p>Lcore is a standard <strong>WSGI application</strong> with built-in <strong>async/await support</strong>. The <code>Lcore</code> class is callable and can be used with any WSGI server:</p>
+      <h3>WSGI Application</h3>
+      <p>Lcore is a standard <strong>WSGI application</strong>. The <code>Lcore</code> class is callable and can be used with any WSGI server:</p>
       <pre><code># Use with any WSGI server
 from lcore import Lcore
 app = Lcore()
@@ -187,15 +187,39 @@ app = Lcore()
 # app is a WSGI callable: app(environ, start_response)
 # Use with gunicorn: gunicorn app:app
 
-# Async routes work out of the box
+# Note: async def handlers are accepted but block the worker thread. See warning below.
 @app.route('/async')
 async def async_handler():
-    data = await fetch_data()
-    return {'result': data}</code></pre>
+    # Pure CPU-only coroutines are fine; any I/O await will deadlock or stall
+    return {'result': 'ok'}</code></pre>
 
-      <div class="info-box note">
-        <strong>WSGI, not ASGI</strong>
-        <p>Lcore is a WSGI framework. Async handlers are executed via <code>asyncio.run()</code> for compatibility with async libraries. For true async concurrency, pair with an async-capable server adapter like <strong>gevent</strong>, <strong>eventlet</strong>, or <strong>aiohttp</strong>. Lcore does not support ASGI servers like Uvicorn or Daphne.</p>
+      <div class="info-box danger">
+        <strong>async def handlers - WSGI constraint</strong>
+        <p>Lcore is a <strong>WSGI</strong> framework, not ASGI. When you use an <code>async def</code> route
+        handler, Lcore calls <code>asyncio.run()</code> in a dedicated thread. This means:</p>
+        <ul>
+          <li><strong>The worker thread is blocked</strong> for the entire duration of the coroutine.</li>
+          <li><strong>No concurrency benefit.</strong> Async I/O does not parallelize requests.</li>
+          <li><strong>Loop-bound libraries will not work:</strong> <code>aiohttp</code>, <code>httpx</code>,
+            <code>asyncpg</code>, <code>motor</code>, and similar libraries require a persistent
+            event loop and will malfunction or deadlock inside Lcore handlers.</li>
+        </ul>
+        <p>Lcore emits a <code>UserWarning</code> at startup for every <code>async def</code> route registered.
+        For genuine async I/O concurrency, see the note below or use an ASGI framework (FastAPI, Starlette, Quart) in the meantime.
+        <a href="routing.html#async-routes">Full details</a></p>
+      </div>
+
+      <div class="info-box tip">
+        <strong>Coming Soon: <code>lcore-asgi</code></strong>
+        <p>A new companion library, <strong><code>lcore-asgi</code></strong>, is in development and will unlock
+          full ASGI support for the Lcore ecosystem:</p>
+        <ul style="margin:6px 0 0 18px;line-height:1.8">
+          <li><strong>WebSockets</strong> - real-time bidirectional communication</li>
+          <li><strong>True async concurrency</strong> - persistent event loop, non-blocking I/O</li>
+          <li><strong>Async library compatibility</strong> - <code>asyncpg</code>, <code>httpx</code>, <code>aiohttp</code>, <code>motor</code>, and others will work correctly</li>
+          <li><strong>HTTP/2 and Server-Sent Events</strong></li>
+          <li><strong>Familiar API</strong> - same routing, middleware, hooks, and plugin model as Lcore WSGI</li>
+        </ul>
       </div>
 
       <h3>Thread-Local Objects</h3>

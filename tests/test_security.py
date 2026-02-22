@@ -14,6 +14,22 @@ from lcore import (Lcore, SecurityHeadersMiddleware, CSRFMiddleware,
                    rate_limit, validate_request)
 
 
+def _run_environ(app, environ):
+    """Execute a WSGI request with a pre-built environ dict."""
+    status_holder = {}
+    headers_holder = {}
+
+    def start_response(status, response_headers, exc_info=None):
+        status_holder['status'] = status
+        headers_holder['headers'] = dict(response_headers)
+
+    body_chunks = app(environ, start_response)
+    response_body = b''.join(body_chunks)
+    if hasattr(body_chunks, 'close'):
+        body_chunks.close()
+    return status_holder['status'], headers_holder['headers'], response_body
+
+
 # ---------------------------------------------------------------------------
 # SecurityHeadersMiddleware
 # ---------------------------------------------------------------------------
@@ -123,9 +139,17 @@ class TestCSRFMiddleware(unittest.TestCase):
         return app
 
     @staticmethod
+    def _extract_csrf_cookie(set_cookie_header):
+        """Extract the full signed _csrf_token cookie value."""
+        match = re.search(r'_csrf_token=([a-f0-9]+\.[a-f0-9]+)', set_cookie_header)
+        if match:
+            return match.group(1)
+        return None
+
+    @staticmethod
     def _extract_csrf_token(set_cookie_header):
-        """Extract the _csrf_token value from a Set-Cookie header string."""
-        match = re.search(r'_csrf_token=([a-f0-9]+)', set_cookie_header)
+        """Extract the unsigned token part from a signed _csrf_token cookie."""
+        match = re.search(r'_csrf_token=([a-f0-9]+)\.[a-f0-9]+', set_cookie_header)
         if match:
             return match.group(1)
         return None
@@ -138,11 +162,14 @@ class TestCSRFMiddleware(unittest.TestCase):
         self.assertEqual(body, b'form')
 
     def test_get_sets_csrf_cookie(self):
-        """A GET request sets a _csrf_token cookie when none exists."""
+        """A GET request sets a signed _csrf_token cookie when none exists."""
         app = self._make_app()
         _, headers, _ = run_request(app, 'GET', '/form')
         set_cookie = headers.get('Set-Cookie', '')
         self.assertIn('_csrf_token=', set_cookie)
+        # Verify the cookie contains a signed token (token.signature format)
+        signed = self._extract_csrf_cookie(set_cookie)
+        self.assertIsNotNone(signed, 'Cookie should contain signed token')
 
     def test_post_without_token_returns_403(self):
         """POST without a CSRF token is rejected with 403."""
@@ -151,20 +178,22 @@ class TestCSRFMiddleware(unittest.TestCase):
         self.assertIn('403', status)
 
     def test_post_with_valid_token_succeeds(self):
-        """POST with a valid CSRF token (matching cookie) succeeds."""
+        """POST with a valid CSRF token (matching signed cookie) succeeds."""
         app = self._make_app()
 
         # Step 1: GET to obtain the CSRF cookie
         _, get_headers, _ = run_request(app, 'GET', '/form')
         set_cookie = get_headers.get('Set-Cookie', '')
+        signed_cookie = self._extract_csrf_cookie(set_cookie)
         token = self._extract_csrf_token(set_cookie)
-        self.assertIsNotNone(token, 'CSRF token cookie should be set')
+        self.assertIsNotNone(signed_cookie, 'Signed CSRF cookie should be set')
+        self.assertIsNotNone(token, 'CSRF token should be extractable')
 
-        # Step 2: POST with the token in both cookie and header
+        # Step 2: POST with the signed cookie and the unsigned token in header
         status, _, body = run_request(
             app, 'POST', '/form',
             headers={
-                'Cookie': '_csrf_token=%s' % token,
+                'Cookie': '_csrf_token=%s' % signed_cookie,
                 'X-CSRF-Token': token,
             },
         )
@@ -178,14 +207,14 @@ class TestCSRFMiddleware(unittest.TestCase):
         # GET to obtain the real cookie
         _, get_headers, _ = run_request(app, 'GET', '/form')
         set_cookie = get_headers.get('Set-Cookie', '')
-        token = self._extract_csrf_token(set_cookie)
-        self.assertIsNotNone(token)
+        signed_cookie = self._extract_csrf_cookie(set_cookie)
+        self.assertIsNotNone(signed_cookie)
 
-        # POST with a different token in the header
+        # POST with the correct signed cookie but a wrong token in the header
         status, _, _ = run_request(
             app, 'POST', '/form',
             headers={
-                'Cookie': '_csrf_token=%s' % token,
+                'Cookie': '_csrf_token=%s' % signed_cookie,
                 'X-CSRF-Token': 'wrong_token_value',
             },
         )
@@ -264,18 +293,16 @@ class TestRateLimit(unittest.TestCase):
         def limited():
             return 'ok'
 
-        # Client A uses its single token
-        status, _, _ = run_request(
-            app, 'GET', '/limited',
-            headers={'X-Forwarded-For': '10.0.0.10'},
-        )
+        # Client A uses its single token (use REMOTE_ADDR for safe IP source)
+        environ_a = create_environ('GET', '/limited')
+        environ_a['REMOTE_ADDR'] = '10.0.0.10'
+        status, _, _ = _run_environ(app, environ_a)
         self.assertEqual(status, '200 OK')
 
         # Client B should still have its own token available
-        status, _, _ = run_request(
-            app, 'GET', '/limited',
-            headers={'X-Forwarded-For': '10.0.0.11'},
-        )
+        environ_b = create_environ('GET', '/limited')
+        environ_b['REMOTE_ADDR'] = '10.0.0.11'
+        status, _, _ = _run_environ(app, environ_b)
         self.assertEqual(status, '200 OK')
 
 
