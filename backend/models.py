@@ -6,6 +6,7 @@ import sqlite3
 import os
 import sys
 import time
+from typing import Optional, List
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from lcore import hash_password, verify_password  # noqa: E402
@@ -86,11 +87,11 @@ class Database:
     def execute(self, sql: str, params: tuple = ()) -> sqlite3.Cursor:
         return self.conn.execute(sql, params)
 
-    def fetchone(self, sql: str, params: tuple = ()) -> dict | None:
+    def fetchone(self, sql: str, params: tuple = ()) -> Optional[dict]:
         row = self.conn.execute(sql, params).fetchone()
         return dict(row) if row else None
 
-    def fetchall(self, sql: str, params: tuple = ()) -> list[dict]:
+    def fetchall(self, sql: str, params: tuple = ()) -> List[dict]:
         rows = self.conn.execute(sql, params).fetchall()
         return [dict(r) for r in rows]
 

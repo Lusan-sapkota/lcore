@@ -99,7 +99,7 @@ Benchmarked at 100,000 iterations × 3 runs (pure framework overhead, single pro
 ### Links
 - **PyPI:** https://pypi.org/project/lcore/
 - **Docs:** https://lcore.lusansapkota.com.np
-- **Playground:** https://play.lcore.lusansapkota.com.np
+- **Playground:** https://play-lcore.lusansapkota.com.np
 - **Source:** https://github.com/Lusan-sapkota/lcore
 
 ---

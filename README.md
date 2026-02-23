@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://lcore.lusansapkota.com.np">Documentation</a> &bull;
-  <a href="https://play.lcore.lusansapkota.com.np">Live Playground</a> &bull;
+  <a href="https://play-lcore.lusansapkota.com.np">Live Playground</a> &bull;
   <a href="https://lcore.lusansapkota.com.np/getting-started.html">Getting Started</a> &bull;
   <a href="https://lcore.lusansapkota.com.np/api-reference.html">API Reference</a>
 </p>
@@ -121,7 +121,7 @@ If your workload is primarily synchronous -- REST APIs, internal services, backg
 
 | Link | Description |
 |------|-------------|
-| [play.lcore.lusansapkota.com.np](https://play.lcore.lusansapkota.com.np) | Interactive playground -- test routes, middleware, auth flows, and API endpoints live |
+| [play-lcore.lusansapkota.com.np](https://play-lcore.lusansapkota.com.np) | Interactive playground -- test routes, middleware, auth flows, and API endpoints live |
 | [lcore.lusansapkota.com.np](https://lcore.lusansapkota.com.np) | Full documentation with guides, API reference, and real-world example |
 
 The playground runs the TaskFlow demo backend -- a complete project management API (like Trello/Jira) that demonstrates every Lcore feature: token auth, RBAC, CRUD, file uploads, SMTP email, async handlers, middleware stack, dependency injection, plugins, and a full SPA frontend.
