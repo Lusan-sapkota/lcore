@@ -82,7 +82,7 @@ class APIVersionPlugin:
     name = 'api_version'
     api = 2
 
-    def __init__(self, version='0.0.1'):
+    def __init__(self, version='0.0.3'):
         self.version = version
 
     def setup(self, app):

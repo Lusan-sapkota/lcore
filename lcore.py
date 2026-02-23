@@ -4,7 +4,7 @@
 import sys
 
 __author__ = 'Lusan Sapkota'
-__version__ = '0.0.1'
+__version__ = '0.0.3'
 __license__ = 'MIT'
 
 # --- CLI Argument Parsing ---

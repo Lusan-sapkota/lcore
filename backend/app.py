@@ -134,7 +134,7 @@ app.use(CompressionMiddleware(min_size=256, level=6))
 #  PLUGINS
 # ═══════════════════════════════════════════════════════════
 
-version_plugin = APIVersionPlugin(version='0.0.1')
+version_plugin = APIVersionPlugin(version='0.0.3')
 app.install(version_plugin)
 
 counter_plugin = RequestCounterPlugin()
@@ -210,7 +210,7 @@ def home():
     return template('welcome',
         title='TaskFlow API',
         description='Project management API built with the Lcore framework',
-        version='0.0.1',
+        version='0.0.3',
         host=app.config.get('host', '0.0.0.0'),
         port=app.config.get('port', '8080'),
         features=[

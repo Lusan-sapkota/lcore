@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lcore"
-version = "0.0.2"
+version = "0.0.3"
 description = "A fast, lightweight, single-file Python WSGI framework with zero dependencies."
 readme = "README.md"
 license = "MIT"
@@ -37,9 +37,10 @@ classifiers = [
 [project.urls]
 Homepage = "https://lcore.lusansapkota.com.np"
 Documentation = "https://lcore.lusansapkota.com.np"
-Repository = "https://github.com/LusanSapkota/Lcore"
-Issues = "https://github.com/LusanSapkota/Lcore/issues"
-Changelog = "https://github.com/LusanSapkota/Lcore/releases"
+Repository = "https://github.com/Lusan-sapkota/lcore"
+Issues = "https://github.com/Lusan-sapkota/lcore/issues"
+Changelog = "https://github.com/Lusan-sapkota/lcore/releases"
+Playground = "https://play-lcore.lusansapkota.com.np"
 
 [project.scripts]
 lcore = "lcore:main"
