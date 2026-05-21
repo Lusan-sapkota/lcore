@@ -62,14 +62,21 @@ Full documentation at **[lcore.lusansapkota.com.np](https://lcore.lusansapkota.c
 
 ## Performance
 
-Internal benchmarks on a single process with no I/O:
+Benchmarked with 100,000 iterations × 3 runs per framework (best run recorded), single process, no I/O, measuring pure framework overhead:
 
 | Framework | JSON (req/s) | Plaintext (req/s) |
 |-----------|-------------|-------------------|
-| Lcore     | ~90,000     | ~120,000          |
-| Flask     | ~22,000     | ~33,000           |
+| Lcore     | 91,917      | 116,794           |
+| Flask 3.1.3 | 22,757    | 25,497            |
+| Bottle 0.13.4 | 138,299  | 187,334           |
 
-Results vary by hardware and workload. Lcore processes roughly 3–4x more requests per second than Flask under equivalent conditions.
+Lcore processes **2.2x – 4.6x** more requests per second than Flask across 7 test scenarios (plaintext, JSON, route params, middleware stack, 404 miss, multi-route dispatch, POST JSON). See the [full benchmarks](https://lcore.lusansapkota.com.np/#performance) for details.
+
+Run the benchmarks yourself:
+```bash
+pip install flask bottle
+cd benchmarks && python benchmark.py --full
+```
 
 ## When NOT to Use Lcore
 

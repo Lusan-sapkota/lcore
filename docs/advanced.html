@@ -4,9 +4,26 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Advanced - Lcore Documentation</title>
+  <meta name="description" content="Advanced Lcore features - dependency injection, module mounting, template engines, security utilities, and production deployment.">
+  <meta name="keywords" content="Python,WSGI,microservice,framework,web,API,REST,Lcore,advanced,DI,security,production">
+  <meta name="author" content="Lusan Sapkota">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://lcore.lusansapkota.com.np/advanced.html">
+  <meta property="og:title" content="Advanced - Lcore Documentation">
+  <meta property="og:description" content="Advanced Lcore features - dependency injection, module mounting, template engines, security utilities, and production deployment.">
+  <meta property="og:image" content="https://lcore.lusansapkota.com.np/lcore.png">
+  <meta property="og:url" content="https://lcore.lusansapkota.com.np/advanced.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Lcore Framework">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Advanced - Lcore Documentation">
+  <meta name="twitter:description" content="Advanced Lcore features - dependency injection, module mounting, template engines, security utilities, and production deployment.">
+  <meta name="twitter:image" content="https://lcore.lusansapkota.com.np/lcore.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/github.min.css" media="(prefers-color-scheme: light)">
+  <link rel="stylesheet" href="assets/github-dark.min.css" media="(prefers-color-scheme: dark)">
   <link rel="shortcut icon" href="lcore.png" type="image/x-icon">
 
 </head>
@@ -22,8 +39,6 @@
         <a href="plugins.html">Plugins</a>
         <a href="advanced.html">Advanced</a>
         <a href="api-reference.html">API</a>
-        
-        
       </nav>
       <div class="header-right">
         <span class="version-badge">v0.0.4</span>
@@ -444,7 +459,7 @@ def login():
         <pre style="margin:10px 0 0"><code>pip install redis</code></pre>
         <pre style="margin:4px 0 0"><code>from lcore import RedisRateLimitBackend, rate_limit
 
-# Create once at module level &mdash; the connection pool is reused.
+# Create once at module level  the connection pool is reused.
 _rl = RedisRateLimitBackend(
     redis_url='redis://localhost:6379/0',  # or rediss:// for TLS
     prefix='myapp:rl:',
@@ -456,7 +471,7 @@ _rl = RedisRateLimitBackend(
 def login():
     ...
 
-# Works on any endpoint &mdash; each endpoint gets its own Redis keys.
+# Works on any endpoint  each endpoint gets its own Redis keys.
 @app.post('/api/register')
 @rate_limit(10, per=3600, backend=_rl)
 def register():
@@ -607,7 +622,7 @@ hashed = hash_password('password', iterations=800000)</code></pre>
 
       <div class="info-box tip">
         <strong>Storage Format</strong>
-        <p><code>pbkdf2:sha256:iterations$salt_hex$hash_hex</code> &mdash; each hash includes its own random 32-byte salt, so identical passwords produce different hashes.</p>
+        <p><code>pbkdf2:sha256:iterations$salt_hex$hash_hex</code>  each hash includes its own random 32-byte salt, so identical passwords produce different hashes.</p>
       </div>
 
       <!-- Testing -->
@@ -777,26 +792,26 @@ app.run(server='gunicorn', host='0.0.0.0', port=8080)</code></pre>
         <strong>Production Checklist</strong>
         <p>
           1. Use a production server (Gunicorn, Waitress, Gevent)<br>
-          2. Set <code>debug=False</code> (default) &mdash; debug mode exposes tracebacks to users<br>
-          3. Add <code>ProxyFixMiddleware(trusted_proxies=[...])</code> when behind a reverse proxy &mdash; prevents IP spoofing and wrong-scheme URLs<br>
+          2. Set <code>debug=False</code> (default)  debug mode exposes tracebacks to users<br>
+          3. Add <code>ProxyFixMiddleware(trusted_proxies=[...])</code> when behind a reverse proxy  prevents IP spoofing and wrong-scheme URLs<br>
           4. Add <code>TimeoutMiddleware(timeout=30)</code> to protect workers from slow clients<br>
           5. Enable HSTS and security headers via <code>SecurityHeadersMiddleware</code><br>
-          6. Configure CORS with <strong>explicit origins</strong> &mdash; never use <code>'*'</code> with <code>allow_credentials=True</code><br>
+          6. Configure CORS with <strong>explicit origins</strong>  never use <code>'*'</code> with <code>allow_credentials=True</code><br>
           7. Set body size limits via <code>BodyLimitMiddleware</code><br>
           8. Register shutdown hooks with <code>@on_shutdown</code> for cleanup<br>
           9. Use signed cookies with a strong secret<br>
           10. Load config from environment variables, not hardcoded<br>
-          11. Use <code>hash_password()</code> / <code>verify_password()</code> &mdash; never store plaintext passwords<br>
+          11. Use <code>hash_password()</code> / <code>verify_password()</code>  never store plaintext passwords<br>
           12. Set <code>secure=True</code> on CSRF cookies when serving over HTTPS<br>
           13. Enable gzip compression via <code>CompressionMiddleware</code><br>
           14. Enable request ID tracking via <code>RequestIDMiddleware</code><br>
-          15. <strong>Multi-worker rate limiting:</strong> pass a shared <code>backend=</code> to <code>@rate_limit</code> (e.g. Redis) &mdash; the default in-process store gives each worker its own buckets, making the effective limit <code>N&nbsp;&times;&nbsp;limit</code>
+          15. <strong>Multi-worker rate limiting:</strong> pass a shared <code>backend=</code> to <code>@rate_limit</code> (e.g. Redis)  the default in-process store gives each worker its own buckets, making the effective limit <code>N&nbsp;&times;&nbsp;limit</code>
         </p>
       </div>
 
       <div class="info-box">
         <strong>Zero Dependencies</strong>
-        <p>Lcore is built entirely on Python's standard library. No <code>pip install</code> required beyond Lcore itself. Every module it uses &mdash; <code>hashlib</code>, <code>gzip</code>, <code>json</code>, <code>concurrent.futures</code>, <code>threading</code>, <code>asyncio</code>, <code>logging</code> &mdash; ships with Python 3.8+. It works anywhere Python runs: containers, serverless, air-gapped networks.</p>
+        <p>Lcore is built entirely on Python's standard library. No <code>pip install</code> required beyond Lcore itself. Every module it uses  <code>hashlib</code>, <code>gzip</code>, <code>json</code>, <code>concurrent.futures</code>, <code>threading</code>, <code>asyncio</code>, <code>logging</code>  ships with Python 3.8+. It works anywhere Python runs: containers, serverless, air-gapped networks.</p>
       </div>
 
       <!-- Hot Reload -->
@@ -872,6 +887,7 @@ app.run(server='gevent', host='0.0.0.0', port=8080)
     </main>
   </div>
 
+  <script src="assets/highlight.min.js"></script>
   <script src="assets/script.js"></script>
 </body>
 </html>

@@ -4,9 +4,26 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Getting Started - Lcore Documentation</title>
+  <meta name="description" content="Get started with Lcore - installation, first app, core concepts, and configuration for the Python WSGI microservice framework.">
+  <meta name="keywords" content="Python,WSGI,microservice,framework,web,API,REST,Lcore">
+  <meta name="author" content="Lusan Sapkota">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://lcore.lusansapkota.com.np/getting-started.html">
+  <meta property="og:title" content="Getting Started - Lcore Documentation">
+  <meta property="og:description" content="Get started with Lcore - installation, first app, core concepts, and configuration for the Python WSGI microservice framework.">
+  <meta property="og:image" content="https://lcore.lusansapkota.com.np/lcore.png">
+  <meta property="og:url" content="https://lcore.lusansapkota.com.np/getting-started.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Lcore Framework">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Getting Started - Lcore Documentation">
+  <meta name="twitter:description" content="Get started with Lcore - installation, first app, core concepts, and configuration for the Python WSGI microservice framework.">
+  <meta name="twitter:image" content="https://lcore.lusansapkota.com.np/lcore.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/github.min.css" media="(prefers-color-scheme: light)">
+  <link rel="stylesheet" href="assets/github-dark.min.css" media="(prefers-color-scheme: dark)">
   <link rel="shortcut icon" href="lcore.png" type="image/x-icon">
 
 </head>
@@ -22,8 +39,6 @@
         <a href="plugins.html">Plugins</a>
         <a href="advanced.html">Advanced</a>
         <a href="api-reference.html">API</a>
-        
-        
       </nav>
       <div class="header-right">
         <span class="version-badge">v0.0.4</span>
@@ -76,7 +91,7 @@
       <!-- Installation -->
       <h2 id="installation">Installation</h2>
 
-      <p>Lcore requires <strong>Python 3.8+</strong> and has <strong>zero required dependencies</strong>. The entire framework is a single file you can drop into any project. Every module Lcore uses ships with Python itself &mdash; no <code>pip install</code> needed beyond Lcore.</p>
+      <p>Lcore requires <strong>Python 3.8+</strong> and has <strong>zero required dependencies</strong>. The entire framework is a single file you can drop into any project. Every module Lcore uses ships with Python itself  no <code>pip install</code> needed beyond Lcore.</p>
 
       <h3>Via pip</h3>
       <pre><code>pip install lcore</code></pre>
@@ -86,7 +101,7 @@
       <pre><code>curl -O https://raw.githubusercontent.com/Lusan-sapkota/lcore/main/lcore.py</code></pre>
 
       <h3>Standard Library Only</h3>
-      <p>Lcore is built entirely on Python's standard library. Here's what powers it under the hood &mdash; all included with every Python installation:</p>
+      <p>Lcore is built entirely on Python's standard library. Here's what powers it under the hood  all included with every Python installation:</p>
       <table>
         <thead><tr><th>Module</th><th>Used For</th></tr></thead>
         <tbody>
@@ -103,7 +118,7 @@
           <tr><td><code>os</code>, <code>sys</code>, <code>time</code>, <code>uuid</code></td><td>Core utilities, request IDs, file serving</td></tr>
         </tbody>
       </table>
-      <p>This means Lcore works anywhere Python runs &mdash; containers, serverless, air-gapped networks, embedded systems &mdash; with zero network access needed for dependencies.</p>
+      <p>This means Lcore works anywhere Python runs  containers, serverless, air-gapped networks, embedded systems  with zero network access needed for dependencies.</p>
 
       <h3>Optional Dependencies</h3>
       <table>
@@ -515,6 +530,7 @@ def get_user(id):
     </main>
   </div>
 
+  <script src="assets/highlight.min.js"></script>
   <script src="assets/script.js"></script>
 </body>
 </html>

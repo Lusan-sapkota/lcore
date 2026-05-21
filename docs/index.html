@@ -4,10 +4,43 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Lcore - Fast Python Microservice Framework</title>
+  <meta name="description" content="Lcore is a fast, lightweight, single-file Python WSGI microservice framework. Zero dependencies, production-grade, and 2-4x faster than Flask. Built-in CORS, CSRF, rate limiting, DI, and more.">
+  <meta name="keywords" content="Python,WSGI,microservice,framework,web,API,REST,zero dependencies,single file,fast,lightweight,Lcore">
+  <meta name="author" content="Lusan Sapkota">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://lcore.lusansapkota.com.np/">
+  <meta property="og:title" content="Lcore - Fast Python Microservice Framework">
+  <meta property="og:description" content="A fast, lightweight, single-file Python WSGI framework. Zero dependencies. Production-grade. 2-4x faster than Flask.">
+  <meta property="og:image" content="https://lcore.lusansapkota.com.np/lcore.png">
+  <meta property="og:url" content="https://lcore.lusansapkota.com.np/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Lcore Framework">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Lcore - Fast Python Microservice Framework">
+  <meta name="twitter:description" content="A fast, lightweight, single-file Python WSGI framework. Zero dependencies. Production-grade. 2-4x faster than Flask.">
+  <meta name="twitter:image" content="https://lcore.lusansapkota.com.np/lcore.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/github.min.css" media="(prefers-color-scheme: light)">
+  <link rel="stylesheet" href="assets/github-dark.min.css" media="(prefers-color-scheme: dark)">
   <link rel="shortcut icon" href="lcore.png" type="image/x-icon">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Lcore",
+    "description": "A fast, lightweight, single-file Python WSGI microservice framework. Zero dependencies. Production-grade.",
+    "url": "https://lcore.lusansapkota.com.np",
+    "author": { "@type": "Person", "name": "Lusan Sapkota", "url": "https://lusansapkota.com.np" },
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "All",
+    "programmingLanguage": "Python",
+    "license": "https://opensource.org/licenses/MIT",
+    "version": "0.0.4",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+  }
+  </script>
 </head>
 <body class="index-page">
 
@@ -25,7 +58,6 @@
         <a href="plugins.html">Plugins</a>
         <a href="advanced.html">Advanced</a>
         <a href="api-reference.html">API</a>
-        
       </nav>
       <div class="header-right">
         <span class="version-badge">v0.0.4</span>
@@ -44,7 +76,7 @@
     <section class="hero">
       <h1>Build Microservices<br>at Lightning Speed</h1>
       <p class="tagline">
-        A fast, lightweight, single-file Python WSGI framework. Zero dependencies. Production-grade. One file. <a href="routing.html#async-routes" style="color:#fcd34d; font-weight:bold;">async def supported with caveats &#9888;</a>
+        A fast, lightweight, single-file Python WSGI framework. Zero dependencies. Production-grade. One file. <code>async def</code> supported.
       </p>
       <div class="hero-buttons">
         <a href="getting-started.html" class="btn btn-primary">Get Started</a>
@@ -82,84 +114,69 @@ app.run(host='0.0.0.0', port=8080)</code></pre>
     <!-- Performance -->
     <section class="features" id="performance">
       <h2>Performance</h2>
-      <p class="perf-subtitle">WSGI throughput benchmark  100,000 iterations &times; 3 runs, best of 3. Measures pure framework overhead.</p>
+      <p class="perf-subtitle">WSGI throughput benchmark  100,000 iterations × 3 runs per framework, best run recorded. Measures pure framework overhead.</p>
 
       <div class="perf-container">
         <table>
           <thead>
-            <tr><th>Test</th><th><strong>Lcore</strong></th><th>Flask 3.1</th><th>Bottle 0.13</th><th>Lcore vs Flask</th></tr>
+            <tr><th>Test</th><th><strong>Lcore</strong></th><th>Flask 3.1.3</th><th>Bottle 0.13.4</th><th>Lcore vs Flask</th></tr>
           </thead>
           <tbody>
-            <tr><td>Plaintext</td><td><strong>122,715</strong></td><td>30,500</td><td>193,368</td><td><strong>4.0x</strong></td></tr>
-            <tr><td>JSON</td><td><strong>95,910</strong></td><td>26,403</td><td>137,070</td><td><strong>3.6x</strong></td></tr>
-            <tr><td>Route Params</td><td><strong>90,332</strong></td><td>24,784</td><td>126,465</td><td><strong>3.6x</strong></td></tr>
-            <tr><td>Middleware (2 layers)</td><td><strong>53,113</strong></td><td>24,261</td><td>117,348</td><td><strong>2.2x</strong></td></tr>
-            <tr><td>404 Miss</td><td><strong>37,191</strong></td><td>16,802</td><td>44,651</td><td><strong>2.2x</strong></td></tr>
-            <tr><td>Multi-Route (50 routes)</td><td><strong>96,812</strong></td><td>27,488</td><td>145,595</td><td><strong>3.5x</strong></td></tr>
-            <tr><td>POST JSON</td><td><strong>62,963</strong></td><td>21,149</td><td>95,544</td><td><strong>3.0x</strong></td></tr>
+            <tr><td>Plaintext</td><td><strong>116,794</strong></td><td>25,497</td><td>187,334</td><td><strong>4.6x</strong></td></tr>
+            <tr><td>JSON</td><td><strong>91,917</strong></td><td>22,757</td><td>138,299</td><td><strong>4.0x</strong></td></tr>
+            <tr><td>Route Params</td><td><strong>85,260</strong></td><td>21,267</td><td>125,331</td><td><strong>4.0x</strong></td></tr>
+            <tr><td>Middleware (2 layers)</td><td><strong>45,791</strong></td><td>20,673</td><td>114,821</td><td><strong>2.2x</strong></td></tr>
+            <tr><td>404 Miss</td><td><strong>33,841</strong></td><td>13,480</td><td>38,696</td><td><strong>2.5x</strong></td></tr>
+            <tr><td>Multi-Route (50 routes)</td><td><strong>93,183</strong></td><td>22,692</td><td>142,385</td><td><strong>4.1x</strong></td></tr>
+            <tr><td>POST JSON</td><td><strong>58,447</strong></td><td>17,808</td><td>95,209</td><td><strong>3.3x</strong></td></tr>
           </tbody>
         </table>
 
         <div class="perf-bars">
           <div class="perf-group">
-            <div class="perf-group-label">Plaintext (req/s)</div>
+            <div class="perf-group-label">Plaintext  Lcore vs Flask</div>
             <div class="perf-row">
               <span class="perf-label">Lcore</span>
-              <div class="perf-track"><div class="perf-bar primary w-63"></div></div>
-              <span class="perf-value primary">122,715</span>
-            </div>
-            <div class="perf-row">
-              <span class="perf-label">Bottle</span>
-              <div class="perf-track"><div class="perf-bar muted w-full"></div></div>
-              <span class="perf-value muted">193,368</span>
+              <div class="perf-track"><div class="perf-bar primary w-full"></div></div>
+              <span class="perf-value primary">116,794</span>
             </div>
             <div class="perf-row">
               <span class="perf-label">Flask</span>
-              <div class="perf-track"><div class="perf-bar muted w-16"></div></div>
-              <span class="perf-value muted">30,500</span>
+              <div class="perf-track"><div class="perf-bar muted w-22"></div></div>
+              <span class="perf-value muted">25,497</span>
             </div>
           </div>
 
           <div class="perf-group">
-            <div class="perf-group-label">JSON (req/s)</div>
+            <div class="perf-group-label">JSON  Lcore vs Flask</div>
             <div class="perf-row">
               <span class="perf-label">Lcore</span>
-              <div class="perf-track"><div class="perf-bar primary w-70"></div></div>
-              <span class="perf-value primary">95,910</span>
-            </div>
-            <div class="perf-row">
-              <span class="perf-label">Bottle</span>
-              <div class="perf-track"><div class="perf-bar muted w-full"></div></div>
-              <span class="perf-value muted">137,070</span>
+              <div class="perf-track"><div class="perf-bar primary w-full"></div></div>
+              <span class="perf-value primary">91,917</span>
             </div>
             <div class="perf-row">
               <span class="perf-label">Flask</span>
-              <div class="perf-track"><div class="perf-bar muted w-19"></div></div>
-              <span class="perf-value muted">26,403</span>
+              <div class="perf-track"><div class="perf-bar muted w-25"></div></div>
+              <span class="perf-value muted">22,757</span>
             </div>
           </div>
 
           <div class="perf-group">
-            <div class="perf-group-label">Middleware Stack (req/s)</div>
+            <div class="perf-group-label">Middleware Stack  Lcore vs Flask</div>
             <div class="perf-row">
               <span class="perf-label">Lcore</span>
-              <div class="perf-track"><div class="perf-bar primary w-45"></div></div>
-              <span class="perf-value primary">53,113</span>
-            </div>
-            <div class="perf-row">
-              <span class="perf-label">Bottle</span>
-              <div class="perf-track"><div class="perf-bar muted w-full"></div></div>
-              <span class="perf-value muted">117,348</span>
+              <div class="perf-track"><div class="perf-bar primary w-full"></div></div>
+              <span class="perf-value primary">45,791</span>
             </div>
             <div class="perf-row">
               <span class="perf-label">Flask</span>
-              <div class="perf-track"><div class="perf-bar muted w-21"></div></div>
-              <span class="perf-value muted">24,261</span>
+              <div class="perf-track"><div class="perf-bar muted w-45"></div></div>
+              <span class="perf-value muted">20,673</span>
             </div>
           </div>
         </div>
 
-        <p class="perf-note">Lcore is <strong>2.2x – 4.0x faster than Flask</strong> across all 7 test scenarios. Bottle is faster still but lacks middleware, DI, security stack, and lifecycle hooks that Lcore provides out of the box.</p>
+        <p class="perf-note">Lcore is <strong>2.2x – 4.6x faster than Flask</strong> across all 7 test scenarios. Bottle is faster on raw throughput but lacks middleware, DI, security stack, and lifecycle hooks that Lcore provides out of the box. See the full <a href="#comparison">feature comparison</a>.</p>
       </div>
     </section>
 
@@ -438,7 +455,7 @@ app.run(server='gunicorn', host='0.0.0.0', port=8080)</code></pre>
 
     <footer class="site-footer">
       <p>
-        Lcore Framework &mdash; Created by <a href="https://lusansapkota.com.np" target="_blank" rel="noopener noreferrer">Lusan Sapkota</a> &mdash; MIT License
+        Lcore Framework  Created by <a href="https://lusansapkota.com.np" target="_blank" rel="noopener noreferrer">Lusan Sapkota</a>  MIT License
         <br>
         <a href="https://github.com/Lusan-sapkota/lcore">GitHub</a>
       </p>
@@ -446,6 +463,7 @@ app.run(server='gunicorn', host='0.0.0.0', port=8080)</code></pre>
 
   </div>
 
+  <script src="assets/highlight.min.js"></script>
   <script src="assets/script.js"></script>
 </body>
 </html>

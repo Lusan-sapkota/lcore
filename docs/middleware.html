@@ -4,9 +4,26 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Middleware &amp; Hooks - Lcore Documentation</title>
+  <meta name="description" content="Middleware and lifecycle hooks in Lcore - CORS, CSRF, security headers, rate limiting, compression, and custom middleware.">
+  <meta name="keywords" content="Python,WSGI,microservice,framework,web,API,REST,Lcore,middleware,hooks,CORS,CSRF">
+  <meta name="author" content="Lusan Sapkota">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://lcore.lusansapkota.com.np/middleware.html">
+  <meta property="og:title" content="Middleware &amp; Hooks - Lcore Documentation">
+  <meta property="og:description" content="Middleware and lifecycle hooks in Lcore - CORS, CSRF, security headers, rate limiting, compression, and custom middleware.">
+  <meta property="og:image" content="https://lcore.lusansapkota.com.np/lcore.png">
+  <meta property="og:url" content="https://lcore.lusansapkota.com.np/middleware.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Lcore Framework">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Middleware &amp; Hooks - Lcore Documentation">
+  <meta name="twitter:description" content="Middleware and lifecycle hooks in Lcore - CORS, CSRF, security headers, rate limiting, compression, and custom middleware.">
+  <meta name="twitter:image" content="https://lcore.lusansapkota.com.np/lcore.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/github.min.css" media="(prefers-color-scheme: light)">
+  <link rel="stylesheet" href="assets/github-dark.min.css" media="(prefers-color-scheme: dark)">
   <link rel="shortcut icon" href="lcore.png" type="image/x-icon">
 
 </head>
@@ -22,8 +39,6 @@
         <a href="plugins.html">Plugins</a>
         <a href="advanced.html">Advanced</a>
         <a href="api-reference.html">API</a>
-        
-        
       </nav>
       <div class="header-right">
         <span class="version-badge">v0.0.4</span>
@@ -152,7 +167,7 @@ app.use(CORSMiddleware(
           <tr><td><code>allow_methods</code></td><td><code>['GET','POST','PUT','DELETE','PATCH','OPTIONS']</code></td><td>Allowed HTTP methods</td></tr>
           <tr><td><code>allow_headers</code></td><td><code>['Content-Type','Authorization','X-Requested-With']</code></td><td>Allowed request headers</td></tr>
           <tr><td><code>expose_headers</code></td><td><code>[]</code></td><td>Headers visible to the browser</td></tr>
-          <tr><td><code>allow_credentials</code></td><td><code>False</code></td><td>Allow cookies/auth headers. <strong>Cannot be used with <code>allow_origins='*'</code></strong> &mdash; specify explicit origins instead.</td></tr>
+          <tr><td><code>allow_credentials</code></td><td><code>False</code></td><td>Allow cookies/auth headers. <strong>Cannot be used with <code>allow_origins='*'</code></strong>  specify explicit origins instead.</td></tr>
           <tr><td><code>max_age</code></td><td><code>86400</code></td><td>Preflight cache duration (seconds)</td></tr>
         </tbody>
       </table>
@@ -404,6 +419,7 @@ app.middleware.remove(cors)</code></pre>
     </main>
   </div>
 
+  <script src="assets/highlight.min.js"></script>
   <script src="assets/script.js"></script>
 </body>
 </html>
