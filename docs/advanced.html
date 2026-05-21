@@ -614,19 +614,21 @@ app.use(CSRFMiddleware(secret='your-csrf-secret'))</code></pre>
         <tbody>
           <tr><td>Signed cookies</td><td>HMAC-SHA256 + JSON (no pickle)</td></tr>
           <tr><td>Timing-safe comparison</td><td><code>hmac.compare_digest</code></td></tr>
-          <tr><td>Path traversal</td><td><code>os.path.realpath()</code> in static_file</td></tr>
-          <tr><td>Dotenv injection</td><td>Regex validation of env var key names</td></tr>
+          <tr><td>Path traversal</td><td>v0.0.4: file opened before checks, real path resolved from fd via <code>/proc/self/fd</code> on Linux  TOCTOU-safe</td></tr>
+          <tr><td>Dotenv injection</td><td>Regex validation of env var key names; quote stripping uses pair-matching only</td></tr>
           <tr><td>Dynamic loading</td><td>Safe <code>getattr</code> chain with <code>isidentifier()</code></td></tr>
           <tr><td>Security headers</td><td>X-Frame-Options, CSP, HSTS, XSS protection</td></tr>
           <tr><td>Trusted proxy headers</td><td><code>ProxyFixMiddleware</code>  only trusts X-Forwarded-For / X-Forwarded-Proto from whitelisted proxy IPs; prevents IP spoofing and URL manipulation</td></tr>
           <tr><td>Request timeouts</td><td><code>TimeoutMiddleware</code>  persistent thread pool returns 503 after deadline; protects workers from slow-client exhaustion</td></tr>
-          <tr><td>CSRF tokens</td><td>HMAC-signed double-submit cookie (<code>token.hmac_sig</code>); cookie is <code>httponly=False</code> so JS/SPA can read it; signing prevents subdomain cookie-tossing bypass</td></tr>
-          <tr><td>Body limits</td><td>413 error on oversized requests via <code>BodyLimitMiddleware</code></td></tr>
-          <tr><td>Rate limiting</td><td>Token bucket with memory cleanup. <strong>Per-process by default</strong>  pass <code>backend=</code> (Redis-backed mapping) for real enforcement under multi-worker deployment</td></tr>
+          <tr><td>CSRF tokens</td><td>HMAC-signed double-submit cookie; signing prevents subdomain cookie-tossing bypass</td></tr>
+          <tr><td>Body limits</td><td>413 error on oversized requests via <code>BodyLimitMiddleware</code>. v0.0.4: multipart <code>disk_limit</code> tied to same limit  no separate ceiling</td></tr>
+          <tr><td>Rate limiting</td><td>Token bucket with memory cleanup. Per-process by default  pass <code>backend=</code> for cross-worker enforcement</td></tr>
+          <tr><td>Slow-loris mitigation</td><td>v0.0.4: chunked transfer parser uses buffered reads  no byte-by-byte header scanning</td></tr>
+          <tr><td>Cookie defaults</td><td>v0.0.4: <code>set_cookie()</code> defaults to <code>samesite='Lax'</code>, <code>httponly=True</code>. Override for JS-readable cookies like CSRF tokens</td></tr>
+          <tr><td>File upload safety</td><td>v0.0.4: <code>FileUpload.save()</code> uses atomic <code>'x'</code> exclusive-create mode (no TOCTOU). Multipart filenames sanitized at parse time with <code>os.path.basename</code></td></tr>
           <tr><td>ETag hashing</td><td>SHA256 (not SHA1)</td></tr>
           <tr><td>Password hashing</td><td>PBKDF2-SHA256 with random salt</td></tr>
-          <tr><td>Symlink traversal</td><td>Blocked in <code>static_file()</code> if symlink points outside root</td></tr>
-          <tr><td>Header injection</td><td>Newlines stripped from Content-Disposition filenames</td></tr>
+          <tr><td>Header injection</td><td>Newlines stripped from Content-Disposition filenames; CRLF rejected in all header/cookie setters</td></tr>
           <tr><td>Form field DoS</td><td>Max 1,000 fields per request (prevents memory exhaustion)</td></tr>
           <tr><td>CORS validation</td><td><code>allow_credentials=True</code> rejects wildcard origins</td></tr>
           <tr><td>Graceful shutdown</td><td>SIGTERM handled for container/orchestrator compatibility</td></tr>

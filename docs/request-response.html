@@ -238,19 +238,22 @@ def read_cookies():
     return {'session': session_id, 'user': user}</code></pre>
 
       <h3>Setting Cookies</h3>
+      <p>v0.0.4 sets <strong>secure defaults</strong>: <code>samesite='Lax'</code> and <code>httponly=True</code> are applied automatically unless you override them. This means a basic <code>set_cookie('session', 'abc')</code> is already reasonably locked down.</p>
       <pre><code>from datetime import timedelta
 
 @app.route('/set')
 def set_cookies():
-    # Plain cookie
-    response.set_cookie('session_id', 'abc123',
-        path='/',
-        httponly=True,
-        secure=True,
-        samesite='Lax'
+    # Plain cookie  secure by default (v0.0.4)
+    response.set_cookie('session_id', 'abc123', path='/')
+    # Automatically gets: samesite=Lax, httponly=True
+
+    # Override defaults when needed (e.g. CSRF token must be JS-readable)
+    response.set_cookie('_csrf_token', token,
+        httponly=False,       # JS needs to read this
+        samesite='Strict'     # Tighter CSRF protection
     )
 
-    # Signed cookie (tamper-proof)
+    # Signed cookie (tamper-proof, HMAC-SHA256)
     response.set_cookie('user', 'alice',
         secret='my-secret-key',
         max_age=timedelta(days=7)

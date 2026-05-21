@@ -1435,7 +1435,6 @@ class BaseRequest:
         total = 0
         err = HTTPError(400, 'Error while parsing chunked transfer body.')
         rn, sem, bs = b'\r\n', b';', b''
-        # Buffered chunk-header reader — avoids byte-by-byte reads (slow-loris DoS).
         header_buf = b''
         while True:
             # Read chunk header: scan for \r\n in buffered reads
