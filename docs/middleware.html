@@ -298,6 +298,11 @@ app.use(RateLimitMiddleware(), routes=['/api/*', '/webhook/*'])
 app.post('/api/login', callback=login, skip=['csrf'])</code></pre>
       <p>The <code>skip</code> parameter on routes now works for middleware (not just plugins). The route's <code>skiplist</code> is checked during post-routing middleware execution.</p>
 
+      <div class="info-box danger">
+        <strong>Security: be intentional about skip=['csrf']</strong>
+        <p>CSRF exemption is appropriate for: webhooks from Stripe/GitHub (they can't send your CSRF token), login endpoints (the client doesn't have a token yet), and routes using Bearer token auth (not cookie-based, so CSRF is irrelevant). <strong>Never</strong> skip CSRF on state-changing endpoints that use cookie-based sessions those are exactly what CSRF protects. Audit your route table: if a route with <code>skip=['csrf']</code> transfers money, changes passwords, or modifies user data, you have a problem.</p>
+      </div>
+
       <!-- Middleware Hooks -->
       <h2 id="middleware-hooks">Middleware Hooks</h2>
 

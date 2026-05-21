@@ -177,6 +177,11 @@ def create_user():
         <p><code>request.json</code> returns <code>None</code> if the Content-Type is not <code>application/json</code> or the body cannot be parsed. Always check for <code>None</code>.</p>
       </div>
 
+      <div class="info-box tip">
+        <strong>v0.0.4: No more 100KB silent limit</strong>
+        <p>Previously <code>request.json</code> and URL-encoded POST bodies had a hard 100KB cap (<code>MEMFILE_MAX</code>) independent of <code>BodyLimitMiddleware</code>. A 150KB JSON payload would silently fail with 413 even when <code>BodyLimitMiddleware</code> allowed 50MB. v0.0.4 reads the full body via <code>self.body.read()</code>, which spills to disk for large payloads and respects <code>BodyLimitMiddleware</code> exclusively. No more mystery ceiling.</p>
+      </div>
+
       <!-- File Uploads -->
       <h2 id="file-uploads">File Uploads</h2>
 
@@ -199,6 +204,11 @@ def upload():
         'content_type': content_type,
         'size': size
     }</code></pre>
+
+      <div class="info-box tip">
+        <strong>v0.0.4: Multipart limits respect BodyLimitMiddleware</strong>
+        <p>The multipart parser's <code>disk_limit</code> is now set from <code>environ['lcore.body_max_size']</code> (injected by <code>BodyLimitMiddleware</code>). Configure one limit and everything obeys it  JSON bodies, URL-encoded forms, and file uploads all capped by the same setting.</p>
+      </div>
 
       <h3>FileUpload Object</h3>
       <table>
@@ -333,12 +343,34 @@ def custom_response():
 
 @app.route('/immediate')
 def immediate():
-    # Raise HTTPResponse to skip normal processing
     raise HTTPResponse(
         body='{"error": "custom"}',
         status=418,
         headers={'Content-Type': 'application/json'}
     )</code></pre>
+
+      <h3>HTTPError  v0.0.4 Improvements</h3>
+      <p>Raise <code>HTTPError</code> to trigger your registered error handlers. v0.0.4 fixes two long-standing papercuts:</p>
+
+      <h4>Headers survive the raise</h4>
+      <p>Previously, <code>HTTPError.apply()</code> <strong>replaced</strong> all response headers  any header you set before raising was wiped. v0.0.4 <strong>merges</strong> instead:</p>
+      <pre><code>@app.post('/api/login')
+def login():
+    response.set_header('Content-Type', 'application/json')
+    # ... auth logic ...
+    raise HTTPError(401, '{"error":"Unauthorized"}')
+    # v0.0.4: Content-Type: application/json survives. v0.0.3: gone.</code></pre>
+
+      <h4>One-liner with content_type</h4>
+      <p>Skip the <code>response.set_header</code> dance entirely:</p>
+      <pre><code>raise HTTPError(401, body='{"error":"Unauthorized"}', content_type='application/json')
+raise HTTPError(422, body=json_dumps({'error': 'Validation failed', 'fields': {...}}),
+                content_type='application/json')</code></pre>
+
+      <h4>Global JSON errors</h4>
+      <p>For pure API servers, one config line replaces every per-status-code error handler:</p>
+      <pre><code>app.config['error.format'] = 'json'
+# All errors now return {"error": "...", "status": N}  no handlers needed</code></pre>
 
       <!-- Static Files -->
       <h2 id="static-files">Static Files</h2>

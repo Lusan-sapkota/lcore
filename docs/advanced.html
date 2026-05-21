@@ -514,19 +514,57 @@ def login():
     ...</code></pre>
 
       <h3>Request Validation</h3>
-      <p>The <code>@validate_request</code> decorator validates incoming request data against a schema. It supports both <strong>body</strong> (JSON) and <strong>query</strong> parameter validation using dataclass-style type declarations:</p>
+      <p>The <code>@validate_request</code> decorator validates incoming request data against a schema. v0.0.4 adds <code>Optional[type]</code> support, automatic type coercion, whitespace stripping, and structured JSON error responses.</p>
 
+      <h4>Basic body validation</h4>
       <pre><code>from lcore import validate_request
 
-# Validate JSON body
 @app.post('/api/users')
 @validate_request(body={'name': str, 'email': str, 'age': int})
 def create_user():
-    data = request.json
-    return {'created': True, 'name': data['name']}
+    data = request.json       # guaranteed valid and stripped
+    return {'created': True, 'name': data['name']}</code></pre>
 
-# Validate query parameters
-@app.get('/api/search')
+      <h4>Optional fields (v0.0.4)</h4>
+      <p>Use <code>Optional[type]</code> from <code>typing</code> for fields that may be absent. Required fields raise 422 when missing; optional ones are silently skipped:</p>
+      <pre><code>from typing import Optional
+
+@app.post('/api/profile')
+@validate_request(body={
+    'name': str,              # required
+    'email': str,             # required
+    'bio': Optional[str],     # optional  no error if absent
+    'age': Optional[int],     # optional, coerced to int if present
+})
+def update_profile():
+    data = request.json
+    return {'updated': True}</code></pre>
+
+      <h4>Auto-coercion and whitespace stripping (v0.0.4)</h4>
+      <p>Values are automatically coerced and cleaned. No more <code>int(data['age'])</code> or <code>.strip()</code> boilerplate in every handler:</p>
+      <pre><code># Client sends: {"name": "  Alice  ", "age": "42", "active": "true"}
+@validate_request(body={'name': str, 'age': int, 'active': bool})
+def handler():
+    data = request.json
+    # data['name'] is "Alice" (stripped)
+    # data['age'] is 42 (int, coerced from string)
+    # data['active'] is True (bool, from "true" / "1" / "yes")
+    return {'ok': True}</code></pre>
+
+      <h4>Structured error responses (v0.0.4)</h4>
+      <p>Validation failures return a JSON body with per-field error messages instead of a flat semicolon-separated string:</p>
+      <pre><code># When validation fails, the client gets:
+# HTTP 422
+# {
+#   "error": "Validation failed",
+#   "fields": {
+#     "email": "email is required",
+#     "age": "age must be int"
+#   }
+# }</code></pre>
+
+      <h4>Query parameter validation</h4>
+      <pre><code>@app.get('/api/search')
 @validate_request(query={'q': str, 'page': int, 'limit': int})
 def search():
     q = request.query.get('q')
@@ -542,7 +580,7 @@ def search():
 def create_item():
     return {'created': True}</code></pre>
 
-      <p>Validation errors return appropriate HTTP status codes:</p>
+      <p>Error status codes:</p>
       <table>
         <thead><tr><th>Error</th><th>Status</th><th>When</th></tr></thead>
         <tbody>

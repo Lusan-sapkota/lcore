@@ -381,6 +381,11 @@ db_path = os.environ.get('DB_PATH')  # './data.db'</code></pre>
 # or as a comma-separated string:
 app.config['proxy.trusted'] = '127.0.0.1,10.0.0.1'</code></pre>
 
+      <div class="info-box danger">
+        <strong>Security: only trust your actual proxy</strong>
+        <p><code>proxy.trusted</code> tells <code>request.remote_addr</code> to walk <code>X-Forwarded-For</code> from the right, skipping IPs in the trusted set. <strong>Only list your upstream reverse proxy</strong>  Nginx on 127.0.0.1, Cloudflare's edge IPs, your AWS ALB. Never add arbitrary IPs. An attacker outside your trusted set who sends a fake <code>X-Forwarded-For: 1.1.1.1</code> will be ignored  only the real <code>REMOTE_ADDR</code> is used for untrusted clients.</p>
+      </div>
+
       <!-- Running Your App -->
       <h2 id="running">Running Your App</h2>
 
