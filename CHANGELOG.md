@@ -4,7 +4,7 @@ All notable changes to Lcore will be documented here.
 
 ---
 
-## [0.0.4] — 2026-05-21
+## [0.0.4] — 2026-05-22
 
 ### Fixed
 - **HTTPError.apply() now merges headers** instead of replacing them. Headers set by a handler before raising `HTTPError` are preserved. This means `response.set_header('Content-Type', 'application/json')` followed by `raise HTTPError(401)` now correctly returns JSON instead of HTML.
@@ -21,6 +21,15 @@ All notable changes to Lcore will be documented here.
 
 ### Changed
 - **`validate_request` decorator improved.** Now supports `Optional[type]` for optional fields, auto-coerces types (e.g. string to int), strips whitespace from strings, and returns structured JSON errors with `{"error": "Validation failed", "fields": {...}}` format.
+- **`set_cookie` now defaults to `samesite='Lax'` and `httponly=True`.** Secure by default; override with explicit keyword arguments when you need JS-readable cookies (e.g. CSRF tokens).
+
+### Security
+- **Chunked transfer parser hardened against slow-loris DoS.** Previously read chunk headers one byte at a time with no timeout; now uses buffered reads with a configurable cap.
+- **`static_file()` TOCTOU fix.** The file is now opened before symlink and path-traversal checks, pinning the inode. On Linux, the real path is resolved through `/proc/self/fd/<n>` for an atomic check.
+- **`FileUpload.save()` TOCTOU fix.** Uses Python's `'x'` exclusive-create mode instead of `os.path.exists()` + `open()`, eliminating the race between the existence check and the file write.
+- **Multipart filename sanitization added at parse time.** The raw `_MultipartPart.filename` now strips directory separators via `os.path.basename()` as defense-in-depth, before `FileUpload.filename` does its full sanitization pass.
+- **Error page template no longer uses `repr()` in HTML context.** The auto-escaping `{{ }}` template expression handles URL escaping directly.
+- **`.env` quote stripping fixed.** Only strips matching quote pairs (`"..."` or `'...'`) rather than all leading/trailing quote characters, preventing mangling of values like `"it's"`.
 
 ---
 

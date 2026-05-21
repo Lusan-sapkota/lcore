@@ -1435,20 +1435,27 @@ class BaseRequest:
         total = 0
         err = HTTPError(400, 'Error while parsing chunked transfer body.')
         rn, sem, bs = b'\r\n', b';', b''
+        # Buffered chunk-header reader — avoids byte-by-byte reads (slow-loris DoS).
+        header_buf = b''
         while True:
-            header = read(1)
-            while header[-2:] != rn:
-                c = read(1)
-                header += c
-                if not c: raise err
-                if len(header) > bufsize: raise err
+            # Read chunk header: scan for \r\n in buffered reads
+            while rn not in header_buf:
+                chunk = read(bufsize)
+                if not chunk:
+                    raise err
+                header_buf += chunk
+                if len(header_buf) > bufsize:
+                    raise err
+            header, header_buf = header_buf.split(rn, 1)
             size, _, _ = header.partition(sem)
             try:
                 maxread = int(size.strip(), 16)
             except ValueError:
                 raise err
             if maxread == 0: break
-            buff = bs
+            # Consume chunk body (already-buffered trailer + fresh reads)
+            buff = header_buf if header_buf else b''
+            header_buf = b''
             while maxread > 0:
                 if not buff:
                     buff = read(min(maxread, bufsize))
@@ -1459,8 +1466,14 @@ class BaseRequest:
                     raise HTTPError(413, 'Request body exceeds size limit')
                 yield part
                 maxread -= len(part)
-            if read(2) != rn:
+            # Consume trailing \r\n after chunk body
+            while len(header_buf) < 2:
+                chunk = read(2 - len(header_buf))
+                if not chunk: raise err
+                header_buf += chunk
+            if header_buf[:2] != rn:
                 raise err
+            header_buf = header_buf[2:]
 
     @DictProperty('environ', 'lcore.request.body', read_only=True)
     def _body(self):  # Buffers body in memory, spills to temp file if large
@@ -1866,7 +1879,7 @@ class BaseResponse:
             return self.content_type.split('charset=')[-1].split(';')[0].strip()
         return default
 
-    # Set a cookie, optionally HMAC-signed if secret is provided
+    # Set a cookie, optionally HMAC-signed if secret is provided.
     def set_cookie(self, name, value, secret=None, digestmod=hashlib.sha256, **options):
         if not self._cookies:
             self._cookies = SimpleCookie()
@@ -1886,6 +1899,11 @@ class BaseResponse:
             raise ValueError('Content does not fit into a cookie.')
 
         self._cookies[name] = value
+
+        defaults = {'samesite': 'Lax', 'httponly': True}
+        for key, default_val in defaults.items():
+            if key not in options:
+                options[key] = default_val
 
         for key, value in options.items():
             if key in ('max_age', 'maxage'):
@@ -3322,7 +3340,9 @@ class ConfigDict(dict):
                 key = key.strip()
                 if not re.match(r'^[A-Za-z_][A-Za-z0-9_]*$', key):
                     continue
-                value = value.strip().strip('"').strip("'")
+                value = value.strip()
+                if len(value) >= 2 and value[0] == value[-1] and value[0] in ('"', "'"):
+                    value = value[1:-1]
                 os.environ.setdefault(key, value)
         return self
 
@@ -3515,9 +3535,11 @@ class FileUpload:
         if isinstance(destination, str):
             if os.path.isdir(destination):
                 destination = os.path.join(destination, self.filename)
-            if not overwrite and os.path.exists(destination):
+            try:
+                fp = open(destination, 'wb' if overwrite else 'xb')
+            except FileExistsError:
                 raise IOError('File exists.')
-            with open(destination, 'wb') as fp:
+            with fp:
                 self._copy_file(fp, chunk_size)
         else:
             self._copy_file(destination, chunk_size)
@@ -3587,7 +3609,9 @@ def load_dotenv(path=None):
             key = key.strip()
             if not re.match(r'^[A-Za-z_][A-Za-z0-9_]*$', key):
                 continue
-            val = val.strip().strip('"').strip("'")
+            val = val.strip()
+            if len(val) >= 2 and val[0] == val[-1] and val[0] in ('"', "'"):
+                val = val[1:-1]
             if key not in os.environ:
                 os.environ[key] = val
 
@@ -3626,14 +3650,32 @@ def static_file(filename, root,
     headers = headers.copy() if headers else {}
     getenv = request.environ.get
 
+    # Path traversal: reject anything outside root
     if not filename.startswith(root):
-        return HTTPError(403, "Access denied.")
-    if os.path.islink(filename) and not os.path.realpath(filename).startswith(root):
         return HTTPError(403, "Access denied.")
     if not os.path.isfile(filename):
         return HTTPError(404, "File does not exist.")
-    if not os.access(filename, os.R_OK):
-        return HTTPError(403, "You do not have permission to access this file.")
+    
+    if request.method == 'HEAD':
+        body = ''
+    else:
+        try:
+            body = open(filename, 'rb')
+        except (IOError, OSError):
+            return HTTPError(403, "Permission denied.")
+
+    # Symlink escape check via the opened fd (TOCTOU-free on Linux).
+    try:
+        fd_path = '/proc/self/fd/%d' % body.fileno()
+        real = os.path.realpath(fd_path) if os.path.exists(fd_path) \
+               else os.path.realpath(filename)
+    except (IOError, OSError, AttributeError):
+        real = os.path.realpath(filename)
+    if not real.startswith(root):
+        _try_close(body)
+        return HTTPError(403, "Access denied.")
+
+    stats = os.fstat(body.fileno()) if hasattr(body, 'fileno') else os.stat(filename)
 
     if mimetype is True:
         name = download if isinstance(download, str) else filename
@@ -3658,7 +3700,6 @@ def static_file(filename, root,
         download = download.replace('\r', '').replace('\n', '')
         headers['Content-Disposition'] = 'attachment; filename="%s"' % download
 
-    stats = os.stat(filename)
     headers['Content-Length'] = clen = stats.st_size
     headers['Last-Modified'] = email.utils.formatdate(stats.st_mtime, usegmt=True)
     headers['Date'] = email.utils.formatdate(time.time(), usegmt=True)
@@ -3672,22 +3713,26 @@ def static_file(filename, root,
         headers['ETag'] = etag
         check = getenv('HTTP_IF_NONE_MATCH')
         if check and check == etag:
+            _try_close(body)
             return HTTPResponse(status=304, **headers)
 
     ims = getenv('HTTP_IF_MODIFIED_SINCE')
     if ims:
         ims = parse_date(ims.split(";")[0].strip())
         if ims is not None and ims >= int(stats.st_mtime):
+            _try_close(body)
             return HTTPResponse(status=304, **headers)
 
-    body = '' if request.method == 'HEAD' else open(filename, 'rb')
+    if request.method == 'HEAD':
+        _try_close(body)
+        return HTTPResponse(status=200, **headers)
 
     headers["Accept-Ranges"] = "bytes"
     range_header = getenv('HTTP_RANGE')
     if range_header:
         ranges = list(parse_range_header(range_header, clen))
         if not ranges:
-            if hasattr(body, 'close'): body.close()
+            _try_close(body)
             return HTTPError(416, "Requested Range Not Satisfiable")
         offset, end = ranges[0]
         rlen = end - offset
@@ -4218,6 +4263,7 @@ class _MultipartPart:
             self.filename = self.options.get("filename")
             if self.filename[1:3] == ":\\" or self.filename[:2] == "\\\\":
                 self.filename = self.filename.split("\\")[-1]
+            self.filename = os.path.basename(self.filename.replace('\\', '/'))
 
         self.content_type, options = _parse_http_header(content_type)[0] if content_type else (None, {})
         self.charset = options.get("charset") or self.charset
@@ -5380,7 +5426,7 @@ ERROR_PAGE_TEMPLATE = """
         </head>
         <body>
             <h1>Error: {{e.status}}</h1>
-            <p>Sorry, the requested URL <tt>{{repr(request.url)}}</tt>
+            <p>Sorry, the requested URL <tt>{{request.url}}</tt>
                caused an error:</p>
             <pre>{{e.body}}</pre>
             %%if DEBUG and e.exception:
