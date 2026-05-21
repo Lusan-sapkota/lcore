@@ -533,48 +533,81 @@ _DOCS_HTML = """\
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>API Documentation - Lcore %(version)s</title>
+<title>API Docs — Lcore %(version)s</title>
 <style>
+:root {
+  --bg: #fff; --bg-card: #fafbfc; --bg-code: #f6f8fa;
+  --border: #d0d7de; --text: #1f2328; --text-muted: #656d76; --text-dim: #8b949e;
+  --accent: #0969da; --green: #1a7f37; --green-bg: #dafbe1;
+  --blue: #0969da; --blue-bg: #ddf4ff;
+  --orange: #bf8700; --orange-bg: #fff1e5;
+  --red: #cf222e; --red-bg: #ffebe9;
+  --radius: 8px;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --mono: ui-monospace, 'SF Mono', 'Cascadia Code', monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1117; --bg-card: #161b22; --bg-code: #161b22;
+    --border: #30363d; --text: #e6edf3; --text-muted: #8b949e; --text-dim: #6e7681;
+    --accent: #58a6ff; --green: #3fb950; --green-bg: rgba(63,185,80,0.15);
+    --blue: #58a6ff; --blue-bg: rgba(88,166,255,0.15);
+    --orange: #d2991d; --orange-bg: rgba(210,153,29,0.15);
+    --red: #f85149; --red-bg: rgba(248,81,73,0.15);
+  }
+}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
-background:#0A0F1A;color:#E6EDF3;line-height:1.6}
-.container{max-width:960px;margin:0 auto;padding:24px}
-header{padding:32px 0 24px;border-bottom:1px solid #1a2d4d;margin-bottom:24px}
-header h1{font-size:24px;font-weight:600;color:#E6EDF3}
-header h1 span{color:#00B8D9}
-header p{color:#9cb3cc;font-size:14px;margin-top:4px}
-.endpoint{background:#0f1a2e;border:1px solid #1a2d4d;border-radius:8px;
-margin-bottom:12px;overflow:hidden;transition:border-color .2s}
-.endpoint:hover{border-color:#264170}
-.endpoint-header{display:flex;align-items:center;gap:12px;padding:14px 18px;cursor:pointer}
-.badge{display:inline-block;padding:3px 10px;border-radius:4px;font-size:12px;
-font-weight:700;font-family:monospace;text-transform:uppercase;min-width:64px;text-align:center}
-.method-get{background:rgba(16,185,129,.15);color:#10b981}
-.method-post{background:rgba(0,184,217,.15);color:#00B8D9}
-.method-put{background:rgba(245,158,11,.15);color:#f59e0b}
-.method-delete{background:rgba(239,68,68,.15);color:#ef4444}
-.method-other{background:rgba(156,179,204,.1);color:#9cb3cc}
-.path{font-family:monospace;font-size:15px;color:#E6EDF3;font-weight:500}
-.ret{font-family:monospace;font-size:13px;color:#9cb3cc;margin-left:auto}
-.docstring{padding:0 18px 14px;color:#9cb3cc;font-size:14px}
+body{font-family:var(--font);background:var(--bg);color:var(--text);line-height:1.6}
+.container{max-width:960px;margin:0 auto;padding:32px 24px}
+header{padding:0 0 20px;border-bottom:1px solid var(--border);margin-bottom:28px}
+header h1{font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px}
+header h1 span{color:var(--accent)}
+header p{color:var(--text-muted);font-size:14px}
+.count{color:var(--text-muted);font-size:14px;margin-bottom:20px}
+.endpoint{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);
+margin-bottom:10px;overflow:hidden}
+.endpoint-header{display:flex;align-items:center;gap:10px;padding:14px 18px;cursor:pointer}
+.badge{display:inline-block;padding:3px 10px;border-radius:4px;font-size:11px;
+font-weight:700;font-family:var(--mono);text-transform:uppercase;min-width:62px;text-align:center}
+.method-get{background:var(--green-bg);color:var(--green)}
+.method-post{background:var(--blue-bg);color:var(--blue)}
+.method-put{background:var(--orange-bg);color:var(--orange)}
+.method-delete{background:var(--red-bg);color:var(--red)}
+.method-other{background:var(--bg-code);color:var(--text-muted)}
+.path{font-family:var(--mono);font-size:15px;color:var(--text);font-weight:500;word-break:break-all}
+.ret{font-family:var(--mono);font-size:13px;color:var(--text-dim);margin-left:auto;white-space:nowrap}
+.docstring{padding:0 18px 14px;color:var(--text-muted);font-size:14px}
 .params{width:calc(100%% - 36px);margin:0 18px 14px;border-collapse:collapse;font-size:13px}
-.params th{text-align:left;padding:8px 12px;background:#0a1220;color:#9cb3cc;
-font-weight:500;border-bottom:1px solid #1a2d4d;font-size:12px;text-transform:uppercase;letter-spacing:.5px}
-.params td{padding:8px 12px;border-bottom:1px solid #1a2d4d;font-family:monospace;color:#E6EDF3}
-.json-link{display:inline-block;margin-top:16px;color:#00B8D9;font-size:13px;text-decoration:none}
+.params th{text-align:left;padding:8px 12px;background:var(--bg-code);color:var(--text-muted);
+font-weight:600;border-bottom:1px solid var(--border);font-size:12px;text-transform:uppercase}
+.params td{padding:8px 12px;border-bottom:1px solid var(--border);font-family:var(--mono);color:var(--text)}
+.json-link{display:inline-block;margin-top:20px;color:var(--accent);font-size:13px;text-decoration:none}
 .json-link:hover{text-decoration:underline}
-.count{color:#9cb3cc;font-size:14px;margin-bottom:16px}
+@media (max-width:600px) {
+  .endpoint-header{flex-wrap:wrap;gap:6px}
+  .ret{margin-left:0;width:100%%}
+  .params td,.params th{padding:6px 8px;font-size:12px}
+}
 </style>
 </head>
 <body>
 <div class="container">
 <header>
 <h1><span>Lcore</span> API Documentation</h1>
-<p>v%(version)s &middot; Interactive API reference</p>
+<p>v%(version)s &middot; Auto-generated from route signatures and docstrings</p>
 </header>
+<p class="count">%(count)s endpoint%(plural)s</p>
 %(routes)s
-<a class="json-link" href="%(json_url)s">View raw JSON &rarr;</a>
+<a class="json-link" href="%(json_url)s">View raw JSON &#8594;</a>
 </div>
+<script>
+document.querySelectorAll('.endpoint-header').forEach(function(h) {
+  h.addEventListener('click', function() {
+    var body = this.nextElementSibling;
+    if (body) body.style.display = body.style.display === 'none' ? 'block' : 'none';
+  });
+});
+</script>
 </body>
 </html>"""
 
@@ -982,6 +1015,7 @@ class Lcore:
                 ret = r.get('return_type', '')
                 ret_html = (' <span class="ret">&#8594; %s</span>' %
                             html_escape(ret)) if ret else ''
+                extra = (doc or params_html)
                 routes_html.append(
                     '<div class="endpoint">'
                     '<div class="endpoint-header">'
@@ -990,12 +1024,15 @@ class Lcore:
                     '%s%s</div>' % (
                         badge_cls, html_escape(method),
                         html_escape(r['rule']), ret_html,
-                        ('<p class="docstring">%s</p>' % doc) if doc else '',
-                        params_html))
+                        ('<div style="display:none"><p class="docstring">%s</p>%s</div>' % (doc, params_html)) if extra else '',
+                        ''))
+            n = len(data['routes'])
             return _DOCS_HTML % {
                 'version': html_escape(data.get('version', '')),
                 'routes': '\n'.join(routes_html),
-                'json_url': json_path}
+                'json_url': json_path,
+                'count': str(n),
+                'plural': 's' if n != 1 else ''}
 
     def match(self, environ):
         return self.router.match(environ)
