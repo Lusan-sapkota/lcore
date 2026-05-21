@@ -26,7 +26,7 @@
         <a href="https://play-lcore.lusansapkota.com.np/#code-playground">Playground</a>
       </nav>
       <div class="header-right">
-        <span class="version-badge">v0.0.3</span>
+        <span class="version-badge">v0.0.4</span>
         <a href="https://github.com/Lusan-sapkota/lcore" class="github-link">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
           GitHub
@@ -79,37 +79,39 @@
       <!-- Overview -->
       <h2 id="overview">Overview</h2>
 
-      <p>Middleware wraps the entire request-handling pipeline. Each middleware receives a <code>ctx</code> (RequestContext) and a <code>next_handler</code> callable, and can:</p>
+      <p>Middleware wraps the request pipeline. Each middleware receives a <code>ctx</code> (RequestContext) and a <code>next_handler</code> callable, and can inspect, modify, or short-circuit the request.</p>
+
+      <h3>Pre-Routing vs Post-Routing (v0.0.4)</h3>
+      <p>Middleware runs in two phases controlled by the <code>phase</code> attribute:</p>
       <ul>
-        <li>Inspect or modify the request before the handler runs</li>
-        <li>Short-circuit the request (return early without calling the handler)</li>
-        <li>Modify the response after the handler runs</li>
-        <li>Add headers, log requests, enforce security policies</li>
+        <li><strong>Pre-routing</strong> (<code>phase = 'pre'</code>) — runs <em>before</em> the router matches a URL. Use for CORS preflight, CSRF token setup, and body size enforcement. Can short-circuit the entire request.</li>
+        <li><strong>Post-routing</strong> (<code>phase = 'post'</code>, the default) — wraps the matched handler. Use for compression, logging, security headers.</li>
       </ul>
 
       <pre><code>from lcore import Lcore, CORSMiddleware, SecurityHeadersMiddleware
 
 app = Lcore()
 
-# Register middleware with app.use()
-app.use(CORSMiddleware(allow_origins='*'))
-app.use(SecurityHeadersMiddleware(hsts=True))</code></pre>
+app.use(CORSMiddleware(allow_origins='*'))      # phase='pre' — runs before routing
+app.use(SecurityHeadersMiddleware(hsts=True))     # phase='post' — wraps handler</code></pre>
 
-      <p>Middleware execution order is controlled by the <code>order</code> attribute (lowest runs first).</p>
+      <p>Execution order within each phase is controlled by <code>order</code> (lowest first).</p>
 
       <!-- Built-in Middleware -->
       <h2 id="built-in">Built-in Middleware</h2>
 
       <table>
-        <thead><tr><th>Middleware</th><th>Order</th><th>Purpose</th></tr></thead>
+        <thead><tr><th>Middleware</th><th>Order</th><th>Phase</th><th>Purpose</th></tr></thead>
         <tbody>
-          <tr><td><code>BodyLimitMiddleware</code></td><td>0</td><td>Enforce request body size limit</td></tr>
-          <tr><td><code>RequestIDMiddleware</code></td><td>1</td><td>Add unique request ID header</td></tr>
-          <tr><td><code>RequestLoggerMiddleware</code></td><td>2</td><td>Structured JSON request logging</td></tr>
-          <tr><td><code>CORSMiddleware</code></td><td>3</td><td>Cross-origin resource sharing headers</td></tr>
-          <tr><td><code>SecurityHeadersMiddleware</code></td><td>5</td><td>Security headers (XSS, frame, CSP)</td></tr>
-          <tr><td><code>CSRFMiddleware</code></td><td>10</td><td>CSRF token validation</td></tr>
-          <tr><td><code>CompressionMiddleware</code></td><td>90</td><td>Gzip response compression</td></tr>
+          <tr><td><code>ProxyFixMiddleware</code></td><td>-10</td><td>pre</td><td>Trust X-Forwarded-* from reverse proxies</td></tr>
+          <tr><td><code>BodyLimitMiddleware</code></td><td>0</td><td>pre</td><td>Enforce request body size limit</td></tr>
+          <tr><td><code>RequestIDMiddleware</code></td><td>1</td><td>post</td><td>Add unique request ID header</td></tr>
+          <tr><td><code>RequestLoggerMiddleware</code></td><td>2</td><td>post</td><td>Structured JSON request logging</td></tr>
+          <tr><td><code>CORSMiddleware</code></td><td>3</td><td>pre</td><td>Cross-origin resource sharing (preflight before routing)</td></tr>
+          <tr><td><code>SecurityHeadersMiddleware</code></td><td>5</td><td>post</td><td>Security headers to every response</td></tr>
+          <tr><td><code>CSRFMiddleware</code></td><td>10</td><td>pre</td><td>CSRF token generation and validation</td></tr>
+          <tr><td><code>TimeoutMiddleware</code></td><td>-5</td><td>post</td><td>Enforce per-request time limit</td></tr>
+          <tr><td><code>CompressionMiddleware</code></td><td>90</td><td>post</td><td>Gzip response compression</td></tr>
         </tbody>
       </table>
 
@@ -209,10 +211,24 @@ app.use(CompressionMiddleware(
     content_types=None  # Compress all content types
 ))</code></pre>
 
+      <h3>ProxyFixMiddleware</h3>
+      <p>Tells <code>request.remote_addr</code> and <code>request.urlparts</code> to trust <code>X-Forwarded-*</code> headers from known reverse proxies. v0.0.4 alternative: set <code>app.config['proxy.trusted']</code> instead.</p>
+      <pre><code>from lcore import ProxyFixMiddleware
+
+app.use(ProxyFixMiddleware(trusted_proxies=['127.0.0.1', '10.0.0.1']))
+app.use(ProxyFixMiddleware(num_proxies=1))  # trust first proxy in chain</code></pre>
+
+      <h3>TimeoutMiddleware</h3>
+      <p>Runs the handler in a thread pool, returning 503 if it exceeds the deadline. v0.0.4 moves it to post-routing phase.</p>
+      <pre><code>from lcore import TimeoutMiddleware
+
+app.use(TimeoutMiddleware(timeout=30))       # 30 second limit
+app.use(TimeoutMiddleware(timeout=10, max_workers=8))</code></pre>
+
       <!-- Custom Middleware -->
       <h2 id="custom">Custom Middleware</h2>
 
-      <p>Create custom middleware by subclassing <code>Middleware</code>:</p>
+      <p>Create custom middleware by subclassing <code>Middleware</code>. Set <code>phase = 'pre'</code> to run before routing (for auth, rate limiting, body inspection) or leave the default <code>'post'</code> to wrap the handler:</p>
 
       <pre><code>from lcore import Middleware
 import time
@@ -220,10 +236,11 @@ import time
 class TimingMiddleware(Middleware):
     name = 'timing'
     order = 2
+    phase = 'post'        # v0.0.4: default, wraps the handler
 
     def __call__(self, ctx, next_handler):
         start = time.time()
-        result = next_handler(ctx)  # Continue the chain
+        result = next_handler(ctx)
         duration = time.time() - start
         ctx.response.set_header('X-Response-Time',
             f'{duration*1000:.2f}ms')
@@ -255,12 +272,16 @@ class AuthMiddleware(Middleware):
         return {'sub': token.split(' ')[1]}</code></pre>
 
       <h3>Route-Specific Middleware</h3>
-      <p>Apply middleware only to specific route patterns:</p>
+      <p>Apply middleware only to specific route patterns, or <strong>skip</strong> middleware on specific routes:</p>
       <pre><code># Only applies to /api/* routes
 app.use(AuthMiddleware(), routes='/api/*')
 
 # Multiple patterns
-app.use(RateLimitMiddleware(), routes=['/api/*', '/webhook/*'])</code></pre>
+app.use(RateLimitMiddleware(), routes=['/api/*', '/webhook/*'])
+
+# v0.0.4: skip middleware on a per-route basis
+app.post('/api/login', callback=login, skip=['csrf'])</code></pre>
+      <p>The <code>skip</code> parameter on routes now works for middleware (not just plugins). The route's <code>skiplist</code> is checked during post-routing middleware execution.</p>
 
       <!-- Middleware Hooks -->
       <h2 id="middleware-hooks">Middleware Hooks</h2>

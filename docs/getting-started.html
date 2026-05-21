@@ -26,7 +26,7 @@
         <a href="https://play-lcore.lusansapkota.com.np/#code-playground">Playground</a>
       </nav>
       <div class="header-right">
-        <span class="version-badge">v0.0.3</span>
+        <span class="version-badge">v0.0.4</span>
         <a href="https://github.com/Lusan-sapkota/lcore" class="github-link">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
           GitHub
@@ -243,29 +243,27 @@ def example():
     return {'method': method, 'ip': ip}</code></pre>
 
       <h3>Request Lifecycle</h3>
-      <p>Every request flows through this pipeline:</p>
+      <p>Every request flows through this pipeline. v0.0.4 introduces a <strong>pre-routing middleware phase</strong> that runs before the router:</p>
       <pre><code>Incoming Request
     |
     v
 on_request_start hook
     |
     v
-Middleware Pipeline (ordered by priority)
+Pre-routing Middleware (CORS, CSRF, body limits)
+    |  Runs BEFORE the router — can short-circuit
+    |  (e.g. CORS preflight returns 204 without hitting a route)
+    v
+Router matches URL -> Route
     |
     v
 on_auth_resolved hook
     |
     v
-Router matches URL -&gt; Route
-    |
-    v
 on_handler_enter hook
     |
     v
-Plugin chain wraps handler
-    |
-    v
-Route Handler executes
+Post-routing Middleware + Plugin chain + Handler
     |
     v
 on_handler_exit hook
@@ -343,6 +341,30 @@ if not valid:
         <strong>Note</strong>
         <p>Configuration keys use dot notation for namespacing: <code>my_app.db_url</code>. When loading from dicts, nested dicts are flattened automatically.</p>
       </div>
+
+      <h3>Automatic .env Loading</h3>
+      <p>v0.0.4 auto-loads <code>.env</code> from the current directory when you call <code>app.run()</code>. No extra setup needed:</p>
+      <pre><code># .env file in your project root
+DB_PATH=./data.db
+SECRET_KEY=super-secret
+CORS_ORIGINS=https://myapp.com
+
+# In your app — values are already in os.environ
+import os
+db_path = os.environ.get('DB_PATH')  # './data.db'</code></pre>
+      <p>You can also call it explicitly: <code>from lcore import load_dotenv; load_dotenv()</code></p>
+
+      <h3>Error Format</h3>
+      <p>Set <code>error.format</code> to <code>'json'</code> and all errors return JSON instead of HTML. Perfect for pure API servers:</p>
+      <pre><code>app.config['error.format'] = 'json'
+# Now 404, 500, 403, etc. all return:
+# {"error": "Not Found", "status": 404}</code></pre>
+
+      <h3>Proxy Trust</h3>
+      <p>Behind nginx or a load balancer? Set <code>proxy.trusted</code> so <code>request.remote_addr</code> returns the real client IP:</p>
+      <pre><code>app.config['proxy.trusted'] = ['127.0.0.1', '10.0.0.1']
+# or as a comma-separated string:
+app.config['proxy.trusted'] = '127.0.0.1,10.0.0.1'</code></pre>
 
       <!-- Running Your App -->
       <h2 id="running">Running Your App</h2>

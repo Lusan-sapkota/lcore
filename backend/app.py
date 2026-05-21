@@ -1,34 +1,22 @@
 """
-TaskFlow API - Project Management Backend built with Lcore
-==========================================================
+TaskFlow API - Project Management Backend built with Lcore v0.0.4
+=================================================================
 
-A real-world project management API (like Trello/Jira) demonstrating
-every feature of the Lcore framework. Run with: python app.py
+A real-world project management API demonstrating Lcore. Run with: python app.py
 
-Features demonstrated:
-  - SQLite database with real schema
-  - .env + env var config loading + dataclass validation
-  - All 7 built-in middleware (CORS, CSRF, SecurityHeaders, BodyLimit,
-    RequestID, RequestLogger, Compression)
-  - Custom middleware (TimingMiddleware, AuditLogHook)
-  - Custom plugins (APIVersionPlugin, RequestCounterPlugin)
-  - Module mounting (auth, users, projects, notifications)
-  - Route groups (/admin, /debug)
-  - Dependency injection (singleton, scoped, transient)
-  - All HTTP methods (GET, POST, PUT, PATCH, DELETE)
-  - Typed route parameters (<id:int>, <filepath:path>)
-  - Custom route filters (slug)
-  - Rate limiting, request validation
-  - HTTP Basic Auth + token auth + signed cookies
-  - File uploads + static file serving
-  - SMTP email sending
-  - Async route handlers
-  - SimpleTemplate rendering
-  - 12 lifecycle hooks
-  - Custom error handlers (404, 500, 429, 403)
-  - Auto API docs at /docs
-  - Redirect, named routes, URL building
-  - Graceful shutdown with @on_shutdown
+v0.0.4 highlights used here:
+  - Pre-routing middleware (CORS works without WSGI wrappers)
+  - error.format config via Accept-header-aware error handlers
+  - load_dotenv() auto-called by app.run()
+  - HTTPError content_type param for one-liner JSON errors
+  - validate_request with Optional type support
+  - skip=['csrf'] now works on middleware, not just plugins
+
+All features:
+  - SQLite + FTS5, signed-cookie auth, SMTP, file uploads
+  - 7 built-in middleware + 2 custom, 2 plugins, 4 mounted modules
+  - Route groups, DI (3 lifetimes), rate limiting, 12 hooks
+  - Auto API docs at /docs, test client compatible
 """
 import os
 import sys
@@ -41,7 +29,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from lcore import (
     Lcore, request, response, ctx, abort, redirect, static_file,
-    template, TEMPLATE_PATH, on_shutdown, rate_limit,
+    template, TEMPLATE_PATH, on_shutdown, rate_limit, json_dumps,
     CORSMiddleware, SecurityHeadersMiddleware, CSRFMiddleware,
     RequestIDMiddleware, RequestLoggerMiddleware,
     BodyLimitMiddleware, CompressionMiddleware,
@@ -118,10 +106,11 @@ app.use(TokenAuthMiddleware(
 app.use(AdminGuardHook())
 app.use(AuditLogHook())
 
-# Note: CSRFMiddleware is available (imported above) for form-based apps.
+# v0.0.4: CSRFMiddleware works with pre-routing phase. skip=['csrf'] on a
+# route exempts it from CSRF checks — useful for login endpoints.
 # For this JSON API with Bearer token auth, CSRF is unnecessary since
 # cross-origin requests can't set custom Authorization headers.
-# Uncomment below for server-rendered form-based apps:
+# For server-rendered form apps, uncomment:
 #   app.use(CSRFMiddleware(
 #       secret=app.config.get('secret_key', 'csrf-secret'),
 #       cookie_name='_csrf_token',
@@ -505,41 +494,38 @@ def old_api():
     redirect('/api/projects/', 301)
 
 
-# ═══════════════════════════════════════════════════════════
-#  ERROR HANDLERS
-# ═══════════════════════════════════════════════════════════
+# Error handlers
+# v0.0.4: HTTPError.apply() now merges headers, so response.content_type set
+# here survives. Also, app.config['error.format'] = 'json' would handle 500/404
+# for pure APIs, but this app serves both HTML and JSON, so we check Accept.
 
 @app.error(404)
 def error_404(error):
-    import json as _json
     if 'application/json' in (request.get_header('Accept') or ''):
         response.content_type = 'application/json'
-        return _json.dumps({'error': 'Not Found', 'path': request.path, 'status': 404})
+        return json_dumps({'error': 'Not Found', 'path': request.path, 'status': 404})
     return template('error', status_code=404, status_text='Not Found',
                      message=f"The path '{request.path}' does not exist.")
 
 @app.error(500)
 def error_500(error):
-    import json as _json
     if 'application/json' in (request.get_header('Accept') or ''):
         response.content_type = 'application/json'
-        return _json.dumps({'error': 'Internal Server Error', 'status': 500})
+        return json_dumps({'error': 'Internal Server Error', 'status': 500})
     return template('error', status_code=500, status_text='Internal Server Error',
                      message='Something went wrong. Please try again later.')
 
 @app.error(429)
 def error_429(error):
-    import json as _json
     response.content_type = 'application/json'
-    return _json.dumps({'error': 'Too Many Requests', 'status': 429,
+    return json_dumps({'error': 'Too Many Requests', 'status': 429,
             'message': 'Rate limit exceeded. Please slow down.'})
 
 @app.error(403)
 def error_403(error):
-    import json as _json
     response.content_type = 'application/json'
-    return _json.dumps({'error': 'Forbidden', 'status': 403,
-            'message': str(error.body) if error.body else 'You do not have permission to access this resource.'})
+    return json_dumps({'error': 'Forbidden', 'status': 403,
+            'message': str(error.body) if error.body else 'Permission denied.'})
 
 
 # ═══════════════════════════════════════════════════════════
