@@ -444,9 +444,9 @@
           <tr><td><code>BodyLimitMiddleware</code></td><td><code>(max_size=10*1024*1024)</code></td><td>0 / pre</td></tr>
           <tr><td><code>RequestIDMiddleware</code></td><td><code>()</code></td><td>1 / post</td></tr>
           <tr><td><code>RequestLoggerMiddleware</code></td><td><code>(logger=None)</code></td><td>2 / post</td></tr>
-          <tr><td><code>CORSMiddleware</code></td><td><code>(allow_origins='*', allow_methods=None, allow_headers=None, expose_headers=None, allow_credentials=False, max_age=86400)</code></td><td>3 / pre — handles OPTIONS before routing</td></tr>
+          <tr><td><code>CORSMiddleware</code></td><td><code>(allow_origins='*', allow_methods=None, allow_headers=None, expose_headers=None, allow_credentials=False, max_age=86400)</code></td><td>3 / pre  handles OPTIONS before routing</td></tr>
           <tr><td><code>SecurityHeadersMiddleware</code></td><td><code>(hsts=False, hsts_max_age=31536000, **overrides)</code></td><td>5 / post</td></tr>
-          <tr><td><code>CSRFMiddleware</code></td><td><code>(secret=None, cookie_name='_csrf_token', header_name='X-CSRF-Token', safe_methods=('GET','HEAD','OPTIONS'))</code></td><td>10 / pre — sets token cookie before routing</td></tr>
+          <tr><td><code>CSRFMiddleware</code></td><td><code>(secret=None, cookie_name='_csrf_token', header_name='X-CSRF-Token', safe_methods=('GET','HEAD','OPTIONS'))</code></td><td>10 / pre  sets token cookie before routing</td></tr>
           <tr><td><code>CompressionMiddleware</code></td><td><code>(min_size=256, level=6, content_types=None)</code></td><td>90 / post</td></tr>
         </tbody>
       </table>

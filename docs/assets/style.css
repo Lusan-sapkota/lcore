@@ -1,4 +1,4 @@
-/* Lcore docs — light by default, follows your system preference for dark */
+/* Lcore docs light by default, follows your system preference for dark */
 :root {
   --bg: #ffffff;
   --bg-code: #f6f8fa;
@@ -310,7 +310,7 @@ pre code { background: none; border: none; padding: 0; color: var(--text); font-
 .tip { border-left-color: var(--green); background: var(--green-bg); }
 .warning { border-left-color: var(--orange); background: var(--orange-bg); }
 .danger { border-left-color: var(--red); background: var(--red-bg); }
-.note { border-left-color: var(--purple); background: var(--purple-bg); }
+.note { border-left-color: var(--accent); background: var(--accent-bg); }
 
 /* ── Method badges ── */
 .method {
@@ -326,7 +326,7 @@ pre code { background: none; border: none; padding: 0; color: var(--text); font-
 .post { background: var(--accent-bg); color: var(--accent); }
 .put { background: var(--orange-bg); color: var(--orange); }
 .delete { background: var(--red-bg); color: var(--red); }
-.patch { background: var(--purple-bg); color: var(--purple); }
+.patch { background: var(--accent-bg); color: var(--accent); }
 
 /* ── API items ── */
 .api-item {
@@ -356,7 +356,7 @@ pre code { background: none; border: none; padding: 0; color: var(--text); font-
   text-transform: uppercase;
 }
 
-.class { background: var(--purple-bg); color: var(--purple); }
+.class { background: var(--accent-bg); color: var(--accent); }
 .func { background: var(--green-bg); color: var(--green); }
 .prop { background: var(--accent-bg); color: var(--accent); }
 .decorator { background: var(--orange-bg); color: var(--orange); }
@@ -530,11 +530,19 @@ pre:hover .copy-btn { opacity: 1; }
   letter-spacing: 0.04em;
 }
 
+/* ── Info grid ── */
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
 /* ── Mobile ── */
 .header-nav.open { display: flex; flex-direction: column; position: fixed; top: var(--header-height); left: 0; right: 0; background: var(--bg); border-bottom: 1px solid var(--border); padding: 8px; z-index: 49; }
 .sidebar.open { display: block; position: fixed; top: var(--header-height); left: 0; bottom: 0; z-index: 49; width: var(--sidebar-width); background: var(--bg); border-right: 1px solid var(--border); overflow-y: auto; }
 
 @media (max-width: 900px) {
+  .info-grid { grid-template-columns: 1fr; max-width: none; }
   .header-nav { display: none; }
   .header-nav.open { display: flex; }
   .menu-toggle { display: block; }

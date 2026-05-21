@@ -533,7 +533,7 @@ _DOCS_HTML = """\
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>API Docs — Lcore %(version)s</title>
+<title>API Docs Lcore %(version)s</title>
 <style>
 :root {
   --bg: #fff; --bg-card: #fafbfc; --bg-code: #f6f8fa;
@@ -3536,7 +3536,7 @@ def pretty_error_page(exception, traceback_str=None):
         '<style>\n'
         'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;'
         'margin:0;padding:0;background:#1a1a2e;color:#e0e0e0;}\n'
-        '.container{max-width:900px;margin:40px auto;padding:0 20px;}\n'
+        '.container{width:auto;margin:40px auto;padding:0 20px;}\n'
         '.error-box{background:#16213e;border-left:4px solid #e94560;'
         'border-radius:4px;padding:24px 32px;margin-bottom:24px;}\n'
         '.error-box h1{color:#e94560;margin:0 0 8px 0;font-size:28px;}\n'

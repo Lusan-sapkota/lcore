@@ -431,11 +431,11 @@ def login():
       The in-process backend uses a token bucket with automatic stale-entry cleanup and
       <strong>64-stripe locking</strong> to minimise thread contention.</p>
 
-      <div style="background:#fff8e1;border-left:4px solid #f9a825;padding:12px 16px;margin:16px 0;border-radius:0 4px 4px 0">
-        <strong>&#9888; Multi-worker deployment warning</strong><br>
-        The default in-process backend stores token buckets in <strong>process memory</strong>.
+      <div class="info-box warning">
+        <strong>Multi-worker deployment warning</strong>
+        <p>The default in-process backend stores token buckets in <strong>process memory</strong>.
         Under a multi-worker server (e.g. <code>gunicorn -w 4</code>), each worker has its own
-        independent buckets. A single client can make <code>N&nbsp;&times;&nbsp;limit</code>
+        independent buckets. A single client can make <code>N × limit</code>
         requests before being blocked (N = number of workers), making per-process limiting
         ineffective for abuse prevention.
         <br><br>
@@ -544,7 +544,7 @@ def create_item():
     CORSMiddleware, BodyLimitMiddleware
 )
 
-# Recommended production security stack (order matters — lower order = earlier)
+# Recommended production security stack (order matters  lower order = earlier)
 app.use(ProxyFixMiddleware(trusted_proxies=['10.0.0.1']))  # MUST be first
 app.use(TimeoutMiddleware(timeout=30))                     # 503 after 30 s
 app.use(BodyLimitMiddleware(max_size=10 * 1024 * 1024))
@@ -565,11 +565,11 @@ app.use(CSRFMiddleware(secret='your-csrf-secret'))</code></pre>
           <tr><td>Dotenv injection</td><td>Regex validation of env var key names</td></tr>
           <tr><td>Dynamic loading</td><td>Safe <code>getattr</code> chain with <code>isidentifier()</code></td></tr>
           <tr><td>Security headers</td><td>X-Frame-Options, CSP, HSTS, XSS protection</td></tr>
-          <tr><td>Trusted proxy headers</td><td><code>ProxyFixMiddleware</code> — only trusts X-Forwarded-For / X-Forwarded-Proto from whitelisted proxy IPs; prevents IP spoofing and URL manipulation</td></tr>
-          <tr><td>Request timeouts</td><td><code>TimeoutMiddleware</code> — persistent thread pool returns 503 after deadline; protects workers from slow-client exhaustion</td></tr>
+          <tr><td>Trusted proxy headers</td><td><code>ProxyFixMiddleware</code>  only trusts X-Forwarded-For / X-Forwarded-Proto from whitelisted proxy IPs; prevents IP spoofing and URL manipulation</td></tr>
+          <tr><td>Request timeouts</td><td><code>TimeoutMiddleware</code>  persistent thread pool returns 503 after deadline; protects workers from slow-client exhaustion</td></tr>
           <tr><td>CSRF tokens</td><td>HMAC-signed double-submit cookie (<code>token.hmac_sig</code>); cookie is <code>httponly=False</code> so JS/SPA can read it; signing prevents subdomain cookie-tossing bypass</td></tr>
           <tr><td>Body limits</td><td>413 error on oversized requests via <code>BodyLimitMiddleware</code></td></tr>
-          <tr><td>Rate limiting</td><td>Token bucket with memory cleanup. <strong>Per-process by default</strong> — pass <code>backend=</code> (Redis-backed mapping) for real enforcement under multi-worker deployment</td></tr>
+          <tr><td>Rate limiting</td><td>Token bucket with memory cleanup. <strong>Per-process by default</strong>  pass <code>backend=</code> (Redis-backed mapping) for real enforcement under multi-worker deployment</td></tr>
           <tr><td>ETag hashing</td><td>SHA256 (not SHA1)</td></tr>
           <tr><td>Password hashing</td><td>PBKDF2-SHA256 with random salt</td></tr>
           <tr><td>Symlink traversal</td><td>Blocked in <code>static_file()</code> if symlink points outside root</td></tr>

@@ -23,7 +23,7 @@ Open a [GitHub Issue](https://github.com/Lusan-sapkota/lcore/issues) with:
 python -m pytest tests/
 ```
 
-All 449 tests should pass. The test suite uses only `unittest` from the standard library — no external test dependencies.
+All 449 tests should pass. The test suite uses only `unittest` from the standard library no external test dependencies.
 
 ## Code Style
 
@@ -33,5 +33,5 @@ All 449 tests should pass. The test suite uses only `unittest` from the standard
 
 ## Constraints
 
-- **No new dependencies.** Lcore imports only from Python's standard library. This is a hard constraint — do not add third-party imports to `lcore.py` or `tests/`.
+- **No new dependencies.** Lcore imports only from Python's standard library. This is a hard constraint do not add third-party imports to `lcore.py` or `tests/`.
 - **Keep it in one file.** Framework additions go in `lcore.py`. The demo backend (`backend/`) is exempt from this rule.

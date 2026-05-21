@@ -346,7 +346,7 @@ if __name__ == '__main__':
     # Summary table
     tests = list(TEST_LABELS.keys())
     print("=" * 80)
-    print("SUMMARY — Best requests/second (higher is better)\n")
+    print("SUMMARY Best requests/second (higher is better)\n")
     header = f"{'Test':<14}"
     for fw in ['Lcore', 'Flask', 'Bottle']:
         if fw in all_results:

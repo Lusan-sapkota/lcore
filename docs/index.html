@@ -62,7 +62,7 @@
         <span class="prompt">$</span>
         pip install lcore
       </div>
-      <p class="install-note">Zero dependencies &mdash; only Python 3.8+ required. Every import is from the standard library. No <code>pip install</code> needed beyond Lcore itself.</p>
+      <p class="install-note">Zero dependencies only Python 3.8+ required. Every import is from the standard library. No <code>pip install</code> needed beyond Lcore itself.</p>
     </section>
 
     <!-- Hello World -->
@@ -82,7 +82,7 @@ app.run(host='0.0.0.0', port=8080)</code></pre>
     <!-- Performance -->
     <section class="features" id="performance">
       <h2>Performance</h2>
-      <p class="perf-subtitle">WSGI throughput benchmark — 100,000 iterations &times; 3 runs, best of 3. Measures pure framework overhead.</p>
+      <p class="perf-subtitle">WSGI throughput benchmark  100,000 iterations &times; 3 runs, best of 3. Measures pure framework overhead.</p>
 
       <div class="perf-container">
         <table>
@@ -217,77 +217,51 @@ app.run(host='0.0.0.0', port=8080)</code></pre>
     <!-- Why Lcore Exists -->
     <section class="features" id="why-lcore">
       <h2>Why Lcore Exists</h2>
-      <p style="line-height:1.8;color:#94a3b8">Most Python frameworks make one of two trade-offs: simple and fast (Bottle) but with no middleware, no DI, and no security stack -- or full-featured (Flask, Django) but dependent on many extensions and slower under load. Lcore closes that gap.</p>
-      <div class="feature-grid" style="margin-top:28px">
-        <div class="feature">
-          <div class="feature-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-          </div>
-          <h3>Bottle fills the speed and simplicity slot</h3>
-          <p>Single file, zero deps, fast. But no middleware stack, no dependency injection, no security primitives, no lifecycle hooks. You build all of that yourself.</p>
-        </div>
-        <div class="feature">
-          <div class="feature-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2v-4M9 21H5a2 2 0 01-2-2v-4m0 0h18"/></svg>
-          </div>
-          <h3>Flask fills the familiarity slot</h3>
-          <p>Popular and well-documented. But you need flask-cors, flask-limiter, flask-login, and many more before you have a production API -- and each is a dependency.</p>
-        </div>
-        <div class="feature">
-          <div class="feature-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
-          </div>
-          <h3>Lcore fills the gap in between</h3>
-          <p>Single file, zero deps, 3 to 4x faster than Flask, with CORS, CSRF, security headers, rate limiting, PBKDF2 hashing, DI, 12 lifecycle hooks, and a test client all built in. Nothing to install beyond Lcore itself.</p>
-        </div>
+      <p style="width:auto;line-height:1.8;color:var(--text-muted);margin-bottom:20px">Most Python frameworks make one of two trade-offs: simple and fast (Bottle) but with no middleware, no DI, and no security stack  or full-featured (Flask, Django) but dependent on many extensions and slower under load. Lcore closes that gap.</p>
+      <div class="comparison-container">
+        <table>
+          <thead>
+            <tr><th>Framework</th><th>What it does</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Bottle</strong></td>
+              <td>Single file, zero deps, fast. But no middleware stack, no dependency injection, no security primitives, no lifecycle hooks. You build all of that yourself.</td>
+            </tr>
+            <tr>
+              <td><strong>Flask</strong></td>
+              <td>Popular and well-documented. But you need flask-cors, flask-limiter, flask-login, and many more before you have a production API  and each is a dependency.</td>
+            </tr>
+            <tr>
+              <td><strong>Lcore</strong></td>
+              <td>Single file, zero deps, 3 to 4x faster than Flask, with CORS, CSRF, security headers, rate limiting, PBKDF2 hashing, DI, 12 lifecycle hooks, and a test client all built in. Nothing to install beyond Lcore itself.</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </section>
 
     <!-- Design Philosophy -->
     <section class="features" id="design-philosophy">
       <h2>Design Philosophy</h2>
-      <div class="feature-grid">
-        <div class="feature">
-          <div class="feature-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          </div>
-          <h3>One file only</h3>
-          <p>The entire framework is <code>lcore.py</code>. No package structure, no sub-modules, no build step. Drop it into any project and import it.</p>
+      <div class="info-grid">
+        <div class="info-box note">
+          <strong>One file only.</strong> The entire framework is <code>lcore.py</code>. No package structure, no sub-modules, no build step. Drop it into any project and import it.
         </div>
-        <div class="feature">
-          <div class="feature-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
-          </div>
-          <h3>Zero external dependencies</h3>
-          <p>Every import is from Python's standard library. Works in air-gapped environments, containers, and serverless functions where <code>pip</code> may not be available.</p>
+        <div class="info-box note">
+          <strong>Zero external dependencies.</strong> Every import is from Python's standard library. Works in air-gapped environments, containers, and serverless functions where <code>pip</code> may not be available.
         </div>
-        <div class="feature">
-          <div class="feature-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-          </div>
-          <h3>Production features built in, not bolted on</h3>
-          <p>CORS, CSRF, security headers, rate limiting, signed cookies, and password hashing ship with the framework. You should not need five extensions to secure a production API.</p>
+        <div class="info-box note">
+          <strong>Production features built in, not bolted on.</strong> CORS, CSRF, security headers, rate limiting, signed cookies, and password hashing ship with the framework. You should not need five extensions to secure a production API.
         </div>
-        <div class="feature">
-          <div class="feature-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          </div>
-          <h3>Honest about limitations</h3>
-          <p>Lcore is WSGI. It documents and warns loudly when a feature has constraints -- async handlers, per-process rate limiting, thread-blocking timeouts. No surprises.</p>
+        <div class="info-box warning">
+          <strong>Honest about limitations.</strong> Lcore is WSGI. It documents and warns loudly when a feature has constraints  async handlers, per-process rate limiting, thread-blocking timeouts. No surprises.
         </div>
-        <div class="feature">
-          <div class="feature-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-          </div>
-          <h3>Standard Python throughout</h3>
-          <p>No metaclass magic, no descriptor abuse, no import-time side effects beyond what is declared. The source is meant to be read and understood.</p>
+        <div class="info-box note">
+          <strong>Standard Python throughout.</strong> No metaclass magic, no descriptor abuse, no import-time side effects beyond what is declared. The source is meant to be read and understood.
         </div>
-        <div class="feature">
-          <div class="feature-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>
-          </div>
-          <h3>449 tests, zero test dependencies</h3>
-          <p>The test suite uses only <code>unittest</code> from the standard library. Run it anywhere with <code>python -m pytest tests/</code> after installing pytest.</p>
+        <div class="info-box tip">
+          <strong>449 tests, zero test dependencies.</strong> The test suite uses only <code>unittest</code> from the standard library. Run it anywhere with <code>python -m pytest tests/</code> after installing pytest.
         </div>
       </div>
     </section>
@@ -295,7 +269,7 @@ app.run(host='0.0.0.0', port=8080)</code></pre>
     <!-- When NOT to use Lcore -->
     <section class="features" id="when-not-to-use">
       <h2>When NOT to use Lcore</h2>
-      <p style="max-width:720px;line-height:1.8;color:#94a3b8;margin-bottom:20px">Lcore is a strong fit for synchronous WSGI workloads. It is the wrong choice in these situations:</p>
+      <p style="max-width:auto;line-height:1.8;color:#94a3b8;margin-bottom:20px">Lcore is a strong fit for synchronous WSGI workloads. It is the wrong choice in these situations:</p>
       <div class="comparison-container">
         <table>
           <thead>
@@ -321,175 +295,98 @@ app.run(host='0.0.0.0', port=8080)</code></pre>
     <!-- Ideal Use Cases -->
     <section class="features" id="ideal-use-cases">
       <h2>Ideal Use Cases</h2>
-      <div class="feature-grid">
-        <div class="feature">
-          <div class="feature-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-          </div>
-          <h3>Internal REST APIs</h3>
-          <p>Admin panels, dashboards, and data pipelines that talk to a SQL database via <code>psycopg2</code>, <code>sqlite3</code>, or <code>mysqlclient</code>. No async I/O needed.</p>
+      <div class="info-grid">
+        <div class="info-box note">
+          <strong>Internal REST APIs.</strong> Admin panels, dashboards, and data pipelines that talk to SQL databases via <code>psycopg2</code>, <code>sqlite3</code>, or <code>mysqlclient</code>.
         </div>
-        <div class="feature">
-          <div class="feature-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
-          </div>
-          <h3>Microservices with No Async I/O</h3>
-          <p>Services that call other services synchronously, process files, hash passwords, or do CPU-bound work. Straightforward WSGI with a full feature set.</p>
+        <div class="info-box note">
+          <strong>Microservices with no async I/O.</strong> Services that call other services synchronously, process files, hash passwords, or do CPU-bound work.
         </div>
-        <div class="feature">
-          <div class="feature-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-          </div>
-          <h3>Rapid Prototyping</h3>
-          <p>Drop in a single file, no virtual environment ceremony, start handling requests in minutes. No extensions to install before you have auth, CORS, and rate limiting.</p>
+        <div class="info-box note">
+          <strong>Rapid prototyping.</strong> Drop in a single file, no virtual environment ceremony, start handling requests in minutes. Auth, CORS, and rate limiting included.
         </div>
-        <div class="feature">
-          <div class="feature-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-          </div>
-          <h3>Air-Gapped or Restricted Environments</h3>
-          <p>Zero external dependencies means no supply-chain risk and no <code>pip</code> access required. Works anywhere Python 3.8+ runs.</p>
+        <div class="info-box note">
+          <strong>Air-gapped or restricted environments.</strong> Zero external dependencies means no supply-chain risk and no <code>pip</code> access required. Works anywhere Python 3.8+ runs.
         </div>
-        <div class="feature">
-          <div class="feature-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
-          </div>
-          <h3>Embedded and Constrained Deployments</h3>
-          <p>Containers, serverless functions, or edge nodes where you want the smallest possible footprint. One file, no transitive dependencies.</p>
+        <div class="info-box note">
+          <strong>Embedded and constrained deployments.</strong> Containers, serverless functions, or edge nodes where you want the smallest possible footprint.
         </div>
-        <div class="feature">
-          <div class="feature-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
-          </div>
-          <h3>Teams Moving Off Bottle</h3>
-          <p>Familiar single-file philosophy with the middleware, DI, security, and lifecycle hooks that Bottle leaves you to build yourself.</p>
+        <div class="info-box note">
+          <strong>Teams moving off Bottle.</strong> Familiar single-file philosophy with the middleware, DI, security, and lifecycle hooks that Bottle leaves you to build yourself.
         </div>
-        <div class="feature">
-          <div class="feature-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-          </div>
-          <h3>Scripts That Occasionally Serve HTTP</h3>
-          <p>Background workers, CLI tools, or data jobs that also expose a health check or webhook endpoint. No separate web framework install needed.</p>
+        <div class="info-box note">
+          <strong>Scripts that occasionally serve HTTP.</strong> Background workers, CLI tools, or data jobs that also expose a health check or webhook endpoint.
         </div>
-        <div class="feature">
-          <div class="feature-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
-          </div>
-          <h3>Webhook Receivers and Event Processors</h3>
-          <p>Ingest webhooks from Stripe, GitHub, Slack, or any third-party service. Validate HMAC signatures, parse JSON, and dispatch to handlers -- all with built-in security primitives.</p>
+        <div class="info-box note">
+          <strong>Webhook receivers and event processors.</strong> Ingest webhooks from Stripe, GitHub, or Slack. Validate HMAC signatures, parse JSON, and dispatch with built-in security primitives.
         </div>
-        <div class="feature">
-          <div class="feature-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
-          </div>
-          <h3>Learning Python Web Development</h3>
-          <p>A single readable file with no magic, no metaclasses, and no hidden layers. Ideal for understanding how WSGI, routing, middleware, and request/response cycles actually work.</p>
+        <div class="info-box note">
+          <strong>Learning Python web development.</strong> A single readable file with no magic, no metaclasses, and no hidden layers. Understand how WSGI, routing, and middleware actually work.
         </div>
       </div>
     </section>
 
-    <!-- Features Grid -->
+    <!-- Key Features -->
     <section class="features" id="features">
       <h2>Key Features</h2>
-      <div class="feature-grid">
-        <div class="feature">
-          <div class="feature-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-          </div>
-          <h3>Single File, Zero Dependencies</h3>
-          <p>The entire framework is one Python file built on Python's standard library only. No third-party packages required. Works anywhere Python runs &mdash; containers, serverless, or air-gapped networks.</p>
+      <div class="info-grid">
+        <div class="info-box note">
+          <strong>Single file, zero dependencies.</strong> One Python file built on the standard library. Drop it into any project  containers, serverless, or air-gapped networks.
         </div>
-        <div class="feature">
-          <div class="feature-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 12l-4-4-4 4M12 16V8"/></svg>
-          </div>
-          <h3>Powerful Routing</h3>
-          <p>Typed parameters, wildcard filters, method decorators, and route groups. <code>async def</code> handlers are accepted with automatic wrapping &mdash; <a href="routing.html#async-routes">see the async caveat</a>.</p>
+        <div class="info-box note">
+          <strong>Powerful routing.</strong> Typed parameters, wildcard filters, method decorators, and route groups. <code>async def</code> handlers accepted with automatic wrapping  <a href="routing.html#async-routes">see the async caveat</a>.
         </div>
-        <div class="feature">
-          <div class="feature-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-          </div>
-          <h3>Security First</h3>
-          <p>CORS, CSRF, security headers, signed cookies, PBKDF2 password hashing, body limits, rate limiting, and timing-safe comparison built in.</p>
+        <div class="info-box note">
+          <strong>Security first.</strong> CORS, CSRF, security headers, signed cookies, PBKDF2 password hashing, body limits, rate limiting, and timing-safe comparison  all built in.
         </div>
-        <div class="feature">
-          <div class="feature-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M4 9h16M9 4v16"/></svg>
-          </div>
-          <h3>7 Built-in Middleware</h3>
-          <p>CORS, CSRF, security headers, compression, body limits, request ID, and structured logging out of the box.</p>
+        <div class="info-box note">
+          <strong>7 built-in middleware.</strong> CORS, CSRF, security headers, compression, body limits, request ID, and structured logging. Add your own with 3 lines.
         </div>
-        <div class="feature">
-          <div class="feature-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24"/></svg>
-          </div>
-          <h3>Dependency Injection</h3>
-          <p>Register singleton, scoped, or transient dependencies. Auto-inject DB sessions, caches, and loggers per-request.</p>
+        <div class="info-box note">
+          <strong>Dependency injection.</strong> Register singleton, scoped, or transient dependencies. Auto-inject DB sessions, caches, and loggers per-request.
         </div>
-        <div class="feature">
-          <div class="feature-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-          </div>
-          <h3>Async/Await <span
-              id="wsgi-badge"
-              onclick="(function(){var p=document.getElementById('lcore-asgi-soon');p.style.display=p.style.display==='none'?'block':'none';})()"
-              title="Click to see what is coming"
-              style="font-size:0.8em;color:#f59e0b;border:1px solid rgba(245,158,11,0.4);border-radius:4px;padding:1px 7px;cursor:pointer;user-select:none;transition:background 0.15s"
-              onmouseover="this.style.background='rgba(245,158,11,0.12)'"
-              onmouseout="this.style.background='transparent'"
-            >WSGI Limitation</span></h3>
-          <p>
-            Lcore accepts <code>async def</code> route handlers, but the worker thread is blocked
-            for the full duration. No concurrency benefit.
-            <a href="routing.html#async-routes">Full details</a>
-          </p>
-          <div id="lcore-asgi-soon" style="display:none;margin-top:10px;padding:10px 12px;background:rgba(16,185,129,0.08);border-left:3px solid #10b981;border-radius:4px;font-size:0.88em;line-height:1.6">
-            <strong style="font-size:1em">Coming Soon: <code>lcore-asgi</code></strong>
-            <p style="margin:5px 0 0">A companion library bringing full ASGI support to the Lcore ecosystem: WebSockets, true async I/O, persistent event loop, HTTP/2, Server-Sent Events, and full compatibility with async libraries like <code>asyncpg</code>, <code>httpx</code>, and <code>aiohttp</code>. Same familiar Lcore API.</p>
+        <div class="info-box warning">
+          <strong>Async/await  WSGI Limitation</strong> <span onclick="(function(){var p=document.getElementById('lcore-asgi-soon');p.style.display=p.style.display==='none'?'block':'none';})()" title="Click to see what is coming" style="font-size:0.8em;color:var(--accent);border:1px solid var(--accent);border-radius:4px;padding:1px 7px;cursor:pointer;user-select:none;margin-left:4px;">What's coming?</span><br>
+          Lcore accepts <code>async def</code> route handlers, but the worker thread is blocked for the full duration. No concurrency benefit. <a href="routing.html#async-routes">Full details</a>.
+          <div id="lcore-asgi-soon" style="display:none;margin-top:10px;padding:10px 12px;background:var(--green-bg);border-left:3px solid var(--green);border-radius:4px;font-size:0.88em;line-height:1.6">
+            <strong>Coming Soon: <code>lcore-asgi</code></strong>
+            <p style="margin:5px 0 0">A companion library bringing full ASGI support: WebSockets, true async I/O, persistent event loop, HTTP/2, Server-Sent Events, and compatibility with <code>asyncpg</code>, <code>httpx</code>, and <code>aiohttp</code>. Same familiar Lcore API.</p>
           </div>
         </div>
-        <div class="feature">
-          <div class="feature-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-          </div>
-          <h3>12 Lifecycle Hooks</h3>
-          <p>Fine-grained control at every stage: request start, auth, handler enter/exit, response build/send, and more.</p>
+        <div class="info-box note">
+          <strong>12 lifecycle hooks.</strong> Fine-grained control at every stage: request start, auth, handler enter/exit, response build/send, and more.
         </div>
-        <div class="feature">
-          <div class="feature-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-          </div>
-          <h3>21 Server Adapters</h3>
-          <p>Gunicorn, Waitress, Gevent, Eventlet, Tornado, aiohttp, Bjoern, Meinheld, and more. Use <code>server='auto'</code>.</p>
+        <div class="info-box note">
+          <strong>21 server adapters.</strong> Gunicorn, Waitress, Gevent, Eventlet, Tornado, Bjoern, Meinheld, and more. Use <code>server='auto'</code> to pick the best available.
         </div>
-        <div class="feature">
-          <div class="feature-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
-          </div>
-          <h3>Plugin Architecture</h3>
-          <p>JSON serialization, template rendering, and custom plugins with setup/apply lifecycle. Per-route skip support.</p>
+        <div class="info-box note">
+          <strong>Plugin architecture.</strong> JSON serialization, template rendering, and custom plugins with setup/apply lifecycle. Per-route skip support.
         </div>
-        <div class="feature">
-          <div class="feature-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
-          </div>
-          <h3>Module Mounting</h3>
-          <p>Mount sub-applications with isolated routes, hooks, and middleware. Compose microservices into larger systems.</p>
+        <div class="info-box note">
+          <strong>Module mounting.</strong> Mount sub-applications with isolated routes, hooks, and middleware. Compose microservices into larger systems.
         </div>
-        <div class="feature">
-          <div class="feature-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>
-          </div>
-          <h3>Built-in Test Client</h3>
-          <p>Test routes without starting a server. TestClient calls WSGI directly &mdash; assert status codes, JSON bodies, and headers in unit tests.</p>
+        <div class="info-box note">
+          <strong>Built-in test client.</strong> Test routes without starting a server. TestClient calls WSGI directly  assert status codes, JSON bodies, and headers.
         </div>
-        <div class="feature">
-          <div class="feature-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B8D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          </div>
-          <h3>Background Tasks</h3>
-          <p>Fire-and-forget work with BackgroundTaskPool. Send emails, run cleanup, or process analytics without blocking the response.</p>
+        <div class="info-box note">
+          <strong>Background tasks.</strong> Fire-and-forget work with BackgroundTaskPool. Send emails, run cleanup, or process analytics without blocking the response.
+        </div>
+      </div>
+    </section>
+
+    <!-- Production Usage -->
+    <section class="features" id="production-usage">
+      <h2>Used in Production</h2>
+      <p style="max-width:auto;line-height:1.8;color:var(--text-muted);margin-bottom:20px">Lcore is already powering production workloads. The list is small today  but every deployment feeds directly into real-world performance analysis and targeted improvements.</p>
+      <div class="info-grid">
+        <div class="info-box tip">
+          <strong>Live deployments.</strong> Lcore serves production traffic on several sites right now, handling REST APIs, webhook ingestion, and internal tooling. Each deployment is monitored for latency, throughput, and memory patterns.
+        </div>
+        <div class="info-box note">
+          <strong>Continuous analysis.</strong> Production profiling data drives every optimization pass  from route matching to middleware overhead. The goal is to make Lcore the fastest Python WSGI framework that still ships with a full security and middleware stack.
+        </div>
+        <div class="info-box note">
+          <strong>Roadmap-driven.</strong> Active production use informs the priority queue: shared-nothing rate limiting backends, ASGI companion library, WebSocket support, and OpenAPI generation are all being scoped based on real-world demand.
         </div>
       </div>
     </section>

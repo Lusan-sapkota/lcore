@@ -84,16 +84,16 @@
       <h3>Pre-Routing vs Post-Routing (v0.0.4)</h3>
       <p>Middleware runs in two phases controlled by the <code>phase</code> attribute:</p>
       <ul>
-        <li><strong>Pre-routing</strong> (<code>phase = 'pre'</code>) — runs <em>before</em> the router matches a URL. Use for CORS preflight, CSRF token setup, and body size enforcement. Can short-circuit the entire request.</li>
-        <li><strong>Post-routing</strong> (<code>phase = 'post'</code>, the default) — wraps the matched handler. Use for compression, logging, security headers.</li>
+        <li><strong>Pre-routing</strong> (<code>phase = 'pre'</code>)  runs <em>before</em> the router matches a URL. Use for CORS preflight, CSRF token setup, and body size enforcement. Can short-circuit the entire request.</li>
+        <li><strong>Post-routing</strong> (<code>phase = 'post'</code>, the default)  wraps the matched handler. Use for compression, logging, security headers.</li>
       </ul>
 
       <pre><code>from lcore import Lcore, CORSMiddleware, SecurityHeadersMiddleware
 
 app = Lcore()
 
-app.use(CORSMiddleware(allow_origins='*'))      # phase='pre' — runs before routing
-app.use(SecurityHeadersMiddleware(hsts=True))     # phase='post' — wraps handler</code></pre>
+app.use(CORSMiddleware(allow_origins='*'))      # phase='pre'  runs before routing
+app.use(SecurityHeadersMiddleware(hsts=True))     # phase='post'  wraps handler</code></pre>
 
       <p>Execution order within each phase is controlled by <code>order</code> (lowest first).</p>
 

@@ -1,4 +1,22 @@
 document.addEventListener('DOMContentLoaded', function () {
+  // ── Syntax highlighting ──
+  (function loadHLJS() {
+    var link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github.min.css';
+    link.media = '(prefers-color-scheme: light)';
+    document.head.appendChild(link);
+    var linkDark = document.createElement('link');
+    linkDark.rel = 'stylesheet';
+    linkDark.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github-dark.min.css';
+    linkDark.media = '(prefers-color-scheme: dark)';
+    document.head.appendChild(linkDark);
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js';
+    s.onload = function () { hljs.highlightAll(); };
+    document.head.appendChild(s);
+  })();
+
   // Mobile menu toggle
   var toggle = document.querySelector('.menu-toggle');
   var sidebar = document.querySelector('.sidebar');

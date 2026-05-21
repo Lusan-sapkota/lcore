@@ -47,16 +47,16 @@ app.run()
 
 ## Key Features
 
-- **Single file, zero dependencies** — drop `lcore.py` into any project
-- **Full WSGI compliance** — works with Gunicorn, uWSGI, Waitress, and 17+ server adapters
-- **7 built-in middleware** — CORS, CSRF, security headers, compression, body limits, request ID, logging
-- **Security primitives** — PBKDF2 password hashing, HMAC-SHA256 signed cookies, rate limiting
-- **Dependency injection** — singleton, scoped, and transient lifetimes
-- **Plugin system** — JSON serialization, template rendering, and custom plugins
-- **Request validation** — JSON body and query parameter validation with type checking
-- **Built-in test client** — unit test routes without starting a server
-- **12 lifecycle hooks** — request start, auth, handler enter/exit, response build/send, and more
-- **Module mounting** — compose sub-applications with isolated routes and middleware
+- **Single file, zero dependencies**  drop `lcore.py` into any project
+- **Full WSGI compliance**  works with Gunicorn, uWSGI, Waitress, and 17+ server adapters
+- **7 built-in middleware**  CORS, CSRF, security headers, compression, body limits, request ID, logging
+- **Security primitives**  PBKDF2 password hashing, HMAC-SHA256 signed cookies, rate limiting
+- **Dependency injection**  singleton, scoped, and transient lifetimes
+- **Plugin system**  JSON serialization, template rendering, and custom plugins
+- **Request validation**  JSON body and query parameter validation with type checking
+- **Built-in test client**  unit test routes without starting a server
+- **12 lifecycle hooks**  request start, auth, handler enter/exit, response build/send, and more
+- **Module mounting**  compose sub-applications with isolated routes and middleware
 
 Full documentation at **[lcore.lusansapkota.com.np](https://lcore.lusansapkota.com.np)**.
 
@@ -82,11 +82,11 @@ Results vary by hardware and workload. Lcore processes roughly 3–4x more reque
 | You need a full MVC framework with ORM, admin panel, and migrations | Django |
 | Your team is already on Flask and migration cost outweighs the benefit | Stay on Flask |
 
-If your workload is primarily synchronous — REST APIs, internal services, microservices with sync DB drivers — Lcore is a strong fit.
+If your workload is primarily synchronous  REST APIs, internal services, microservices with sync DB drivers  Lcore is a strong fit.
 
 ## License
 
-MIT — see [LICENSE](LICENSE) for details.
+MIT  see [LICENSE](LICENSE) for details.
 
 ---
 

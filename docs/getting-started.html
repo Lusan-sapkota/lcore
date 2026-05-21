@@ -251,7 +251,7 @@ on_request_start hook
     |
     v
 Pre-routing Middleware (CORS, CSRF, body limits)
-    |  Runs BEFORE the router — can short-circuit
+    |  Runs BEFORE the router  can short-circuit
     |  (e.g. CORS preflight returns 204 without hitting a route)
     v
 Router matches URL -> Route
@@ -349,7 +349,7 @@ DB_PATH=./data.db
 SECRET_KEY=super-secret
 CORS_ORIGINS=https://myapp.com
 
-# In your app — values are already in os.environ
+# In your app  values are already in os.environ
 import os
 db_path = os.environ.get('DB_PATH')  # './data.db'</code></pre>
       <p>You can also call it explicitly: <code>from lcore import load_dotenv; load_dotenv()</code></p>
