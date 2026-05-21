@@ -859,9 +859,9 @@ class TestMiddlewarePipelineCache(unittest.TestCase):
             return 'b'
 
         run_request(app, 'GET', '/a')
-        chain1 = app.middleware._global_chain
+        chain1 = app.middleware._global_post_chain
         run_request(app, 'GET', '/b')
-        chain2 = app.middleware._global_chain
+        chain2 = app.middleware._global_post_chain
         self.assertIs(chain1, chain2)
 
     def test_cache_invalidated_on_add(self):
@@ -873,10 +873,10 @@ class TestMiddlewarePipelineCache(unittest.TestCase):
             return 'a'
 
         run_request(app, 'GET', '/a')
-        old_chain = app.middleware._global_chain
+        old_chain = app.middleware._global_post_chain
 
         app.use(SecurityHeadersMiddleware())
-        self.assertIsNone(app.middleware._global_chain)
+        self.assertIsNone(app.middleware._global_post_chain)
 
 
 class TestEdgeCases(unittest.TestCase):

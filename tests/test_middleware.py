@@ -555,10 +555,10 @@ class TestMiddlewarePipelineDirectly(unittest.TestCase):
         pipeline.add(high)
         pipeline.add(low)
 
-        # Trigger sorting via _get_chain
-        chain = pipeline._get_chain('/')
-        self.assertIs(chain[0], low)
-        self.assertIs(chain[1], high)
+        # Trigger sorting via _get_chains (returns pre, post)
+        _, post_chain = pipeline._get_chains('/')
+        self.assertIs(post_chain[0], low)
+        self.assertIs(post_chain[1], high)
 
 
 class TestBaseMiddlewareClass(unittest.TestCase):

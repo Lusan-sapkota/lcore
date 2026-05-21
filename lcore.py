@@ -4,10 +4,8 @@
 import sys
 
 __author__ = 'Lusan Sapkota'
-__version__ = '0.0.3'
+__version__ = '0.0.4'
 __license__ = 'MIT'
-
-# --- CLI Argument Parsing ---
 
 def _cli_parse(args):
     from argparse import ArgumentParser
@@ -31,7 +29,7 @@ def _cli_parse(args):
 
     return cli_args, parser
 
-# Monkey-patch gevent/eventlet before other imports if needed
+# Patch early for gevent/eventlet users before stdlib imports kick in
 def _cli_patch(cli_args):
     parsed_args, _ = _cli_parse(cli_args)
     opts = parsed_args
@@ -46,7 +44,7 @@ def _cli_patch(cli_args):
 if __name__ == '__main__':
     _cli_patch(sys.argv)
 
-# --- Standard Library Imports (zero external dependencies) ---
+# stdlib imports that's it, no pip install required
 import abc, asyncio, atexit, base64, calendar, concurrent.futures, email.utils, \
     functools, gzip, hmac, itertools, logging, mimetypes, os, re, tempfile, \
     threading, time, uuid, warnings, weakref, hashlib
@@ -79,78 +77,26 @@ from datetime import timezone
 UTC = timezone.utc
 import inspect
 
-# --- Core Utilities ---
-
 json_loads = lambda s: json_lds(touni(s))
 _UNSET = object()  # sentinel for unset config values
 
-# ---------------------------------------------------------------------------
-# ⚠️  ASYNC HANDLER SUPPORT — READ THIS BEFORE USING async def ROUTES
-# ---------------------------------------------------------------------------
-# Lcore is a *synchronous WSGI framework*.  WSGI (PEP 3333) is fundamentally
-# a synchronous protocol: each request occupies exactly one OS thread from
-# start to finish.  This is not a flaw in Lcore — it is a hard constraint of
-# the WSGI specification itself.
-#
-# Lcore *does* accept `async def` route handlers as a convenience, but it
-# executes them synchronously by blocking the calling worker thread until the
-# coroutine completes.  This means:
-#
-#   1. NO concurrency benefit from async I/O inside a handler.
-#      An `await asyncio.sleep(1)` blocks the worker thread for 1 second,
-#      exactly the same as `time.sleep(1)`.  Under gunicorn with 4 threads,
-#      4 concurrent async handlers bring the server to a halt.
-#
-#   2. NO shared event loop across requests.
-#      Each call to _run_async() spins up a brand-new asyncio event loop
-#      in a dedicated thread.  Connection pools, caches, and any
-#      loop-bound state created inside the coroutine are discarded when
-#      the coroutine returns.  Libraries like httpx, aiohttp, asyncpg, and
-#      motor that require a persistent event loop will not function
-#      correctly inside Lcore async handlers.
-#
-#   3. HIGHER overhead than plain sync handlers.
-#      Every async route invocation creates a new thread and a new event
-#      loop.  This adds ~0.5–2 ms of overhead per request compared to a
-#      plain sync handler.
-#
-# RECOMMENDATION:
-#   • Write synchronous route handlers.  Use sync I/O libraries (psycopg2,
-#     requests, redis-py).  This is the correct and efficient choice for
-#     WSGI.
-#   • If you genuinely need async I/O concurrency (e.g. WebSockets,
-#     streaming, many simultaneous outbound HTTP calls), switch to an ASGI
-#     server (uvicorn, hypercorn) with an ASGI framework (FastAPI, Starlette,
-#     Quart).  Lcore currently has no ASGI interface.
-#   • If you must use an existing async library from a sync handler, use
-#     a dedicated background thread pool and `asyncio.run()` explicitly —
-#     do not rely on Lcore to bridge it for you transparently.
-# ---------------------------------------------------------------------------
+# Async handlers: yes you can write `async def` routes, but WSGI is synchronous
+# so each one blocks a worker thread. No magic event loop, no concurrency gain.
+# Use sync handlers. If you truly need async, switch to an ASGI framework.
 
 # Async detection and execution helpers
 def _is_async(func):
     return inspect.iscoroutinefunction(func)
 
 def _run_async(coro):
-    """Run a coroutine synchronously from a sync WSGI context.
+    """Run a coroutine synchronously, blocking the calling thread.
 
-    WARNING - WSGI ARCHITECTURAL CONSTRAINT:
-    This function BLOCKS the calling thread until the coroutine finishes.
-    There is no concurrency benefit from using async def handlers in Lcore.
-    See the module-level async warning block above for full details.
-
-    Two execution paths:
-    - No running event loop (normal WSGI worker): ``asyncio.run()`` directly.
-    - A loop is already running (gevent/eventlet monkey-patched, or test
-      runner): a dedicated daemon thread with its own event loop is spawned
-      per call.  A shared ThreadPoolExecutor is intentionally NOT used —
-      under concurrent load a fixed-size pool is exhausted by blocking
-      ``.result()`` calls, causing thread starvation and service halt.
+    Two paths: asyncio.run() if no loop is running; otherwise a fresh
+    daemon thread with its own event loop per call.  A shared pool is
+    intentionally NOT used under concurrent load it starves.
     """
     try:
         asyncio.get_running_loop()
-        # A loop is already running; we cannot call asyncio.run() from this thread.
-        # Use a fresh daemon thread with its own event loop per call.
         result_holder = [None, None]  # [result, exception]
         def _run_in_thread():
             try:
@@ -166,7 +112,7 @@ def _run_async(coro):
     except RuntimeError:
         return asyncio.run(coro)
 
-# Re-decode WSGI latin1 strings to utf8 (PEP 3333 workaround)
+# PEP 3333 workaround: WSGI gives us latin1, we want utf8
 def _wsgi_recode(src):
     if src.isascii():
         return src
@@ -215,9 +161,8 @@ def makelist(data):
     else:
         return []
 
-# --- Descriptor Utilities ---
+# Descriptors: DictProperty, cached_property, lazy_attribute
 
-# Property that reads/writes from an object's dict attribute (e.g. environ)
 class DictProperty:
 
     def __init__(self, attr, key=None, read_only=False):
@@ -242,7 +187,7 @@ class DictProperty:
         if self.read_only: raise AttributeError("Read-Only property.")
         del getattr(obj, self.attr)[self.key]
 
-# Thread-safe cached property — computed once, stored on the instance
+# Computed once per instance, thread-safe
 class cached_property:
 
     def __init__(self, func):
@@ -262,7 +207,7 @@ class cached_property:
                 obj.__dict__[name] = self.func(obj)
             return obj.__dict__[name]
 
-# Class-level lazy attribute — computed once and replaces itself on the class
+# Computed once per class, then replaces itself
 class lazy_attribute:
 
     def __init__(self, func):
@@ -274,8 +219,7 @@ class lazy_attribute:
         setattr(cls, self.__name__, value)
         return value
 
-# --- Exception Hierarchy ---
-
+# You broke something? Start here.
 class LcoreException(Exception):
     pass
 
@@ -298,10 +242,7 @@ def _re_flatten(p):
     return re.sub(r'(\\*)(\(\?P<[^>]+>|\((?!\?))', lambda m: m.group(0) if
                   len(m.group(1)) % 2 else m.group(1) + '(?:', p)
 
-# --- Router: URL pattern matching engine ---
-# Supports static routes (O(1) dict lookup) and dynamic routes (compiled regex).
-# Dynamic routes are batched into combined patterns for efficient matching.
-# Built-in filters: re, int, float, path. Custom filters via add_filter().
+# URL pattern matching. Static routes hit a dict, dynamic ones hit compiled regex.
 class Router:
 
     default_pattern = '[^/]+'
@@ -339,7 +280,7 @@ class Router:
             prefix += rule[offset:match.start()]
             g = match.groups()
             if g[2] is not None:
-                depr(0, 13, "Use of old route syntax.",
+                depr(0, 0, "Use of old route syntax.",
                             "Use <name> instead of :name in routes.",
                             stacklevel=4)
             if len(g[0]) % 2:
@@ -490,7 +431,7 @@ class Router:
 
         raise HTTPError(404, "Not found: " + repr(path))
 
-# --- Route: wraps a single URL rule with its handler and plugin chain ---
+# One URL rule + handler + plugins. The engine room of every request.
 class Route:
 
     def __init__(self, app, rule, method, callback,
@@ -527,10 +468,7 @@ class Route:
             if name: unique.add(name)
             yield p
 
-    # Apply plugins in order, wrap async handlers for sync WSGI execution.
-    # If the final callback is a coroutine function, a UserWarning is
-    # emitted at route preparation time (first request or app.prepare()).
-    # See the module-level async warning block for the full rationale.
+    # Apply plugins, wrap async handlers for sync execution.
     def _make_callback(self):
         callback = self.callback
         for plugin in self.all_plugins():
@@ -542,15 +480,10 @@ class Route:
                 update_wrapper(callback, self.callback)
         if _is_async(callback):
             warnings.warn(
-                "Lcore: route '%s %s' is using an async def handler, but "
-                "Lcore is a synchronous WSGI framework. The handler will block "
-                "the worker thread — there is NO concurrency benefit from async "
-                "I/O here. Loop-bound async libraries (httpx, aiohttp, asyncpg, "
-                "motor, etc.) will NOT work correctly inside this handler. "
-                "Use a synchronous handler instead, or switch to an ASGI "
-                "framework (FastAPI, Starlette, Quart) for genuine async "
-                "concurrency. See the module-level async warning block in "
-                "lcore.py for full details." % (self.method, self.rule),
+                "Lcore: route '%s %s' is async def, but WSGI is synchronous. "
+                "This will block a worker thread and won't give you concurrency. "
+                "Use sync handlers for WSGI or switch to an ASGI framework."
+                % (self.method, self.rule),
                 UserWarning, stacklevel=2)
             original = callback
             @functools.wraps(original)
@@ -567,11 +500,9 @@ class Route:
             elif getattr(func, '__func__', False):
                 func = func.__func__
             elif getattr(func, '__closure__', False):
-                depr(0, 14, "Decorated callback without __wrapped__",
-                     "When applying decorators to route callbacks, make sure"
-                     " the decorator uses @functools.wraps or update_wrapper."
-                     " This warning may also trigger if you reference callables"
-                     " from a nonlocal scope.")
+                depr(0, 0, "Decorated callback without __wrapped__",
+                     "Use @functools.wraps or update_wrapper on decorators "
+                     "applied to route callbacks.")
                 cells_values = (cell.cell_contents for cell in func.__closure__)
                 isfunc = lambda x: isinstance(x, FunctionType) or hasattr(x, '__call__')
                 func = next(filter(isfunc, cells_values), func)
@@ -585,7 +516,7 @@ class Route:
         )]
 
     def get_config(self, key, default=None):
-        depr(0, 13, "Route.get_config() is deprecated.",
+        depr(0, 0, "Route.get_config() is deprecated.",
                     "The Route.config property already includes values from the"
                     " application config for missing keys. Access it directly.")
         return self.config.get(key, default)
@@ -647,26 +578,10 @@ font-weight:500;border-bottom:1px solid #1a2d4d;font-size:12px;text-transform:up
 </body>
 </html>"""
 
-# --- _RouteGroup: thread-safe route prefix helper ---
-# Returned by Lcore.group().  Provides the same routing decorators as Lcore
-# but prefixes every registered path, without mutating the parent app instance.
-# Using a proxy object instead of monkey-patching app.route makes group() safe
-# to call from multiple threads simultaneously (e.g. parallel test setup or
-# factory functions).
+# Thread-safe route prefix helper. Returns a proxy that tacks on a prefix
+# without mutating the parent app. Safe across threads in test factories.
 class _RouteGroup:
-    """Proxy object returned by ``app.group(prefix)``.
-
-    Use as a context manager or directly::
-
-        with app.group('/api', version=1) as g:
-            @g.get('/users')
-            def users(): ...
-
-        # or without context manager:
-        g = app.group('/api')
-        @g.post('/login')
-        def login(): ...
-    """
+    """Proxy returned by app.group(prefix). Use as context manager or directly."""
 
     def __init__(self, app, prefix, common_config):
         self._app = app
@@ -707,9 +622,7 @@ class _RouteGroup:
         pass
 
 
-# --- Lcore: Main Application Class ---
-# Central hub for routing, middleware, plugins, hooks, DI, and config.
-# WSGI-compliant: app(environ, start_response) -> iterable
+# The thing you came for. Routes, middleware, plugins, config, WSGI all here.
 class Lcore:
 
     @lazy_attribute
@@ -728,16 +641,17 @@ class Lcore:
             functools.partial(self.trigger_hook, 'config'))
 
         self.config.update({
-            "catchall": True
+            "catchall": True,
+            "error.format": "html",
         })
 
         if kwargs.get('catchall') is False:
-            depr(0, 13, "Lcore(catchall) keyword argument.",
+            depr(0, 0, "Lcore(catchall) keyword argument.",
                         "The 'catchall' setting is now part of the app "
                         "configuration. Fix: `app.config['catchall'] = False`")
             self.config['catchall'] = False
         if kwargs.get('autojson') is False:
-            depr(0, 13, "Lcore(autojson) keyword argument.",
+            depr(0, 0, "Lcore(autojson) keyword argument.",
                  "The 'autojson' setting is now part of the app "
                  "configuration. Fix: `app.config['json.enable'] = False`")
             self.config['json.enable'] = False
@@ -842,17 +756,17 @@ class Lcore:
     # Mount a Lcore sub-app: merges routes and hooks under prefix
     def _mount_app(self, prefix, app, **options):
         if app in self._mounts or '_mount.app' in app.config:
-            depr(0, 13, "Application mounted multiple times. Falling back to WSGI mount.",
+            depr(0, 0, "Application mounted multiple times. Falling back to WSGI mount.",
                  "Clone application before mounting to a different location.")
             return self._mount_wsgi(prefix, app, **options)
 
         if options:
-            depr(0, 13, "Unsupported mount options. Falling back to WSGI mount.",
+            depr(0, 0, "Unsupported mount options. Falling back to WSGI mount.",
                  "Do not specify any route options when mounting lcore application.")
             return self._mount_wsgi(prefix, app, **options)
 
         if not prefix.endswith("/"):
-            depr(0, 13, "Prefix must end in '/'. Falling back to WSGI mount.",
+            depr(0, 0, "Prefix must end in '/'. Falling back to WSGI mount.",
                  "Consider adding an explicit redirect from '/prefix' to '/prefix/' in the parent application.")
             return self._mount_wsgi(prefix, app, **options)
 
@@ -907,9 +821,6 @@ class Lcore:
             return func
         return decorator
 
-    # Context manager for grouping routes under a common prefix.
-    # Returns a _RouteGroup proxy — does NOT mutate the parent app instance,
-    # making it safe to use from multiple threads (e.g. parallel test setup).
     def group(self, prefix, **common_config):
         return _RouteGroup(self, prefix, common_config)
 
@@ -917,9 +828,6 @@ class Lcore:
         self.router.add_filter(name, lambda conf: (pattern, to_python, to_url))
 
     def install(self, plugin):
-        # Snapshot attribute names before setup() so we can track which
-        # attributes the plugin adds.  This allows __setattr__ to raise
-        # only on *plugin-owned* name conflicts, not on normal app code.
         before = set(self.__dict__.keys())
         if hasattr(plugin, 'setup'): plugin.setup(self)
         after = set(self.__dict__.keys())
@@ -1153,14 +1061,32 @@ class Lcore:
         return decorator(callback) if callback else decorator
 
     def default_error_handler(self, res):
+        if self.config.get('error.format') == 'json':
+            body = json_dumps({
+                'error': _HTTP_STATUS_LINES.get(
+                    res.status_code, res.status_line.split(' ', 1)[1]
+                    if ' ' in res.status_line else 'Error'
+                ),
+                'status': res.status_code,
+            })
+            response.set_header('Content-Type', 'application/json')
+            return tob(body)
         return tob(template(ERROR_PAGE_TEMPLATE, e=res, template_settings=dict(name='__ERROR_PAGE_TEMPLATE')))
 
-    # Core request handler: bind globals, run hooks, match route, execute middleware chain
+    # The request hot path. Bind, hook, route, middleware, respond.
     def _handle(self, environ):
         path = environ['lcore.raw_path'] = environ['PATH_INFO']
         environ['PATH_INFO'] = _wsgi_recode(path)
 
         environ['lcore.app'] = self
+        # Auto-inject trusted proxies from config (simplifies ProxyFix setup)
+        trusted = self.config.get('proxy.trusted')
+        if trusted:
+            if isinstance(trusted, (list, tuple, set, frozenset)):
+                environ['lcore.trusted_proxies'] = frozenset(trusted)
+            elif isinstance(trusted, str):
+                environ['lcore.trusted_proxies'] = frozenset(
+                    a.strip() for a in trusted.split(',') if a.strip())
         request.bind(environ)
         response.bind()
         ctx.bind(request, response, self)
@@ -1173,28 +1099,32 @@ class Lcore:
             try:
                 self.trigger_hook('on_request_start')
                 self.trigger_hook('before_request')
-                route, args = self.router.match(environ)
-                environ['route.handle'] = route
-                environ['lcore.route'] = route
-                environ['route.url_args'] = args
-                ctx.route = route
-
-                mount_prefix = getattr(route, 'config', {}).get('_mount.prefix')
-                if mount_prefix:
-                    self.trigger_hook('on_module_request', mount_prefix, ctx)
-                    self.trigger_module_hooks(mount_prefix, 'before_request')
-
-                self.trigger_hook('on_auth_resolved')
-
-                self.trigger_hook('on_handler_enter')
-
-                def call_route():
-                    return route.call(**args)
-
-                if self.middleware._middleware:
-                    out = self.middleware.execute(ctx, call_route)
+                pre_result = self.middleware.execute_pre_routing(ctx)
+                if pre_result is not None:
+                    out = pre_result
                 else:
-                    out = call_route()
+                    route, args = self.router.match(environ)
+                    environ['route.handle'] = route
+                    environ['lcore.route'] = route
+                    environ['route.url_args'] = args
+                    ctx.route = route
+
+                    mount_prefix = getattr(route, 'config', {}).get('_mount.prefix')
+                    if mount_prefix:
+                        self.trigger_hook('on_module_request', mount_prefix, ctx)
+                        self.trigger_module_hooks(mount_prefix, 'before_request')
+
+                    self.trigger_hook('on_auth_resolved')
+
+                    self.trigger_hook('on_handler_enter')
+
+                    def call_route():
+                        return route.call(**args)
+
+                    if self.middleware._middleware:
+                        out = self.middleware.execute(ctx, call_route)
+                    else:
+                        out = call_route()
 
                 self.trigger_hook('on_handler_exit')
             except HTTPResponse as E:
@@ -1228,7 +1158,7 @@ class Lcore:
 
         return out
 
-    # Cast handler output to WSGI-compatible iterable (handles str, bytes, dict, file, generator)
+    # Turn whatever the handler returned into a WSGI iterable
     def _cast(self, out, peek=None):
 
         if inspect.iscoroutine(out):
@@ -1293,7 +1223,7 @@ class Lcore:
             new_iter = _closeiter(new_iter, out.close)
         return new_iter
 
-    # WSGI entry point: _handle -> _cast -> start_response
+    # PEP 3333 entry point
     def wsgi(self, environ, start_response):
         out = None
         try:
@@ -1335,9 +1265,6 @@ class Lcore:
         default_app.pop()
 
     def __setattr__(self, name, value):
-        # Only raise on re-assignment if the attribute was installed by a
-        # plugin (tracked in _plugin_attrs).  Normal application code — including
-        # Lcore's own __init__ — can reassign any attribute freely.
         plugin_attrs = self.__dict__.get('_plugin_attrs', ())
         if name in plugin_attrs and name in self.__dict__:
             raise AttributeError(
@@ -1345,9 +1272,7 @@ class Lcore:
                 "overwritten. Uninstall the conflicting plugin first." % name)
         object.__setattr__(self, name, value)
 
-# --- BaseRequest: WSGI environ wrapper ---
-# Provides parsed access to headers, cookies, query, forms, files, JSON body.
-# Properties are lazily computed and cached in the environ dict.
+# Your WSGI environ, gift-wrapped with lazy parsing of headers, cookies, JSON, etc.
 class BaseRequest:
 
     __slots__ = ('environ', )
@@ -1445,7 +1370,7 @@ class BaseRequest:
     def json(self):  # parse JSON body (returns None for non-JSON content types)
         ctype = self.environ.get('CONTENT_TYPE', '').lower().split(';')[0]
         if ctype in ('application/json', 'application/json-rpc'):
-            b = self._get_body_string(self.MEMFILE_MAX)
+            b = self.body.read()
             if not b:
                 return None
             try:
@@ -1468,11 +1393,7 @@ class BaseRequest:
             maxread -= len(part)
 
     def _iter_chunked(self, read, bufsize):
-        # NOTE: was @staticmethod — changed to instance method so that the
-        # per-request hard size limit injected by BodyLimitMiddleware via
-        # 'lcore.body_max_size' in environ is honoured for chunked transfers.
-        # Chunked requests carry no Content-Length header, which previously
-        # allowed unlimited body reads regardless of BodyLimitMiddleware.
+        # Instance method so BodyLimitMiddleware applies to chunked transfers too
         hard_limit = self.environ.get('lcore.body_max_size', 0)
         total = 0
         err = HTTPError(400, 'Error while parsing chunked transfer body.')
@@ -1505,7 +1426,7 @@ class BaseRequest:
                 raise err
 
     @DictProperty('environ', 'lcore.request.body', read_only=True)
-    def _body(self):  # read and buffer request body (spills to disk if > MEMFILE_MAX)
+    def _body(self):  # Buffers body in memory, spills to temp file if large
         try:
             read_func = self.environ['wsgi.input'].read
         except KeyError:
@@ -1551,7 +1472,7 @@ class BaseRequest:
         content_type = self.environ.get('CONTENT_TYPE', '')
         content_type, options = _parse_http_header(content_type)[0]
         if not content_type.startswith('multipart/'):
-            body = self._get_body_string(self.MEMFILE_MAX).decode('utf8', 'surrogateescape')
+            body = self.body.read().decode('utf8', 'surrogateescape')
             for key, value in _parse_qsl(body, 'utf8'):
                 post[key] = value
             return post
@@ -1560,9 +1481,10 @@ class BaseRequest:
         boundary = options.get("boundary")
         if not boundary:
             raise MultipartError("Invalid content type header, missing boundary")
+        disk_limit = self.environ.get('lcore.body_max_size', 2 ** 30)
         parser = _MultipartParser(self.body, boundary, self.content_length,
             mem_limit=self.MEMFILE_MAX, memfile_limit=self.MEMFILE_MAX,
-            charset=charset)
+            disk_limit=disk_limit, charset=charset)
 
         for part in parser.parse():
             if not part.filename and part.is_buffered():
@@ -1732,9 +1654,7 @@ class BaseRequest:
         except KeyError:
             raise AttributeError("Attribute not defined: %s" % name)
 
-# --- Header Utilities ---
-
-# Normalize header name: Title-Case, underscores to hyphens
+# Header name normalisation: underscores become hyphens, Title-Case enforced
 def _hkey(key):
     key = touni(key)
     if '\n' in key or '\r' in key or '\0' in key:
@@ -1765,8 +1685,7 @@ class HeaderProperty:
     def __delete__(self, obj):
         del obj[self.name]
 
-# --- BaseResponse: HTTP response builder ---
-# Manages status, headers, cookies, and body. Produces WSGI headerlist.
+# Status, headers, cookies, body. Turns it all into a WSGI headerlist.
 class BaseResponse:
 
     default_status = 200
@@ -1957,9 +1876,8 @@ class BaseResponse:
             out += '%s: %s\n' % (name.title(), value.strip())
         return out
 
-# --- Thread-Local Request/Response/Context ---
+# Thread-local magic: one request/response per thread, no passing args around
 
-# Factory for thread-local properties (one value per thread)
 def _local_property():
     ls = threading.local()
 
@@ -1993,9 +1911,7 @@ class LocalResponse(BaseResponse):
 Request = BaseRequest
 Response = BaseResponse
 
-# --- RequestContext: per-request state container ---
-# Holds request, response, app, route, user, and arbitrary state.
-# Supports lazy attribute resolution for DI integration.
+# Holds request, response, app, route, user, and whatever else you stuff into it.
 class RequestContext:
 
     __slots__ = ('request', 'response', 'app', 'route',
@@ -2051,30 +1967,31 @@ class LocalContext(RequestContext):
     state = _local_property()
     _lazy = _local_property()
 
-# --- Middleware System ---
-
-# Base middleware class. Subclass and override __call__(ctx, next_handler).
+# Middleware: subclass, override __call__, ship it.
 class Middleware:
     name = None
     order = 50  # execution order (lower = earlier)
+    phase = 'post'  # 'pre' runs before routing, 'post' wraps the handler
 
     def __call__(self, ctx, next_handler):
         return next_handler(ctx)
 
-# Builds and executes the nested middleware chain (sorted by order)
-# Chains are cached per-path (LRU) to avoid rebuilding closures every request.
+# Builds & executes middleware chains. Two phases: 'pre' runs before routing
+# (CORS, CSRF, body limits), 'post' wraps the handler. Chains are LRU-cached.
 class MiddlewarePipeline:
 
     def __init__(self):
         self._middleware = []
         self._sorted = False
-        self._global_chain = None
-        self._path_cache = OrderedDict()  # LRU cache: path -> chain tuple
+        self._global_pre_chain = None
+        self._global_post_chain = None
+        self._path_cache = OrderedDict()  # LRU cache: path -> (pre_chain, post_chain)
         self._path_cache_max = 1024
 
     def _invalidate(self):
         self._sorted = False
-        self._global_chain = None
+        self._global_pre_chain = None
+        self._global_post_chain = None
         self._path_cache.clear()
 
     def add(self, middleware, routes=None, order=None):
@@ -2089,31 +2006,70 @@ class MiddlewarePipeline:
                            if m is not middleware]
         self._invalidate()
 
-    def _get_chain(self, path):
+    def _get_chains(self, path):
+        """Return (pre_chain, post_chain) tuples for the given path."""
         if not self._sorted:
             self._middleware.sort(key=lambda x: getattr(x[0], 'order', 50))
             self._sorted = True
         has_patterns = any(pat is not None for _, pat in self._middleware)
         if not has_patterns:
-            if self._global_chain is None:
-                self._global_chain = tuple(m for m, _ in self._middleware)
-            return self._global_chain
+            if self._global_pre_chain is None:
+                pre = tuple(m for m, _ in self._middleware
+                           if getattr(m, 'phase', 'post') == 'pre')
+                post = tuple(m for m, _ in self._middleware
+                            if getattr(m, 'phase', 'post') != 'pre')
+                self._global_pre_chain = pre
+                self._global_post_chain = post
+            return self._global_pre_chain, self._global_post_chain
         if path in self._path_cache:
-            self._path_cache.move_to_end(path)  # mark as recently used
+            self._path_cache.move_to_end(path)
             return self._path_cache[path]
-        chain = tuple(m for m, pat in self._middleware
-                      if pat is None or pat.match(path))
+        pre = tuple(m for m, pat in self._middleware
+                    if getattr(m, 'phase', 'post') == 'pre'
+                    and (pat is None or pat.match(path)))
+        post = tuple(m for m, pat in self._middleware
+                     if getattr(m, 'phase', 'post') != 'pre'
+                     and (pat is None or pat.match(path)))
         if len(self._path_cache) >= self._path_cache_max:
-            self._path_cache.popitem(last=False)  # evict least-recently used
-        self._path_cache[path] = chain
-        return chain
+            self._path_cache.popitem(last=False)
+        self._path_cache[path] = (pre, post)
+        return pre, post
+
+    def execute_pre_routing(self, ctx):
+        """Run pre-routing middleware. If any returns a truthy value, return
+        it as the response (short-circuiting routing)."""
+        pre_chain, _ = self._get_chains(ctx.request.path)
+        if not pre_chain:
+            return None
+        idx = 0
+        n = len(pre_chain)
+
+        def run(c):
+            nonlocal idx
+            i = idx
+            if i >= n:
+                return None
+            idx = i + 1
+            try:
+                return pre_chain[i](c, run)
+            finally:
+                idx = i
+
+        return run(ctx)
 
     def execute(self, ctx, handler):
-        chain = self._get_chain(ctx.request.path)
-        if not chain:
+        """Run post-routing middleware chain. Respects the route's skiplist."""
+        _, post_chain = self._get_chains(ctx.request.path)
+        # Filter out middleware whose name is in the route's skiplist
+        route = getattr(ctx, 'route', None)
+        skiplist = set(getattr(route, 'skiplist', []) if route else [])
+        if skiplist and post_chain:
+            post_chain = tuple(m for m in post_chain
+                               if getattr(m, 'name', None) not in skiplist)
+        if not post_chain:
             return handler()
         idx = 0
-        n = len(chain)
+        n = len(post_chain)
 
         def run(c):
             nonlocal idx
@@ -2122,7 +2078,7 @@ class MiddlewarePipeline:
                 return handler()
             idx = i + 1
             try:
-                result = chain[i](c, run)
+                result = post_chain[i](c, run)
                 if inspect.iscoroutine(result):
                     result = _run_async(result)
                 return result
@@ -2131,7 +2087,7 @@ class MiddlewarePipeline:
 
         return run(ctx)
 
-# Generates/propagates X-Request-ID header per request
+# Slaps an X-Request-ID on every request/response
 class RequestIDMiddleware(Middleware):
     name = 'request_id'
     order = 1
@@ -2144,7 +2100,7 @@ class RequestIDMiddleware(Middleware):
         ctx.response.set_header('X-Request-ID', req_id)
         return result
 
-# Structured JSON access logging (method, path, status, duration_ms)
+# One JSON line per request: method, path, status, duration
 class RequestLoggerMiddleware(Middleware):
     name = 'request_logger'
     order = 2
@@ -2169,7 +2125,7 @@ class RequestLoggerMiddleware(Middleware):
                 'remote_addr': ctx.request.remote_addr,
             }))
 
-# Adds standard security headers (X-Content-Type-Options, X-Frame-Options, etc.)
+# Drops X-Content-Type-Options, X-Frame-Options, and friends on every response
 class SecurityHeadersMiddleware(Middleware):
     name = 'security_headers'
     order = 5
@@ -2193,12 +2149,12 @@ class SecurityHeadersMiddleware(Middleware):
             ctx.response.set_header(key, value)
         return result
 
-# CSRF protection: generates HMAC-signed token cookie, validates on unsafe methods.
-# The cookie is signed with the secret to prevent cookie-tossing bypass attacks
-# where an attacker on a sibling subdomain sets both cookie and header to a known value.
+# CSRF via double-submit cookie pattern. The cookie is HMAC-signed so sibling
+# subdomains can't toss a forged one at your users.
 class CSRFMiddleware(Middleware):
     name = 'csrf'
     order = 10
+    phase = 'pre'
 
     def __init__(self, secret=None, cookie_name='_csrf_token',
                  header_name='X-CSRF-Token', form_field='_csrf_token',
@@ -2233,10 +2189,6 @@ class CSRFMiddleware(Middleware):
         token = self._verify_signed_token(signed_cookie) if signed_cookie else None
         if not token:
             token = self._generate_token()
-            # httponly=False: the cookie MUST be readable by JavaScript so that
-            # SPA/AJAX clients can read it and echo it as the X-CSRF-Token header.
-            # httponly=True would silently break every AJAX call.  The signing
-            # (token.hmac) already prevents cookie-tossing forgery from subdomains.
             ctx.response.set_cookie(self.cookie_name,
                                      self._sign_token(token),
                                      httponly=False, samesite='Strict',
@@ -2251,10 +2203,11 @@ class CSRFMiddleware(Middleware):
 
         return next_handler(ctx)
 
-# CORS: handles preflight OPTIONS and sets Access-Control-* headers
+# Handles CORS preflight and sets Access-Control-* on every response
 class CORSMiddleware(Middleware):
     name = 'cors'
     order = 3
+    phase = 'pre'
 
     def __init__(self, allow_origins='*', allow_methods=None,
                  allow_headers=None, expose_headers=None,
@@ -2315,7 +2268,7 @@ class CORSMiddleware(Middleware):
         return result
 
 
-# Gzip compression for responses (respects Accept-Encoding and min_size)
+# gzip for responses skips tiny bodies and already-encoded ones
 class CompressionMiddleware(Middleware):
     name = 'compression'
     order = 90
@@ -2366,12 +2319,11 @@ class CompressionMiddleware(Middleware):
         return compressed
 
 
-# Rejects requests exceeding max body size (413 Payload Too Large)
-# Works for BOTH explicit Content-Length AND chunked Transfer-Encoding by
-# injecting the limit into environ where _iter_body/_iter_chunked enforce it.
+# Rejects bodies over max_size before they clog your pipes
 class BodyLimitMiddleware(Middleware):
     name = 'body_limit'
-    order = 0  # runs first
+    order = 0
+    phase = 'pre'
 
     def __init__(self, max_size=10 * 1024 * 1024):
         self.max_size = max_size
@@ -2382,19 +2334,15 @@ class BodyLimitMiddleware(Middleware):
         if cl > self.max_size:
             raise HTTPError(413, 'Request entity too large (limit: %d bytes)'
                             % self.max_size)
-        # Inject the hard limit so that _iter_body and _iter_chunked enforce it
-        # regardless of Transfer-Encoding (fixes chunked bypass: a chunked
-        # request has content_length == -1 and previously bypassed this check).
         ctx.request.environ['lcore.body_max_size'] = self.max_size
         return next_handler(ctx)
 
 
-# Safely extract client IP and scheme behind reverse proxies.
-# Injects 'lcore.trusted_proxies' into environ so BaseRequest.remote_addr
-# and BaseRequest.urlparts only trust forwarded headers from known proxies.
+# Tells request.remote_addr to trust X-Forwarded-For from your nginx/load-balancer
 class ProxyFixMiddleware(Middleware):
     name = 'proxy_fix'
-    order = -10  # must run before all other middleware
+    order = -10
+    phase = 'pre'
 
     def __init__(self, trusted_proxies=None, num_proxies=1):
         if trusted_proxies is not None:
@@ -2408,12 +2356,8 @@ class ProxyFixMiddleware(Middleware):
         return next_handler(ctx)
 
 
-# Enforces a maximum time for request handler execution.
-# Runs the handler in a persistent thread pool and raises 503 if the deadline is exceeded.
-# Note: this does not kill the handler thread — Python has no safe way to do that.
-# The handler will continue running in the background but the client gets a timeout response.
-# A persistent ThreadPoolExecutor is reused across requests to avoid per-request thread
-# creation/destruction overhead that would exhaust thread resources under load.
+# Runs handler in a thread pool, raises 503 if it drags on too long.
+# Can't actually kill the thread (Python, sigh), but the client gets a response.
 class TimeoutMiddleware(Middleware):
     name = 'timeout'
     order = -5  # run early, after proxy fix
@@ -2421,8 +2365,6 @@ class TimeoutMiddleware(Middleware):
     def __init__(self, timeout=30, max_workers=None):
         self.timeout = timeout
         # max_workers=None lets Python pick (min(32, os.cpu_count()+4) in 3.8+).
-        # The executor is created lazily on first call so it gets the correct
-        # process context even when the middleware is instantiated at import time.
         self._max_workers = max_workers
         self._pool = None
         self._pool_lock = threading.Lock()
@@ -2449,7 +2391,7 @@ class TimeoutMiddleware(Middleware):
                             % self.timeout)
 
 
-# Simplified middleware with separate pre() and post() hooks
+# Middleware with separate pre() and post() no chain-wrangling needed
 class MiddlewareHook(Middleware):
     name = None
     order = 50
@@ -2473,8 +2415,7 @@ class MiddlewareHook(Middleware):
         return post_result if post_result is not None else result
 
 
-# --- Dependency Injection Container ---
-# Supports singleton (app-wide), scoped (per-request), and transient (new each time) lifetimes.
+# DI container: singleton, scoped, transient. Your classes get their dependencies served.
 class DependencyContainer:
 
     SINGLETON = 'singleton'
@@ -2544,7 +2485,7 @@ class DependencyContainer:
 
 
 class BackgroundTaskPool:
-    """Thread-pool for fire-and-forget background tasks."""
+    """Fire-and-forget tasks. Thread pool, configurable workers."""
 
     def __init__(self, max_workers=4):
         self._pool = concurrent.futures.ThreadPoolExecutor(max_workers=max_workers)
@@ -2571,20 +2512,9 @@ class BackgroundTaskPool:
         self._pool.shutdown(wait=wait)
 
 
-# ---------------------------------------------------------------------------
-# Rate-Limit Backend Protocol
-# ---------------------------------------------------------------------------
-
+# Rate-limit backends. Subclass RateLimitBackend for cross-worker enforcement.
 class RateLimitBackend(abc.ABC):
-    """Abstract base class for rate-limit backends.
-
-    Subclass this to enforce per-IP limits **across multiple workers** (e.g.
-    via Redis) instead of per-process.  Pass an instance as the ``backend=``
-    argument to :func:`rate_limit`.
-
-    The only requirement is an atomic :meth:`consume` method.  Lcore ships a
-    ready-made :class:`RedisRateLimitBackend` that covers the common case.
-    """
+    """ABC for rate-limit backends. Override consume(). Use RedisRateLimitBackend."""
 
     @abc.abstractmethod
     def consume(self, key, limit, per):
@@ -2596,8 +2526,8 @@ class RateLimitBackend(abc.ABC):
             per   : window length in seconds.
 
         Returns:
-            ``True``  — request is allowed (token consumed).
-            ``False`` — limit exceeded; :func:`rate_limit` raises HTTP 429.
+            ``True`` request is allowed (token consumed).
+            ``False`` limit exceeded; :func:`rate_limit` raises HTTP 429.
         """
 
     def close(self):
@@ -2608,38 +2538,8 @@ class RateLimitBackend(abc.ABC):
 
 
 class RedisRateLimitBackend(RateLimitBackend):
-    """Redis-backed rate-limit backend for true multi-worker enforcement.
-
-    Uses an atomic Lua script (fixed sliding-window counter): ``INCR`` and
-    ``EXPIRE`` execute in a single round-trip with no race conditions between
-    processes or workers.
-
-    **Install:**  ``pip install redis``
-
-    **Quick start:**:
-
-        from lcore import RedisRateLimitBackend, rate_limit
-
-        _rl = RedisRateLimitBackend()           # default: redis://localhost:6379/0
-
-        @app.post('/api/login')
-        @rate_limit(5, per=300, backend=_rl)    # shared across all workers
-        def login(): ...
-
-    When Redis is unavailable the backend **fails open** (allows the request)
-    and logs a warning, so a Redis outage does not take down your application.
-
-    **Parameters:**
-
-    - ``redis_url``              — Redis connection URL.  Defaults to
-      ``redis://localhost:6379/0``.
-    - ``prefix``                 — key prefix used in Redis.
-      Defaults to ``'lcore:rl:'``.
-    - ``socket_connect_timeout`` — seconds before a connection attempt gives up.
-      Defaults to ``2``.
-    - ``health_check_interval``  — seconds between background health checks.
-      Defaults to ``30``.
-    """
+    """Redis-backed rate limiter. pip install redis, pass backend= to rate_limit().
+    Fails open on Redis outage your app keeps working, limits get a holiday."""
 
     # Atomic fixed-window counter.
     # INCR the key; on first increment set the TTL equal to the window; return count.
@@ -2689,26 +2589,17 @@ class RedisRateLimitBackend(RateLimitBackend):
             pass
 
 
-# --- Rate Limiting (Token Bucket per IP) ---
-# Default (no backend=): in-process token bucket with lock striping.
-#   • Under multi-worker deployment (gunicorn -w N) each worker maintains its
-#     own bucket store, so the effective per-client ceiling is N × limit.
-#   • Pass a RedisRateLimitBackend (or any RateLimitBackend) as backend= to
-#     enforce limits atomically across all workers via Redis.
-#
-# Lock striping: _RL_NSTRIPES independent locks indexed by hash(ip) % N
-# replace the old single-lock-per-decorator design.  Under high concurrency
-# this reduces contention by roughly the stripe count.
+# Token bucket per IP with 64-way lock striping. Without a backend= each
+# gunicorn worker gets its own bucket, so the real limit is N × your number.
+# Pass backend=RedisRateLimitBackend() for cross-worker enforcement.
 
 _RL_NSTRIPES = 64
 _RL_STRIPES = [threading.Lock() for _ in range(_RL_NSTRIPES)]
 
 
 def _rate_limit_check_proxy_addr(addr):
-    """Warn if the resolved client address is a loopback address and no
-    trusted-proxy configuration is present.  In that case every client in
-    the world effectively shares a single rate-limit bucket (the proxy's IP),
-    making the rate limit permanently maxed-out and silently disabled."""
+    """Warn when rate-limiting loopback without ProxyFixMiddleware everyone
+    shares one bucket and your limit is silently useless."""
     if addr in ('127.0.0.1', '::1', '0.0.0.0'):
         if 'lcore.trusted_proxies' not in request.environ:
             warnings.warn(
@@ -2722,25 +2613,9 @@ def _rate_limit_check_proxy_addr(addr):
 
 
 def rate_limit(limit, per=60, max_buckets=10000, backend=None):
-    """Decorator: token-bucket rate limiting per client IP.
-
-    Args:
-        limit       : max requests in the time window.
-        per         : window length in seconds (default 60).
-        max_buckets : max number of tracked client IPs before oldest are evicted
-                      (in-process mode only).  Default 10 000.
-        backend     : a :class:`RateLimitBackend` instance for shared,
-                      cross-worker enforcement (e.g. :class:`RedisRateLimitBackend`).
-                      When ``None`` an in-process token bucket is used.
-
-    Raises HTTP 429 when the limit is exceeded.
-
-    .. warning::
-        Without ``backend=``, each worker process maintains independent buckets.
-        Under gunicorn with N workers the effective per-client ceiling is
-        ``N x limit``.  Pass ``backend=RedisRateLimitBackend()`` to enforce
-        limits atomically across all workers.
-    """
+    """Decorator: token-bucket rate limit per client IP. Raises 429 on bust.
+    Without backend=, each gunicorn worker has its own buckets (N x limit).
+    Pass backend=RedisRateLimitBackend() for cross-worker enforcement."""
     if backend is None:
         warnings.warn(
             "rate_limit() is using in-process token buckets. "
@@ -2748,9 +2623,7 @@ def rate_limit(limit, per=60, max_buckets=10000, backend=None):
             "per-client limit is N x limit per window. "
             "Pass backend=RedisRateLimitBackend() for cross-worker enforcement.",
             UserWarning, stacklevel=2)
-    # ------------------------------------------------------------------ #
-    # Fast-path: delegate entirely to the backend's own atomic consume().  #
-    # ------------------------------------------------------------------ #
+    # Delegate to the backend's atomic consume()
     if isinstance(backend, RateLimitBackend):
         def decorator(func):
             @functools.wraps(func)
@@ -2763,12 +2636,7 @@ def rate_limit(limit, per=60, max_buckets=10000, backend=None):
             return wrapper
         return decorator
 
-    # ------------------------------------------------------------------ #
-    # In-process token bucket with striped locking.                        #
-    # NOTE: each worker process has independent buckets; the effective      #
-    # per-client ceiling under N workers is N × limit.  Use a              #
-    # RedisRateLimitBackend to enforce limits across workers.               #
-    # ------------------------------------------------------------------ #
+    # In-process buckets with 64-way lock striping
     buckets = {}
     _last_cleanup = [0.0]
 
@@ -2807,35 +2675,83 @@ def rate_limit(limit, per=60, max_buckets=10000, backend=None):
         return wrapper
     return decorator
 
-# --- Request Validation Decorator ---
-# Validates JSON body and/or query params against a dict schema or dataclass.
+# Validates request.json / query params against a schema. Supports Optional[type].
 def validate_request(body=None, query=None):
     import dataclasses
+    import typing
 
-    def _validate_dict_schema(data, schema, label='field'):
-        errors = []
+    def _is_optional(tp):
+        """Return (True, inner_type) if tp is Optional[X], else (False, tp)."""
+        origin = getattr(tp, '__origin__', None)
+        if origin is typing.Union:
+            args = getattr(tp, '__args__', [])
+            non_none = [a for a in args if a is not type(None)]
+            if len(non_none) == 1:
+                return True, non_none[0]
+        return False, tp
+
+    def _coerce(value, expected_type):
+        """Try to coerce *value* to *expected_type*.  Returns (success, result)."""
+        if expected_type is str:
+            return True, str(value).strip()
+        if expected_type is int:
+            try:
+                return True, int(value)
+            except (TypeError, ValueError):
+                return False, value
+        if expected_type is float:
+            try:
+                return True, float(value)
+            except (TypeError, ValueError):
+                return False, value
+        if expected_type is bool:
+            if isinstance(value, bool):
+                return True, value
+            if isinstance(value, str):
+                return True, value.lower() in ('true', '1', 'yes', 'on')
+            return True, bool(value)
+        if callable(expected_type):
+            try:
+                result = expected_type(value)
+                return True, result if result is not False else value
+            except Exception:
+                return False, value
+        return True, value
+
+    def _validate_dict_schema(data, schema):
+        errors = {}
+        validated = {}
         for name, expected_type in schema.items():
+            is_opt, inner_type = _is_optional(expected_type)
             if name not in data:
-                errors.append('Missing %s: %s' % (label, name))
-            elif expected_type in (int, float, str, bool) and \
-                 not isinstance(data[name], expected_type):
-                errors.append('%s: expected %s' % (name, expected_type.__name__))
-        return errors
+                if not is_opt:
+                    errors[name] = '%s is required' % name
+                continue
+            ok, result = _coerce(data[name], inner_type)
+            if not ok:
+                type_name = getattr(inner_type, '__name__', str(inner_type))
+                errors[name] = '%s must be %s' % (name, type_name)
+            else:
+                validated[name] = result
+        return errors, validated
 
     def _validate_dataclass_schema(data, schema):
-        errors = []
+        errors = {}
+        validated = {}
         for field in dataclasses.fields(schema):
+            is_opt, inner_type = _is_optional(field.type)
             if field.name not in data:
-                if field.default is dataclasses.MISSING and \
-                   field.default_factory is dataclasses.MISSING:
-                    errors.append('Missing field: %s' % field.name)
+                if not is_opt and field.default is dataclasses.MISSING \
+                   and field.default_factory is dataclasses.MISSING:
+                    errors[field.name] = '%s is required' % field.name
+                continue
+            ok, result = _coerce(data[field.name], inner_type)
+            if not ok:
+                type_name = getattr(inner_type, '__name__', str(inner_type))
+                errors[field.name] = '%s must be %s' % (field.name, type_name)
             else:
-                val = data[field.name]
-                if field.type in (int, float, str, bool) and \
-                   not isinstance(val, field.type):
-                    errors.append('%s: expected %s'
-                                  % (field.name, field.type.__name__))
-        return errors
+                validated[field.name] = result
+        return errors, validated
 
     def decorator(func):
         @functools.wraps(func)
@@ -2843,37 +2759,49 @@ def validate_request(body=None, query=None):
             if body and request.json is not None:
                 data = request.json
                 if not isinstance(data, dict):
-                    raise HTTPError(400, 'Request body must be a JSON object')
+                    raise HTTPError(400, 'Request body must be a JSON object',
+                                    content_type='application/json')
                 if isinstance(body, dict):
-                    errors = _validate_dict_schema(data, body)
+                    errors, validated = _validate_dict_schema(data, body)
                 else:
-                    errors = _validate_dataclass_schema(data, body)
+                    errors, validated = _validate_dataclass_schema(data, body)
                 if errors:
                     raise HTTPError(422,
-                                    'Validation failed: ' + '; '.join(errors))
+                                    body=json_dumps({
+                                        'error': 'Validation failed',
+                                        'fields': errors,
+                                    }),
+                                    content_type='application/json')
+                data.update(validated)
             if query:
-                errors = []
+                errors = {}
                 if isinstance(query, dict):
                     for name, expected_type in query.items():
                         val = request.query.get(name)
                         if val is None:
-                            errors.append('Missing query param: %s' % name)
+                            is_opt, _ = _is_optional(expected_type)
+                            if not is_opt:
+                                errors[name] = '%s is required' % name
                 else:
                     for field in dataclasses.fields(query):
                         val = request.query.get(field.name)
-                        if val is None and field.default is dataclasses.MISSING \
+                        is_opt, _ = _is_optional(field.type)
+                        if val is None and not is_opt \
+                           and field.default is dataclasses.MISSING \
                            and field.default_factory is dataclasses.MISSING:
-                            errors.append('Missing query param: %s' % field.name)
+                            errors[field.name] = '%s is required' % field.name
                 if errors:
                     raise HTTPError(400,
-                                    'Validation failed: ' + '; '.join(errors))
+                                    body=json_dumps({
+                                        'error': 'Validation failed',
+                                        'fields': errors,
+                                    }),
+                                    content_type='application/json')
             return func(*a, **ka)
         return wrapper
     return decorator
 
-# --- HTTP Response/Error (flow-control via exceptions) ---
-
-# Throwable response — raise to short-circuit handler execution
+# HTTP response objects that double as exceptions. Raise to bail out early.
 class HTTPResponse(Response, LcoreException):
 
     def __init__(self, body='', status=None, headers=None, **more_headers):
@@ -2882,11 +2810,20 @@ class HTTPResponse(Response, LcoreException):
     def apply(self, other):
         other._status_code = self._status_code
         other._status_line = self._status_line
-        other._headers = self._headers
-        other._cookies = self._cookies
+        # Merge headers preserve headers the handler already set
+        for key, values in self._headers.items():
+            if key not in other._headers:
+                other._headers[key] = values
+        # Merge cookies preserve cookies the handler already set
+        if self._cookies:
+            if other._cookies is None:
+                other._cookies = SimpleCookie()
+            for k, v in self._cookies.items():
+                if k not in other._cookies:
+                    other._cookies[k] = v
         other.body = self.body
 
-# Throwable error response — triggers error_handler if registered
+# Raise this. Triggers your error_handler if you registered one.
 class HTTPError(HTTPResponse):
 
     default_status = 500
@@ -2895,17 +2832,18 @@ class HTTPError(HTTPResponse):
                  status=None,
                  body=None,
                  exception=None,
-                 traceback=None, **more_headers):
+                 traceback=None,
+                 content_type=None, **more_headers):
         self.exception = exception
         self.traceback = traceback
+        if content_type and 'Content-Type' not in more_headers:
+            more_headers['Content-Type'] = content_type
         super(HTTPError, self).__init__(body, status, **more_headers)
 
 class PluginError(LcoreException):
     pass
 
-# --- Built-in Plugins ---
-
-# Auto-converts dict returns to JSON responses
+# Turns your dict returns into JSON with the right Content-Type
 class JSONPlugin:
     name = 'json'
     api = 2
@@ -2952,7 +2890,7 @@ class JSONPlugin:
 
         return wrapper
 
-# Auto-renders templates when route config specifies template='name.tpl'
+# Renders a template when route config has template='name.tpl'
 class TemplatePlugin:
     name = 'template'
     api = 2
@@ -3010,9 +2948,7 @@ class _ImportRedirect:
         module.__loader__ = self
         return module
 
-# --- Data Structures ---
-
-# Dict that holds multiple values per key; last value wins on __getitem__
+# Dict with multiple values per key. Last one wins on lookup.
 class MultiDict(DictMixin):
 
     def __init__(self, *a, **k):
@@ -3073,7 +3009,7 @@ class MultiDict(DictMixin):
     getone = get
     getlist = getall
 
-# MultiDict with attribute access (form.field_name) for form data
+# MultiDict with attribute access so you can write form.field_name
 class FormsDict(MultiDict):
 
     def decode(self, encoding=None):
@@ -3090,7 +3026,7 @@ class FormsDict(MultiDict):
             return super(FormsDict, self).__getattr__(name)
         return self.get(name, default=default)
 
-# Case-insensitive MultiDict for HTTP headers
+# Case-insensitive dict for HTTP headers
 class HeaderDict(MultiDict):
 
     def __init__(self, *a, **ka):
@@ -3126,7 +3062,7 @@ class HeaderDict(MultiDict):
             if name in self.dict:
                 del self.dict[name]
 
-# Read-only view of WSGI environ as HTTP headers (HTTP_* keys)
+# Read-only view of WSGI HTTP_* environ keys as headers
 class WSGIHeaderDict(DictMixin):
     cgikeys = ('CONTENT_TYPE', 'CONTENT_LENGTH')
 
@@ -3167,8 +3103,7 @@ class WSGIHeaderDict(DictMixin):
     def __contains__(self, key):
         return self._ekey(key) in self.environ
 
-# --- ConfigDict: hierarchical config with overlays, validation, and change listeners ---
-# Supports dotted keys, overlays (parent->child propagation), .env loading, and schema validation.
+# Hierarchical config: overlays, dotted keys, .env loading, dataclass validation
 class ConfigDict(dict):
 
     __slots__ = ('_meta', '_change_listener', '_overlays', '_virtual_keys', '_source', '__weakref__')
@@ -3381,7 +3316,7 @@ class ConfigDict(dict):
             raise ValueError('Config validation errors:\n' + '\n'.join(errors))
         return self
 
-# Stack of Lcore app instances; default_app() returns the top one
+# Stack of app instances. default_app() gives you the top one.
 class AppStack(list):
 
     def __call__(self):
@@ -3401,7 +3336,7 @@ class AppStack(list):
         except IndexError:
             return self.push()
 
-# Wraps a file-like object as a WSGI iterable (chunked reads)
+# Turns a file-like object into a WSGI iterable
 class WSGIFileWrapper:
     def __init__(self, fp, buffer_size=1024 * 64):
         self.fp, self.buffer_size = fp, buffer_size
@@ -3415,7 +3350,7 @@ class WSGIFileWrapper:
             yield part
             part = read(buff)
 
-# Iterator wrapper that calls close callbacks when exhausted
+# Calls close() on the wrapped thing when iteration ends
 class _closeiter:
 
     def __init__(self, iterator, close=None):
@@ -3436,7 +3371,7 @@ def _try_close(obj):
     except Exception:
         logging.getLogger('lcore').debug("Error closing %r", obj, exc_info=True)
 
-# File resource lookup with search paths and caching
+# Finds files across search paths. Caches results.
 class ResourceManager:
 
     def __init__(self, base='./', opener=open, cachemode='all'):
@@ -3489,7 +3424,7 @@ class ResourceManager:
         if not fname: raise IOError("Resource %r not found." % name)
         return self.opener(fname, mode=mode, *args, **kwargs)
 
-# --- FileUpload: wraps an uploaded file with sanitized filename and save() ---
+# Your uploaded file, with a sanitized filename and a save() method
 class FileUpload:
     def __init__(self, fileobj, name, filename, headers=None):
         self.file = fileobj
@@ -3522,18 +3457,8 @@ class FileUpload:
         self.file.seek(offset)
 
     def validate_content_type(self, allowed_types):
-        """Validate the declared MIME type against an allowlist.
-
-        Raises HTTPError(415) if the content-type is not in *allowed_types*.
-
-        Example::
-
-            upload.validate_content_type({'image/jpeg', 'image/png', 'image/gif'})
-
-        Note: this validates the client-declared Content-Type header only.
-        For stronger security, also validate the file magic bytes by reading
-        the first few hundred bytes of ``upload.file``.
-        """
+        """Raise 415 if Content-Type isn't in *allowed_types*.
+        Checks the header only. For real security, also sniff the magic bytes."""
         ct = (self.content_type or '').split(';')[0].strip().lower()
         allowed = {t.lower() for t in allowed_types}
         if ct not in allowed:
@@ -3541,14 +3466,7 @@ class FileUpload:
                             "Allowed: %s" % (ct, ', '.join(sorted(allowed))))
 
     def validate_extension(self, allowed_extensions):
-        """Validate the sanitized filename extension against an allowlist.
-
-        Raises HTTPError(415) if the extension is not in *allowed_extensions*.
-
-        Example::
-
-            upload.validate_extension({'jpg', 'jpeg', 'png', 'gif'})
-        """
+        """Raise 415 if the file extension isn't in *allowed_extensions*."""
         ext = os.path.splitext(self.filename)[1].lstrip('.').lower()
         allowed = {e.lower().lstrip('.') for e in allowed_extensions}
         if ext not in allowed:
@@ -3614,12 +3532,32 @@ def pretty_error_page(exception, traceback_str=None):
     )
     return page
 
-# --- Convenience Functions ---
+# Handy functions you'll reach for constantly
+
+def load_dotenv(path=None):
+    """Parse a .env file into os.environ. Called automatically by app.run().
+    Skips comments, empty lines, and keys already in the environment."""
+    if path is None:
+        path = os.path.join(os.getcwd(), '.env')
+    if not os.path.isfile(path):
+        return
+    with open(path) as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith('#') or '=' not in line:
+                continue
+            key, _, val = line.partition('=')
+            key = key.strip()
+            if not re.match(r'^[A-Za-z_][A-Za-z0-9_]*$', key):
+                continue
+            val = val.strip().strip('"').strip("'")
+            if key not in os.environ:
+                os.environ[key] = val
 
 def abort(code=500, text='Unknown Error.'):
     raise HTTPError(code, text)
 
-# Raise a redirect response (303 for HTTP/1.1, 302 otherwise)
+# Bail out with a redirect. 303 for HTTP/1.1, 302 otherwise.
 def redirect(url, code=None):
     if not code:
         code = 303 if request.get('SERVER_PROTOCOL') == "HTTP/1.1" else 302
@@ -3638,7 +3576,7 @@ def _rangeiter(fp, offset, limit, bufsize=1024 * 1024):
         limit -= len(part)
         yield part
 
-# Serve a static file with ETag, Last-Modified, Range, and Content-Disposition support
+# Serve a file with ETag, Range, Last-Modified, and download support
 def static_file(filename, root,
                 mimetype=True,
                 download=False,
@@ -3727,7 +3665,7 @@ def debug(mode=True):
     if mode: warnings.simplefilter('default')
     DEBUG = bool(mode)
 
-# --- HTTP Date and Header Parsing Utilities ---
+# HTTP date formatting and header parsing
 
 def http_date(value):
     if isinstance(value, str):
@@ -3747,7 +3685,7 @@ def parse_date(ims):
     except (TypeError, ValueError, IndexError, OverflowError):
         return None
 
-# Parse HTTP Basic auth header, returns (user, password) or None
+# Parse Basic auth header -> (user, pass) or None
 def parse_auth(header):
     try:
         method, data = header.split(None, 1)
@@ -3823,7 +3761,7 @@ def _lscmp(a, b):
         return False
 
 def cookie_encode(data, key, digestmod=None):
-    depr(0, 13, "cookie_encode() will be removed soon.",
+    depr(0, 0, "cookie_encode() will be removed soon.",
                 "Do not use this API directly.")
     digestmod = digestmod or hashlib.sha256
     msg = base64.b64encode(tob(json_dumps(data)))
@@ -3831,7 +3769,7 @@ def cookie_encode(data, key, digestmod=None):
     return b'!' + sig + b'?' + msg
 
 def cookie_decode(data, key, digestmod=None):
-    depr(0, 13, "cookie_decode() will be removed soon.",
+    depr(0, 0, "cookie_decode() will be removed soon.",
                 "Do not use this API directly.")
     data = tob(data)
     if cookie_is_encoded(data):
@@ -3843,7 +3781,7 @@ def cookie_decode(data, key, digestmod=None):
     return None
 
 def cookie_is_encoded(data):
-    depr(0, 13, "cookie_is_encoded() will be removed soon.",
+    depr(0, 0, "cookie_is_encoded() will be removed soon.",
                 "Do not use this API directly.")
     return bool(data.startswith(b'!') and b'?' in data)
 
@@ -3889,7 +3827,7 @@ def path_shift(script_name, path_info, shift=1):
     if path_info.endswith('/') and pathlist: new_path_info += '/'
     return new_script_name, new_path_info
 
-# Decorator: require HTTP Basic auth, calling check(user, password) to verify
+# Decorator: gate a route behind HTTP Basic auth
 def auth_basic(check, realm="private", text="Access denied"):
 
     def decorator(func):
@@ -3908,18 +3846,17 @@ def auth_basic(check, realm="private", text="Access denied"):
     return decorator
 
 
-# --- Password Hashing (PBKDF2-SHA256) ---
+# PBKDF2-SHA256 with 600k iterations. Production-grade out of the box.
 
 def hash_password(password, iterations=600000):
-    """Hash a password using PBKDF2-SHA256 with a random salt.
-    Returns a string: 'pbkdf2:sha256:iterations$salt_hex$hash_hex'"""
+    """Hash a password with PBKDF2-SHA256 and a random salt."""
     salt = os.urandom(32)
     dk = hashlib.pbkdf2_hmac('sha256', tob(password), salt, iterations)
     return 'pbkdf2:sha256:%d$%s$%s' % (iterations, salt.hex(), dk.hex())
 
 
 def verify_password(password, hash_string):
-    """Verify a password against a PBKDF2 hash string. Timing-safe."""
+    """Check a password against a hash. Timing-safe comparison."""
     try:
         if not isinstance(hash_string, str):
             return False
@@ -3934,10 +3871,11 @@ def verify_password(password, hash_string):
         return False
 
 
-# --- Test Client ---
+# In-process test client. No server needed.
 
 class TestResponse:
-    """Response object returned by TestClient."""
+    """Parsed response from TestClient."""
+    __test__ = False  # not a pytest test class
 
     __slots__ = ('status', 'headers', 'body')
 
@@ -3960,7 +3898,8 @@ class TestResponse:
 
 
 class TestClient:
-    """WSGI test client — calls app directly, no HTTP needed."""
+    """Calls your app directly. No HTTP, no server, no tears."""
+    __test__ = False  # not a pytest test class
 
     def __init__(self, app):
         self.app = app
@@ -4026,7 +3965,7 @@ class TestClient:
         return self.request('OPTIONS', path, **kw)
 
 
-# --- Module-Level Shortcuts (delegate to default app) ---
+# Module-level route/get/post/etc. delegate to the default app
 
 def make_default_app_wrapper(name):
     def wrapper(*a, **ka):
@@ -4048,13 +3987,13 @@ uninstall = make_default_app_wrapper('uninstall')
 url = make_default_app_wrapper('get_url')
 use = make_default_app_wrapper('use')
 
-# --- Multipart Form Data Parser ---
+# Streaming multipart/form-data parser. Spills to disk for large parts.
 
 class MultipartError(HTTPError):
     def __init__(self, msg):
         HTTPError.__init__(self, 400, "MultipartError: " + msg)
 
-# Streaming multipart/form-data parser with memory and disk limits
+# Reads multipart streams part by part, enforcing memory and disk limits
 class _MultipartParser:
     def __init__(
         self,
@@ -4166,7 +4105,7 @@ class _MultipartParser:
         if line != terminator:
             raise MultipartError("Unexpected end of multipart stream.")
 
-# Single part within a multipart stream (header + body, spills to disk if large)
+# One part from a multipart stream. Keeps small stuff in memory, spills large to disk.
 class _MultipartPart:
     def __init__(self, buffer_size=2 ** 16, memfile_limit=2 ** 18, charset="latin1"):
         self.headerlist = []
@@ -4275,10 +4214,8 @@ class _MultipartPart:
             self.file.close()
             self.file = False
 
-# --- Server Adapters ---
-# Each adapter wraps a different WSGI server. Only the chosen one is imported.
+# Server adapters. One class per WSGI server. Only the chosen one gets imported.
 
-# Base class for all server adapters
 class ServerAdapter:
     quiet = False
 
@@ -4352,7 +4289,7 @@ class WSGIRefServer(ServerAdapter):
 
 class CherryPyServer(ServerAdapter):
     def run(self, handler):
-        depr(0, 13, "The wsgi server part of cherrypy was split into a new "
+        depr(0, 0, "The wsgi server part of cherrypy was split into a new "
                     "project called 'cheroot'.", "Use the 'cheroot' server "
                     "adapter instead of cherrypy.")
         from cherrypy import wsgiserver
@@ -4419,7 +4356,7 @@ class MeinheldServer(ServerAdapter):
 class FapwsServer(ServerAdapter):
 
     def run(self, handler):
-        depr(0, 13, "fapws3 is not maintained and support will be dropped.")
+        depr(0, 0, "fapws3 is not maintained and support will be dropped.")
         import fapws._evwsgi as evwsgi
         from fapws import base, config
         port = self.port
@@ -4451,7 +4388,7 @@ class AppEngineServer(ServerAdapter):
     quiet = True
 
     def run(self, handler):
-        depr(0, 13, "AppEngineServer no longer required",
+        depr(0, 0, "AppEngineServer no longer required",
              "Configure your application directly in your app.yaml")
         from google.appengine.ext.webapp import util
         module = sys.modules.get('__main__')
@@ -4476,7 +4413,7 @@ class TwistedServer(ServerAdapter):
 class DieselServer(ServerAdapter):
 
     def run(self, handler):
-        depr(0, 13, "Diesel is not tested or supported and will be removed.")
+        depr(0, 0, "Diesel is not tested or supported and will be removed.")
         from diesel.protocols.wsgi import WSGIApplication
         app = WSGIApplication(handler, port=self.port)
         app.run()
@@ -4571,7 +4508,7 @@ class AiohttpUVLoopServer(AiohttpServer):
         import uvloop
         return uvloop.new_event_loop()
 
-# Tries available servers in order, falls back to wsgiref
+# Tries every server it can import, falls back to wsgiref
 class AutoServer(ServerAdapter):
     adapters = [WaitressServer, PasteServer, TwistedServer, CherryPyServer,
                 CherootServer, WSGIRefServer]
@@ -4583,7 +4520,7 @@ class AutoServer(ServerAdapter):
             except ImportError:
                 pass
 
-# Map of server name strings to adapter classes (used by run())
+# String -> adapter class. Used by run(server='...').
 server_names = {
     'cgi': CGIServer,
     'flup': FlupFCGIServer,
@@ -4607,9 +4544,8 @@ server_names = {
     'auto': AutoServer,
 }
 
-# --- Module/App Loading ---
+# Module loading. Give it "pkg.mod:App" and it gives you back the App.
 
-# Import and return a module or object by dotted path (e.g. "package.module:App")
 def load(target, **namespace):
     module, target = target.split(":", 1) if ':' in target else (target, None)
     if module not in sys.modules: __import__(module)
@@ -4645,7 +4581,7 @@ _debug = debug
 
 _shutdown_hooks = []
 
-# Decorator: register a function to run on server shutdown
+# Register cleanup that runs when the server stops
 def on_shutdown(func):
     _shutdown_hooks.append(func)
     return func
@@ -4660,8 +4596,7 @@ def _run_shutdown_hooks():
             logging.getLogger('lcore').warning(
                 "Error in shutdown hook %r", hook, exc_info=True)
 
-# --- Main Run Function ---
-# Start the WSGI server. Handles reloader, debug mode, plugins, and graceful shutdown.
+# The big red button. Starts a WSGI server with reloader, debug, plugins, etc.
 def run(app=None,
         server='wsgiref',
         host='127.0.0.1',
@@ -4673,6 +4608,7 @@ def run(app=None,
         debug=None,
         config=None, **kargs):
     if NORUN: return
+    load_dotenv()
     if reloader and not os.environ.get('LCORE_CHILD'):
         import subprocess
         fd, lockfile = tempfile.mkstemp(prefix='lcore.', suffix='.lock')
@@ -4765,9 +4701,8 @@ def run(app=None,
         if hasattr(app, 'close'):
             app.close()
 
-# --- File Reloaders ---
+# Auto-reload on file changes during development
 
-# Polling-based file change detector for auto-reload during development
 class FileCheckerThread(threading.Thread):
 
     def __init__(self, lockfile, interval):
@@ -4806,7 +4741,7 @@ class FileCheckerThread(threading.Thread):
         self.join()
         return exc_type is not None and issubclass(exc_type, KeyboardInterrupt)
 
-# Filesystem watcher using watchdog (falls back to polling if not installed)
+# Uses watchdog if installed, else polls like it's 1999
 class WatchdogReloader:
 
     def __init__(self, app, paths=None, interval=1, callback=None):
@@ -4817,7 +4752,7 @@ class WatchdogReloader:
         self._observer = None
 
     def _default_reload(self, changed_path):
-        _stderr("File changed: %s — reloading..." % changed_path)
+        _stderr("File changed: %s reloading..." % changed_path)
         self.app.reset()
 
     def start(self):
@@ -4889,7 +4824,7 @@ class WatchdogReloader:
         self.stop()
 
 
-# Async file watcher using asyncio.sleep polling
+# Async version. asyncio.sleep in a loop. Not glamorous, works fine.
 class AsyncReloader:
 
     def __init__(self, app, paths=None, interval=1.0, callback=None):
@@ -4901,7 +4836,7 @@ class AsyncReloader:
         self._files = {}
 
     def _default_reload(self, changed_path):
-        _stderr("File changed: %s — reloading..." % changed_path)
+        _stderr("File changed: %s reloading..." % changed_path)
         self.app.reset()
 
     def _scan(self):
@@ -4941,12 +4876,11 @@ class AsyncReloader:
         if self._task:
             self._task.cancel()
 
-# --- Template Engine ---
+# Template engine. SimpleTemplate built in; adapters for Mako, Jinja2, Cheetah.
 
 class TemplateError(LcoreException):
     pass
 
-# Base class for template adapters (Mako, Jinja2, Cheetah, SimpleTemplate)
 class BaseTemplate:
     extensions = ['tpl', 'html', 'thtml', 'stpl']
     settings = {}
@@ -4975,10 +4909,10 @@ class BaseTemplate:
     @classmethod
     def search(cls, name, lookup=None):
         if not lookup:
-            raise depr(0, 12, "Empty template lookup path.", "Configure a template lookup path.")
+            raise depr(0, 0, "Empty template lookup path.", "Configure a template lookup path.")
 
         if os.path.isabs(name):
-            raise depr(0, 12, "Use of absolute path for template name.",
+            raise depr(0, 0, "Use of absolute path for template name.",
                        "Refer to templates with names or paths relative to the lookup path.")
 
         for spath in lookup:
@@ -5073,7 +5007,7 @@ class Jinja2Template(BaseTemplate):
         with open(fname, "rb") as f:
             return (f.read().decode(self.encoding), fname, lambda: False)
 
-# Built-in template engine: Python code blocks (% ...), inline expressions ({{ }})
+# Zero-dependency template engine. % python blocks, {{ inline expressions }}.
 class SimpleTemplate(BaseTemplate):
     def prepare(self,
                 escape_func=html_escape,
@@ -5100,7 +5034,7 @@ class SimpleTemplate(BaseTemplate):
         try:
             source, encoding = touni(source), 'utf8'
         except UnicodeError:
-            raise depr(0, 11, 'Unsupported template encodings.', 'Use utf-8 for templates.')
+            raise depr(0, 0, 'Unsupported template encodings.', 'Use utf-8 for templates.')
         parser = StplParser(source, encoding=encoding, syntax=self.syntax)
         code = parser.translate()
         self.encoding = parser.encoding
@@ -5151,7 +5085,7 @@ class SimpleTemplate(BaseTemplate):
 class StplSyntaxError(TemplateError):
     pass
 
-# Parser that compiles SimpleTemplate source into executable Python code
+# Compiles template source to Python bytecode. The real workhorse.
 class StplParser:
     _re_cache = {}
 
@@ -5319,7 +5253,7 @@ class StplParser:
 
 _TEMPLATES_MAX = 512  # max compiled templates kept in the in-process cache
 
-# Render a template by name or source string (cached by default)
+# Render a template. Caches compiled templates; evicts oldest when cache fills.
 def template(*args, **kwargs):
     tpl = args[0] if args else None
     for dictarg in args[1:]:
@@ -5352,7 +5286,7 @@ cheetah_template = functools.partial(template,
                                      template_adapter=CheetahTemplate)
 jinja2_template = functools.partial(template, template_adapter=Jinja2Template)
 
-# Decorator: render handler's dict return through a template
+# Decorator: handler returns a dict, it gets rendered through a template
 def view(tpl_name, **defaults):
 
     def decorator(func):
@@ -5376,12 +5310,12 @@ mako_view = functools.partial(view, template_adapter=MakoTemplate)
 cheetah_view = functools.partial(view, template_adapter=CheetahTemplate)
 jinja2_view = functools.partial(view, template_adapter=Jinja2Template)
 
-# --- Module-Level Globals ---
+# Module-level configuration and shared state
 
-TEMPLATE_PATH = ['./', './views/']  # template search directories
-TEMPLATES = {}   # template cache: (id(lookup), name) -> compiled template
-DEBUG = False    # debug mode flag
-NORUN = False    # suppress run() when loading apps
+TEMPLATE_PATH = ['./', './views/']
+TEMPLATES = {}   # (lookup_id, name) -> compiled template
+DEBUG = False
+NORUN = False    # stays True while load_app() is doing its thing
 
 HTTP_CODES = httplib.responses.copy()
 HTTP_CODES[418] = "I'm a teapot"
@@ -5433,19 +5367,18 @@ ERROR_PAGE_TEMPLATE = """
 %%end
 """ % __name__
 
-# Thread-local globals: one per thread, rebound each request via bind()
+# Thread-local globals. Rebound per request. Import these in your handlers.
 request = LocalRequest()
 response = LocalResponse()
 ctx = LocalContext.__new__(LocalContext)
 local = threading.local()
 
-# Default app stack (app() returns the current/top app)
 apps = app = default_app = AppStack()
 
 ext = _ImportRedirect('lcore.ext' if __name__ == '__main__' else
                       __name__ + ".ext", 'lcore_%s').module
 
-# --- CLI Entry Point ---
+# python -m lcore or lcore command entry point
 
 def _main(argv):
     args, parser = _cli_parse(argv)
