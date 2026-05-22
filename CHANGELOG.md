@@ -4,6 +4,35 @@ All notable changes to Lcore will be documented here.
 
 ---
 
+## [0.0.4] — 2026-05-22
+
+### Fixed
+- **HTTPError.apply() now merges headers** instead of replacing them. Headers set by a handler before raising `HTTPError` are preserved. This means `response.set_header('Content-Type', 'application/json')` followed by `raise HTTPError(401)` now correctly returns JSON instead of HTML.
+- **`request.json` and URL-encoded POST body no longer have a silent 100KB limit.** They now use `self.body.read()` which respects `BodyLimitMiddleware` and spills to disk for large payloads. Previously, a JSON body >100KB was rejected with 413 even when `BodyLimitMiddleware` allowed it.
+- **Multipart `disk_limit` now respects `BodyLimitMiddleware`.** The multipart parser's disk limit is set from the body max size in environ (default 1GB), so configuring `BodyLimitMiddleware(max_size=50*1024*1024)` also limits multipart uploads.
+- **`skip` parameter now works for middleware**, not just plugins. `app.post('/login', skip=['csrf'])` correctly exempts the route from `CSRFMiddleware`.
+
+### Added
+- **Pre-routing middleware phase.** Middleware classes can now set `phase = 'pre'` to run *before* route matching. This fixes CORS preflight (`OPTIONS` requests no longer get 405), CSRF cookie setting, and body limit enforcement all running before the router. `CORSMiddleware`, `CSRFMiddleware`, `BodyLimitMiddleware`, and `ProxyFixMiddleware` default to `phase = 'pre'`.
+- **`error.format` config key.** Set `app.config['error.format'] = 'json'` to make all error responses return JSON instead of HTML. No more per-status-code error handlers needed for JSON APIs.
+- **`HTTPError` now accepts `content_type` parameter.** `raise HTTPError(401, body=json_dumps({"error": "Unauthorized"}), content_type='application/json')` sets the correct Content-Type in one line.
+- **`load_dotenv()` function.** Loads `.env` files into `os.environ` with zero dependencies. Called automatically by `app.run()`. Also available as `from lcore import load_dotenv`.
+- **`app.config['proxy.trusted']` config key.** Set it to a list of trusted proxy IPs (or comma-separated string) to auto-enable proxy header trust without needing `ProxyFixMiddleware`. `request.remote_addr` and `request.urlparts` will trust `X-Forwarded-*` headers from these IPs.
+
+### Changed
+- **`validate_request` decorator improved.** Now supports `Optional[type]` for optional fields, auto-coerces types (e.g. string to int), strips whitespace from strings, and returns structured JSON errors with `{"error": "Validation failed", "fields": {...}}` format.
+- **`set_cookie` now defaults to `samesite='Lax'` and `httponly=True`.** Secure by default; override with explicit keyword arguments when you need JS-readable cookies (e.g. CSRF tokens).
+
+### Security
+- **Chunked transfer parser hardened against slow-loris DoS.** Previously read chunk headers one byte at a time with no timeout; now uses buffered reads with a configurable cap.
+- **`static_file()` TOCTOU fix.** The file is now opened before symlink and path-traversal checks, pinning the inode. On Linux, the real path is resolved through `/proc/self/fd/<n>` for an atomic check.
+- **`FileUpload.save()` TOCTOU fix.** Uses Python's `'x'` exclusive-create mode instead of `os.path.exists()` + `open()`, eliminating the race between the existence check and the file write.
+- **Multipart filename sanitization added at parse time.** The raw `_MultipartPart.filename` now strips directory separators via `os.path.basename()` as defense-in-depth, before `FileUpload.filename` does its full sanitization pass.
+- **Error page template no longer uses `repr()` in HTML context.** The auto-escaping `{{ }}` template expression handles URL escaping directly.
+- **`.env` quote stripping fixed.** Only strips matching quote pairs (`"..."` or `'...'`) rather than all leading/trailing quote characters, preventing mangling of values like `"it's"`.
+
+---
+
 ## [0.0.2] — 2026-02-23
 
 ### Fixed

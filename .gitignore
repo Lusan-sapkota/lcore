@@ -28,3 +28,6 @@ venv/
 # OS
 .DS_Store
 Thumbs.db
+
+# Analysis
+production_analysis/

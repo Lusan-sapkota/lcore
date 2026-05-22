@@ -4,9 +4,26 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>API Reference - Lcore Documentation</title>
+  <meta name="description" content="Lcore API Reference - complete documentation for all classes, functions, middleware, decorators, and server adapters.">
+  <meta name="keywords" content="Python,WSGI,microservice,framework,web,API,REST,Lcore,API reference,documentation">
+  <meta name="author" content="Lusan Sapkota">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://lcore.lusansapkota.com.np/api-reference.html">
+  <meta property="og:title" content="API Reference - Lcore Documentation">
+  <meta property="og:description" content="Lcore API Reference - complete documentation for all classes, functions, middleware, decorators, and server adapters.">
+  <meta property="og:image" content="https://lcore.lusansapkota.com.np/lcore.png">
+  <meta property="og:url" content="https://lcore.lusansapkota.com.np/api-reference.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Lcore Framework">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="API Reference - Lcore Documentation">
+  <meta name="twitter:description" content="Lcore API Reference - complete documentation for all classes, functions, middleware, decorators, and server adapters.">
+  <meta name="twitter:image" content="https://lcore.lusansapkota.com.np/lcore.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/github.min.css" media="(prefers-color-scheme: light)">
+  <link rel="stylesheet" href="assets/github-dark.min.css" media="(prefers-color-scheme: dark)">
   <link rel="shortcut icon" href="lcore.png" type="image/x-icon">
 
 </head>
@@ -22,11 +39,9 @@
         <a href="plugins.html">Plugins</a>
         <a href="advanced.html">Advanced</a>
         <a href="api-reference.html">API</a>
-        <a href="real-world-example.html">Example</a>
-        <a href="https://play-lcore.lusansapkota.com.np/#code-playground">Playground</a>
       </nav>
       <div class="header-right">
-        <span class="version-badge">v0.0.3</span>
+        <span class="version-badge">v0.0.4</span>
         <a href="https://github.com/Lusan-sapkota/lcore" class="github-link">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
           GitHub
@@ -178,6 +193,15 @@
           <tr><td><code>middleware</code></td><td><code>MiddlewarePipeline</code></td><td>Middleware pipeline.</td></tr>
           <tr><td><code>resources</code></td><td><code>ResourceManager</code></td><td>File resource manager.</td></tr>
           <tr><td><code>catchall</code></td><td><code>bool</code></td><td>Catch all exceptions (from config).</td></tr>
+        </tbody>
+      </table>
+
+      <h3>v0.0.4 Config Keys</h3>
+      <table>
+        <thead><tr><th>Key</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>error.format</code></td><td><code>'html'</code></td><td>Error response format: <code>'html'</code> or <code>'json'</code>. Set to <code>'json'</code> for pure API servers.</td></tr>
+          <tr><td><code>proxy.trusted</code></td><td><code>None</code></td><td>Trusted proxy IPs as list or comma-separated string. Makes <code>request.remote_addr</code> return real client IP behind nginx.</td></tr>
         </tbody>
       </table>
 
@@ -407,7 +431,7 @@
           <span class="api-badge class">class</span>
           <span class="api-name">Middleware</span>
         </div>
-        <div class="api-body"><p>Base class. Attrs: <code>name=None</code>, <code>order=50</code>. Override <code>__call__(self, ctx, next_handler)</code>.</p></div>
+        <div class="api-body"><p>Base class. Attrs: <code>name=None</code>, <code>order=50</code>, <code>phase='post'</code> (v0.0.4: set <code>'pre'</code> to run before routing). Override <code>__call__(self, ctx, next_handler)</code>.</p></div>
       </div>
 
       <div class="api-item">
@@ -423,22 +447,22 @@
           <span class="api-badge class">class</span>
           <span class="api-name">MiddlewarePipeline</span>
         </div>
-        <div class="api-body"><p>Manages middleware chain. Methods: <code>add(mw, routes, order)</code>, <code>remove(mw)</code>, <code>execute(ctx, handler)</code>.</p></div>
+        <div class="api-body"><p>Manages middleware chain with pre/post routing phases (v0.0.4). Methods: <code>add(mw, routes, order)</code>, <code>remove(mw)</code>, <code>execute_pre_routing(ctx)</code>, <code>execute(ctx, handler)</code>.</p></div>
       </div>
 
       <h3>Built-in Middleware</h3>
       <table>
-        <thead><tr><th>Class</th><th>Constructor</th><th>Order</th></tr></thead>
+        <thead><tr><th>Class</th><th>Constructor</th><th>Order / Phase</th></tr></thead>
         <tbody>
-          <tr><td><code>ProxyFixMiddleware</code></td><td><code>(trusted_proxies=None, num_proxies=1)</code></td><td>-10 — run first</td></tr>
-          <tr><td><code>TimeoutMiddleware</code></td><td><code>(timeout=30, max_workers=None)</code></td><td>-5 — run early<br><small>Uses a persistent thread pool (not per-request). Returns 503 on deadline. Handler thread is not killed — it finishes in the background.</small></td></tr>
-          <tr><td><code>BodyLimitMiddleware</code></td><td><code>(max_size=10*1024*1024)</code></td><td>0</td></tr>
-          <tr><td><code>RequestIDMiddleware</code></td><td><code>()</code></td><td>1</td></tr>
-          <tr><td><code>RequestLoggerMiddleware</code></td><td><code>(logger=None)</code></td><td>2</td></tr>
-          <tr><td><code>CORSMiddleware</code></td><td><code>(allow_origins='*', allow_methods=None, allow_headers=None, expose_headers=None, allow_credentials=False, max_age=86400)</code></td><td>3</td></tr>
-          <tr><td><code>SecurityHeadersMiddleware</code></td><td><code>(hsts=False, hsts_max_age=31536000, **overrides)</code></td><td>5</td></tr>
-          <tr><td><code>CSRFMiddleware</code></td><td><code>(secret=None, cookie_name='_csrf_token', header_name='X-CSRF-Token', safe_methods=('GET','HEAD','OPTIONS'))</code></td><td>10 — cookie is <code>httponly=False</code> so JS/SPA clients can read and echo it as <code>X-CSRF-Token</code>; HMAC signing prevents cookie-tossing bypass</td></tr>
-          <tr><td><code>CompressionMiddleware</code></td><td><code>(min_size=256, level=6, content_types=None)</code></td><td>90</td></tr>
+          <tr><td><code>ProxyFixMiddleware</code></td><td><code>(trusted_proxies=None, num_proxies=1)</code></td><td>-10 / pre</td></tr>
+          <tr><td><code>TimeoutMiddleware</code></td><td><code>(timeout=30, max_workers=None)</code></td><td>-5 / post</td></tr>
+          <tr><td><code>BodyLimitMiddleware</code></td><td><code>(max_size=10*1024*1024)</code></td><td>0 / pre</td></tr>
+          <tr><td><code>RequestIDMiddleware</code></td><td><code>()</code></td><td>1 / post</td></tr>
+          <tr><td><code>RequestLoggerMiddleware</code></td><td><code>(logger=None)</code></td><td>2 / post</td></tr>
+          <tr><td><code>CORSMiddleware</code></td><td><code>(allow_origins='*', allow_methods=None, allow_headers=None, expose_headers=None, allow_credentials=False, max_age=86400)</code></td><td>3 / pre  handles OPTIONS before routing</td></tr>
+          <tr><td><code>SecurityHeadersMiddleware</code></td><td><code>(hsts=False, hsts_max_age=31536000, **overrides)</code></td><td>5 / post</td></tr>
+          <tr><td><code>CSRFMiddleware</code></td><td><code>(secret=None, cookie_name='_csrf_token', header_name='X-CSRF-Token', safe_methods=('GET','HEAD','OPTIONS'))</code></td><td>10 / pre  sets token cookie before routing</td></tr>
+          <tr><td><code>CompressionMiddleware</code></td><td><code>(min_size=256, level=6, content_types=None)</code></td><td>90 / post</td></tr>
         </tbody>
       </table>
 
@@ -473,7 +497,7 @@
         <thead><tr><th>Exception</th><th>Parent</th><th>Description</th></tr></thead>
         <tbody>
           <tr><td><code>HTTPResponse</code></td><td><code>BaseResponse</code></td><td>Can be raised to send immediate response. <code>(body, status, headers)</code></td></tr>
-          <tr><td><code>HTTPError</code></td><td><code>HTTPResponse</code></td><td>Error response with exception info. <code>(status, body, exception, traceback)</code></td></tr>
+          <tr><td><code>HTTPError</code></td><td><code>HTTPResponse</code></td><td>Error response. v0.0.4: <code>(status, body, exception, traceback, content_type)</code>. Headers set before raising are now preserved.</td></tr>
           <tr><td><code>LcoreException</code></td><td><code>Exception</code></td><td>Base framework exception.</td></tr>
           <tr><td><code>RouteError</code></td><td><code>LcoreException</code></td><td>Routing error base.</td></tr>
           <tr><td><code>RouterUnknownModeError</code></td><td><code>RouteError</code></td><td>Unknown router mode.</td></tr>
@@ -591,6 +615,7 @@
           <tr><td><code>static_file</code></td><td><code>(filename, root, mimetype=True, download=False, charset='UTF-8', etag=None, headers=None)</code></td><td>Serve a static file with caching, range requests, and security.</td></tr>
           <tr><td><code>load</code></td><td><code>(target, **namespace)</code></td><td>Dynamically load module/attribute (safe getattr chain).</td></tr>
           <tr><td><code>load_app</code></td><td><code>(target)</code></td><td>Load WSGI app from "module:app" string.</td></tr>
+          <tr><td><code>load_dotenv</code></td><td><code>(path=None)</code></td><td>v0.0.4: Load .env file into os.environ. Auto-called by <code>app.run()</code>.</td></tr>
           <tr><td><code>debug</code></td><td><code>(mode=True)</code></td><td>Enable/disable debug mode globally.</td></tr>
           <tr><td><code>run</code></td><td><code>(app=None, server='wsgiref', host='127.0.0.1', port=8080, interval=1, reloader=False, quiet=False, plugins=None, debug=None, config=None, **kargs)</code></td><td>Start a WSGI server.</td></tr>
           <tr><td><code>pretty_error_page</code></td><td><code>(exception, traceback_str=None)</code></td><td>Generate styled HTML error page.</td></tr>
@@ -617,7 +642,7 @@
           <span class="api-name">TestClient</span>
           <span class="api-sig">(app)</span>
         </div>
-        <div class="api-body"><p>WSGI test client. Calls app directly without HTTP &mdash; no server needed.</p></div>
+        <div class="api-body"><p>WSGI test client. Calls app directly without HTTP  no server needed.</p></div>
       </div>
 
       <table>
@@ -683,7 +708,7 @@
         <tbody>
           <tr><td><code>@auth_basic</code></td><td><code>(check, realm='private', text='Access denied')</code></td><td>HTTP Basic authentication. <code>check(user, pass)</code> must return True.</td></tr>
           <tr><td><code>@rate_limit</code></td><td><code>(limit, per=60, max_buckets=10000, backend=None)</code></td><td>Token bucket rate limiting per IP. <strong>In-process by default</strong> (each worker has independent buckets; effective limit per client = <code>N&nbsp;&times;&nbsp;limit</code> under N workers). Pass a <code>RedisRateLimitBackend</code> to enforce limits across all workers.</td></tr>
-          <tr><td><code>@validate_request</code></td><td><code>(body=None, query=None)</code></td><td>Validate request body/query against schema.</td></tr>
+          <tr><td><code>@validate_request</code></td><td><code>(body=None, query=None)</code></td><td>v0.0.4: Validate request body/query against schema. Supports <code>Optional[type]</code>, auto-coerces types, returns structured JSON errors.</td></tr>
           <tr><td><code>@on_shutdown</code></td><td><code>(func)</code></td><td>Register function to run on app shutdown.</td></tr>
           <tr><td><code>@view</code></td><td><code>(tpl_name, **defaults)</code></td><td>Render SimpleTemplate when handler returns dict.</td></tr>
           <tr><td><code>@jinja2_view</code></td><td><code>(tpl_name, **defaults)</code></td><td>Render Jinja2 template.</td></tr>
@@ -802,7 +827,7 @@ def login(): ...</code></pre>
       <table>
         <thead><tr><th>Constant</th><th>Value</th><th>Description</th></tr></thead>
         <tbody>
-          <tr><td><code>__version__</code></td><td><code>'0.0.3'</code></td><td>Framework version.</td></tr>
+          <tr><td><code>__version__</code></td><td><code>'0.0.4'</code></td><td>Framework version.</td></tr>
           <tr><td><code>__author__</code></td><td><code>'Lusan Sapkota'</code></td><td>Author.</td></tr>
           <tr><td><code>__license__</code></td><td><code>'MIT'</code></td><td>License.</td></tr>
           <tr><td><code>TEMPLATE_PATH</code></td><td><code>['./', './views/']</code></td><td>Template search paths.</td></tr>
@@ -818,6 +843,7 @@ def login(): ...</code></pre>
     </main>
   </div>
 
+  <script src="assets/highlight.min.js"></script>
   <script src="assets/script.js"></script>
 </body>
 </html>

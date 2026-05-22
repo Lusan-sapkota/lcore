@@ -4,9 +4,26 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Getting Started - Lcore Documentation</title>
+  <meta name="description" content="Get started with Lcore - installation, first app, core concepts, and configuration for the Python WSGI microservice framework.">
+  <meta name="keywords" content="Python,WSGI,microservice,framework,web,API,REST,Lcore">
+  <meta name="author" content="Lusan Sapkota">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://lcore.lusansapkota.com.np/getting-started.html">
+  <meta property="og:title" content="Getting Started - Lcore Documentation">
+  <meta property="og:description" content="Get started with Lcore - installation, first app, core concepts, and configuration for the Python WSGI microservice framework.">
+  <meta property="og:image" content="https://lcore.lusansapkota.com.np/lcore.png">
+  <meta property="og:url" content="https://lcore.lusansapkota.com.np/getting-started.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Lcore Framework">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Getting Started - Lcore Documentation">
+  <meta name="twitter:description" content="Get started with Lcore - installation, first app, core concepts, and configuration for the Python WSGI microservice framework.">
+  <meta name="twitter:image" content="https://lcore.lusansapkota.com.np/lcore.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/github.min.css" media="(prefers-color-scheme: light)">
+  <link rel="stylesheet" href="assets/github-dark.min.css" media="(prefers-color-scheme: dark)">
   <link rel="shortcut icon" href="lcore.png" type="image/x-icon">
 
 </head>
@@ -22,11 +39,9 @@
         <a href="plugins.html">Plugins</a>
         <a href="advanced.html">Advanced</a>
         <a href="api-reference.html">API</a>
-        <a href="real-world-example.html">Example</a>
-        <a href="https://play-lcore.lusansapkota.com.np/#code-playground">Playground</a>
       </nav>
       <div class="header-right">
-        <span class="version-badge">v0.0.3</span>
+        <span class="version-badge">v0.0.4</span>
         <a href="https://github.com/Lusan-sapkota/lcore" class="github-link">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
           GitHub
@@ -76,7 +91,7 @@
       <!-- Installation -->
       <h2 id="installation">Installation</h2>
 
-      <p>Lcore requires <strong>Python 3.8+</strong> and has <strong>zero required dependencies</strong>. The entire framework is a single file you can drop into any project. Every module Lcore uses ships with Python itself &mdash; no <code>pip install</code> needed beyond Lcore.</p>
+      <p>Lcore requires <strong>Python 3.8+</strong> and has <strong>zero required dependencies</strong>. The entire framework is a single file you can drop into any project. Every module Lcore uses ships with Python itself  no <code>pip install</code> needed beyond Lcore.</p>
 
       <h3>Via pip</h3>
       <pre><code>pip install lcore</code></pre>
@@ -86,7 +101,7 @@
       <pre><code>curl -O https://raw.githubusercontent.com/Lusan-sapkota/lcore/main/lcore.py</code></pre>
 
       <h3>Standard Library Only</h3>
-      <p>Lcore is built entirely on Python's standard library. Here's what powers it under the hood &mdash; all included with every Python installation:</p>
+      <p>Lcore is built entirely on Python's standard library. Here's what powers it under the hood  all included with every Python installation:</p>
       <table>
         <thead><tr><th>Module</th><th>Used For</th></tr></thead>
         <tbody>
@@ -103,7 +118,7 @@
           <tr><td><code>os</code>, <code>sys</code>, <code>time</code>, <code>uuid</code></td><td>Core utilities, request IDs, file serving</td></tr>
         </tbody>
       </table>
-      <p>This means Lcore works anywhere Python runs &mdash; containers, serverless, air-gapped networks, embedded systems &mdash; with zero network access needed for dependencies.</p>
+      <p>This means Lcore works anywhere Python runs  containers, serverless, air-gapped networks, embedded systems  with zero network access needed for dependencies.</p>
 
       <h3>Optional Dependencies</h3>
       <table>
@@ -243,29 +258,27 @@ def example():
     return {'method': method, 'ip': ip}</code></pre>
 
       <h3>Request Lifecycle</h3>
-      <p>Every request flows through this pipeline:</p>
+      <p>Every request flows through this pipeline. v0.0.4 introduces a <strong>pre-routing middleware phase</strong> that runs before the router:</p>
       <pre><code>Incoming Request
     |
     v
 on_request_start hook
     |
     v
-Middleware Pipeline (ordered by priority)
+Pre-routing Middleware (CORS, CSRF, body limits)
+    |  Runs BEFORE the router  can short-circuit
+    |  (e.g. CORS preflight returns 204 without hitting a route)
+    v
+Router matches URL -> Route
     |
     v
 on_auth_resolved hook
     |
     v
-Router matches URL -&gt; Route
-    |
-    v
 on_handler_enter hook
     |
     v
-Plugin chain wraps handler
-    |
-    v
-Route Handler executes
+Post-routing Middleware + Plugin chain + Handler
     |
     v
 on_handler_exit hook
@@ -342,6 +355,35 @@ if not valid:
       <div class="info-box note">
         <strong>Note</strong>
         <p>Configuration keys use dot notation for namespacing: <code>my_app.db_url</code>. When loading from dicts, nested dicts are flattened automatically.</p>
+      </div>
+
+      <h3>Automatic .env Loading</h3>
+      <p>v0.0.4 auto-loads <code>.env</code> from the current directory when you call <code>app.run()</code>. No extra setup needed:</p>
+      <pre><code># .env file in your project root
+DB_PATH=./data.db
+SECRET_KEY=super-secret
+CORS_ORIGINS=https://myapp.com
+
+# In your app  values are already in os.environ
+import os
+db_path = os.environ.get('DB_PATH')  # './data.db'</code></pre>
+      <p>You can also call it explicitly: <code>from lcore import load_dotenv; load_dotenv()</code></p>
+
+      <h3>Error Format</h3>
+      <p>Set <code>error.format</code> to <code>'json'</code> and all errors return JSON instead of HTML. Perfect for pure API servers:</p>
+      <pre><code>app.config['error.format'] = 'json'
+# Now 404, 500, 403, etc. all return:
+# {"error": "Not Found", "status": 404}</code></pre>
+
+      <h3>Proxy Trust</h3>
+      <p>Behind nginx or a load balancer? Set <code>proxy.trusted</code> so <code>request.remote_addr</code> returns the real client IP:</p>
+      <pre><code>app.config['proxy.trusted'] = ['127.0.0.1', '10.0.0.1']
+# or as a comma-separated string:
+app.config['proxy.trusted'] = '127.0.0.1,10.0.0.1'</code></pre>
+
+      <div class="info-box danger">
+        <strong>Security: only trust your actual proxy</strong>
+        <p><code>proxy.trusted</code> tells <code>request.remote_addr</code> to walk <code>X-Forwarded-For</code> from the right, skipping IPs in the trusted set. <strong>Only list your upstream reverse proxy</strong>  Nginx on 127.0.0.1, Cloudflare's edge IPs, your AWS ALB. Never add arbitrary IPs. An attacker outside your trusted set who sends a fake <code>X-Forwarded-For: 1.1.1.1</code> will be ignored  only the real <code>REMOTE_ADDR</code> is used for untrusted clients.</p>
       </div>
 
       <!-- Running Your App -->
@@ -493,6 +535,7 @@ def get_user(id):
     </main>
   </div>
 
+  <script src="assets/highlight.min.js"></script>
   <script src="assets/script.js"></script>
 </body>
 </html>

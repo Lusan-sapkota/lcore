@@ -4,9 +4,26 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Request &amp; Response - Lcore Documentation</title>
+  <meta name="description" content="Request and Response handling in Lcore - JSON parsing, form data, file uploads, cookies, headers, and status codes.">
+  <meta name="keywords" content="Python,WSGI,microservice,framework,web,API,REST,Lcore,request,response">
+  <meta name="author" content="Lusan Sapkota">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://lcore.lusansapkota.com.np/request-response.html">
+  <meta property="og:title" content="Request &amp; Response - Lcore Documentation">
+  <meta property="og:description" content="Request and Response handling in Lcore - JSON parsing, form data, file uploads, cookies, headers, and status codes.">
+  <meta property="og:image" content="https://lcore.lusansapkota.com.np/lcore.png">
+  <meta property="og:url" content="https://lcore.lusansapkota.com.np/request-response.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Lcore Framework">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Request &amp; Response - Lcore Documentation">
+  <meta name="twitter:description" content="Request and Response handling in Lcore - JSON parsing, form data, file uploads, cookies, headers, and status codes.">
+  <meta name="twitter:image" content="https://lcore.lusansapkota.com.np/lcore.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/github.min.css" media="(prefers-color-scheme: light)">
+  <link rel="stylesheet" href="assets/github-dark.min.css" media="(prefers-color-scheme: dark)">
   <link rel="shortcut icon" href="lcore.png" type="image/x-icon">
 </head>
 <body>
@@ -21,11 +38,9 @@
         <a href="plugins.html">Plugins</a>
         <a href="advanced.html">Advanced</a>
         <a href="api-reference.html">API</a>
-        <a href="real-world-example.html">Example</a>
-        <a href="https://play-lcore.lusansapkota.com.np/#code-playground">Playground</a>
       </nav>
       <div class="header-right">
-        <span class="version-badge">v0.0.3</span>
+        <span class="version-badge">v0.0.4</span>
         <a href="https://github.com/Lusan-sapkota/lcore" class="github-link">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
           GitHub
@@ -162,6 +177,11 @@ def create_user():
         <p><code>request.json</code> returns <code>None</code> if the Content-Type is not <code>application/json</code> or the body cannot be parsed. Always check for <code>None</code>.</p>
       </div>
 
+      <div class="info-box tip">
+        <strong>v0.0.4: No more 100KB silent limit</strong>
+        <p>Previously <code>request.json</code> and URL-encoded POST bodies had a hard 100KB cap (<code>MEMFILE_MAX</code>) independent of <code>BodyLimitMiddleware</code>. A 150KB JSON payload would silently fail with 413 even when <code>BodyLimitMiddleware</code> allowed 50MB. v0.0.4 reads the full body via <code>self.body.read()</code>, which spills to disk for large payloads and respects <code>BodyLimitMiddleware</code> exclusively. No more mystery ceiling.</p>
+      </div>
+
       <!-- File Uploads -->
       <h2 id="file-uploads">File Uploads</h2>
 
@@ -184,6 +204,11 @@ def upload():
         'content_type': content_type,
         'size': size
     }</code></pre>
+
+      <div class="info-box tip">
+        <strong>v0.0.4: Multipart limits respect BodyLimitMiddleware</strong>
+        <p>The multipart parser's <code>disk_limit</code> is now set from <code>environ['lcore.body_max_size']</code> (injected by <code>BodyLimitMiddleware</code>). Configure one limit and everything obeys it  JSON bodies, URL-encoded forms, and file uploads all capped by the same setting.</p>
+      </div>
 
       <h3>FileUpload Object</h3>
       <table>
@@ -213,19 +238,22 @@ def read_cookies():
     return {'session': session_id, 'user': user}</code></pre>
 
       <h3>Setting Cookies</h3>
+      <p>v0.0.4 sets <strong>secure defaults</strong>: <code>samesite='Lax'</code> and <code>httponly=True</code> are applied automatically unless you override them. This means a basic <code>set_cookie('session', 'abc')</code> is already reasonably locked down.</p>
       <pre><code>from datetime import timedelta
 
 @app.route('/set')
 def set_cookies():
-    # Plain cookie
-    response.set_cookie('session_id', 'abc123',
-        path='/',
-        httponly=True,
-        secure=True,
-        samesite='Lax'
+    # Plain cookie  secure by default (v0.0.4)
+    response.set_cookie('session_id', 'abc123', path='/')
+    # Automatically gets: samesite=Lax, httponly=True
+
+    # Override defaults when needed (e.g. CSRF token must be JS-readable)
+    response.set_cookie('_csrf_token', token,
+        httponly=False,       # JS needs to read this
+        samesite='Strict'     # Tighter CSRF protection
     )
 
-    # Signed cookie (tamper-proof)
+    # Signed cookie (tamper-proof, HMAC-SHA256)
     response.set_cookie('user', 'alice',
         secret='my-secret-key',
         max_age=timedelta(days=7)
@@ -318,12 +346,34 @@ def custom_response():
 
 @app.route('/immediate')
 def immediate():
-    # Raise HTTPResponse to skip normal processing
     raise HTTPResponse(
         body='{"error": "custom"}',
         status=418,
         headers={'Content-Type': 'application/json'}
     )</code></pre>
+
+      <h3>HTTPError  v0.0.4 Improvements</h3>
+      <p>Raise <code>HTTPError</code> to trigger your registered error handlers. v0.0.4 fixes two long-standing papercuts:</p>
+
+      <h4>Headers survive the raise</h4>
+      <p>Previously, <code>HTTPError.apply()</code> <strong>replaced</strong> all response headers  any header you set before raising was wiped. v0.0.4 <strong>merges</strong> instead:</p>
+      <pre><code>@app.post('/api/login')
+def login():
+    response.set_header('Content-Type', 'application/json')
+    # ... auth logic ...
+    raise HTTPError(401, '{"error":"Unauthorized"}')
+    # v0.0.4: Content-Type: application/json survives. v0.0.3: gone.</code></pre>
+
+      <h4>One-liner with content_type</h4>
+      <p>Skip the <code>response.set_header</code> dance entirely:</p>
+      <pre><code>raise HTTPError(401, body='{"error":"Unauthorized"}', content_type='application/json')
+raise HTTPError(422, body=json_dumps({'error': 'Validation failed', 'fields': {...}}),
+                content_type='application/json')</code></pre>
+
+      <h4>Global JSON errors</h4>
+      <p>For pure API servers, one config line replaces every per-status-code error handler:</p>
+      <pre><code>app.config['error.format'] = 'json'
+# All errors now return {"error": "...", "status": N}  no handlers needed</code></pre>
 
       <!-- Static Files -->
       <h2 id="static-files">Static Files</h2>
@@ -397,6 +447,7 @@ def login_required():
     </main>
   </div>
 
+  <script src="assets/highlight.min.js"></script>
   <script src="assets/script.js"></script>
 </body>
 </html>
