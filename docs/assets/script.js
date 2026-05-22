@@ -67,6 +67,16 @@ document.addEventListener('DOMContentLoaded', function () {
     block.appendChild(btn);
   });
 
+  // Wrap bare tables in scrollable containers for mobile
+  document.querySelectorAll('.content table').forEach(function (table) {
+    // Skip tables already inside a wrapper (check parent, not the table itself)
+    if (table.parentNode.closest('.table-wrap, .perf-container, .comparison-container')) return;
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    table.parentNode.insertBefore(wrap, table);
+    wrap.appendChild(table);
+  });
+
   // TOC scroll spy
   var toc = document.querySelector('.toc');
   if (toc) {

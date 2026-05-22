@@ -11,7 +11,6 @@
 
 <p align="center">
   <a href="https://lcore.lusansapkota.com.np">Documentation</a> &bull;
-  <a href="https://play-lcore.lusansapkota.com.np">Live Playground</a> &bull;
   <a href="https://lcore.lusansapkota.com.np/getting-started.html">Getting Started</a> &bull;
   <a href="https://lcore.lusansapkota.com.np/api-reference.html">API Reference</a>
 </p>
