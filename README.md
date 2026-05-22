@@ -27,7 +27,8 @@
 ## Installation
 
 ```bash
-pip install lcore
+uv add lcore          # uv (recommended)
+pip install lcore     # pip
 ```
 
 ## Quick Start
