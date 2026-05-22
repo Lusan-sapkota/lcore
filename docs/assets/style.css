@@ -262,6 +262,13 @@ pre {
 pre code { background: none; border: none; padding: 0; color: var(--text); font-size: 13px; }
 
 /* ── Tables ── */
+.table-wrap, .perf-container, .comparison-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 18px;
+}
+
 .params-table, .content table {
   width: 100%;
   border-collapse: collapse;
@@ -559,22 +566,88 @@ pre:hover .copy-btn { opacity: 1; }
 .sidebar.open { display: block; position: fixed; top: var(--header-height); left: 0; bottom: 0; z-index: 49; width: var(--sidebar-width); background: var(--bg); border-right: 1px solid var(--border); overflow-y: auto; }
 
 @media (max-width: 768px) {
-  .info-grid { grid-template-columns: 1fr; max-width: none; }
   .header-nav { display: none; }
   .header-nav.open { display: flex; }
   .menu-toggle { display: block; }
   .sidebar { display: none; }
   .sidebar.open { display: block; }
-  .content { padding: 24px 20px 60px; max-width: none; }
+  .content { padding: 20px 16px 48px; max-width: none; }
   .doc-layout { display: block; }
-  .hero h1 { font-size: 28px; }
-  .hero .tagline { font-size: 16px; }
-  .header-inner { padding: 0 16px; }
+
+  /* Typography */
+  .content h1 { font-size: 24px; }
+  .content h2 { font-size: 18px; margin-top: 32px; }
+  .content h3 { font-size: 15px; }
+  .page-desc { font-size: 14px; }
+
+  /* Homepage */
+  .hero h1 { font-size: 26px; }
+  .hero .tagline { font-size: 15px; }
+  .hero { padding: 40px 0 28px; }
+  .hero-buttons { flex-direction: column; align-items: center; }
+  .btn { width: 100%; max-width: 280px; text-align: center; }
+  .install-cmd { font-size: 14px; padding: 10px 14px; overflow-x: auto; }
+  .header-inner { padding: 0 12px; }
+
+  /* Tables  scrollable on mobile */
+  .content table, .params-table {
+    font-size: 12px;
+  }
+  .content table th, .params-table th,
+  .content table td, .params-table td {
+    padding: 6px 8px;
+    font-size: 11px;
+  }
   .perf-bars { max-width: 100%; }
+  .perf-container table, .comparison-container table { min-width: 500px; }
+
+  /* Code blocks */
+  pre { padding: 12px 14px; font-size: 12px; margin: 0 -16px 16px; border-radius: 0; border-left: none; border-right: none; }
+  pre code { font-size: 11.5px; }
+  :not(pre) > code { font-size: 11px; }
+
+  /* Info boxes */
+  .info-box { padding: 10px 12px; font-size: 13px; margin: 0 -4px 14px; }
+
+  /* Feature & card grids */
+  .feature-grid { grid-template-columns: 1fr; }
+  .card-grid { grid-template-columns: 1fr; }
+
+  /* API items */
+  .api-header { flex-wrap: wrap; gap: 6px; padding: 10px 12px; }
+  .api-sig { font-size: 11px; margin-left: 0; width: 100%; }
+  .api-name { font-size: 13px; }
+
+  /* TOC */
+  .toc { padding: 10px 14px; }
+  .toc a { font-size: 12px; padding: 3px 0; }
+
+  /* Sidebar */
+  .sidebar { display: none; }
+  .sidebar.open { display: block; }
+
+  /* Footer */
+  .site-footer { padding: 16px; font-size: 12px; }
 }
 
-@media (min-width: 901px) and (max-width: 1400px) {
-  .content { padding: 32px 32px 60px; }
+@media (max-width: 480px) {
+  .content { padding: 16px 12px 40px; }
+  .hero h1 { font-size: 22px; }
+  .content table, .params-table { font-size: 11px; }
+  .content table th, .params-table th,
+  .content table td, .params-table td {
+    padding: 4px 6px;
+    font-size: 10px;
+  }
+  .logo { font-size: 16px; }
+  .logo-icon { width: 24px; height: 24px; }
+  .version-badge { font-size: 10px; padding: 2px 6px; }
+  .github-link { font-size: 12px; padding: 4px 8px; }
+  pre { margin: 0 -12px 14px; padding: 10px 12px; }
+}
+
+@media (min-width: 769px) and (max-width: 1100px) {
+  .content { padding: 32px 28px 60px; }
 }
 
 @media (min-width: 1600px) {
