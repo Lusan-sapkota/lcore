@@ -1553,7 +1553,8 @@ class BaseRequest:
         env = self.environ
         trusted = env.get('lcore.trusted_proxies')
         direct = env.get('REMOTE_ADDR')
-        trust_forward = trusted and direct in trusted
+        hops = env.get('lcore.trusted_proxy_hops')
+        trust_forward = bool(hops) or bool(trusted and direct in trusted)
         if trust_forward:
             http = env.get('HTTP_X_FORWARDED_PROTO') or env.get('wsgi.url_scheme', 'http')
             host = env.get('HTTP_X_FORWARDED_HOST') or env.get('HTTP_HOST')
@@ -1623,8 +1624,14 @@ class BaseRequest:
     @property
     def remote_addr(self):
         direct = self.environ.get('REMOTE_ADDR')
-        trusted = self.environ.get('lcore.trusted_proxies')
         proxy = self.environ.get('HTTP_X_FORWARDED_FOR')
+        hops = self.environ.get('lcore.trusted_proxy_hops')
+        if proxy and hops:
+            addrs = [ip.strip() for ip in proxy.split(',') if ip.strip()]
+            if len(addrs) >= hops:
+                return addrs[-hops]
+            return direct
+        trusted = self.environ.get('lcore.trusted_proxies')
         if proxy and trusted:
             # Walk X-Forwarded-For from right, skipping known proxies
             addrs = [ip.strip() for ip in proxy.split(',')]
@@ -2213,7 +2220,18 @@ class CSRFMiddleware(Middleware):
     def __init__(self, secret=None, cookie_name='_csrf_token',
                  header_name='X-CSRF-Token', form_field='_csrf_token',
                  safe_methods=('GET', 'HEAD', 'OPTIONS'), secure=False):
-        self.secret = secret or hashlib.sha256(os.urandom(32)).hexdigest()
+        if secret is None:
+            secret = hashlib.sha256(os.urandom(32)).hexdigest()
+            warnings.warn(
+                "CSRFMiddleware: no secret= given, using a random per-process "
+                "secret. Under multi-worker deployment (e.g. gunicorn -w N) "
+                "each worker generates its own secret, so a token cookie "
+                "signed by one worker fails verification on another and "
+                "legitimate submissions get randomly rejected with 403. Pass "
+                "a fixed secret= (e.g. from an environment variable) in any "
+                "multi-process deployment.",
+                UserWarning, stacklevel=2)
+        self.secret = secret
         self.cookie_name = cookie_name
         self.header_name = header_name
         self.form_field = form_field
@@ -2392,13 +2410,26 @@ class BodyLimitMiddleware(Middleware):
         return next_handler(ctx)
 
 
-# Tells request.remote_addr to trust X-Forwarded-For from your nginx/load-balancer
+# Tells request.remote_addr to trust X-Forwarded-For from your nginx/load-balancer.
+#
+# Two independent trust modes:
+#   trusted_proxies=[...]  IP allowlist. X-Forwarded-* is only honored when the
+#                          directly-connecting peer (REMOTE_ADDR) is in the list.
+#                          Handles multi-hop chains as long as every proxy's IP
+#                          is known.
+#   num_proxies=N          Hop-count trust. Blindly trusts the last N entries of
+#                          X-Forwarded-For, no IP check at all just like
+#                          Werkzeug's ProxyFix. Use when your proxy's IP isn't
+#                          fixed/known but your network guarantees exactly N
+#                          proxies sit in front of the app (nothing else can
+#                          reach it directly).
+# Pass at most one of the two; num_proxies takes precedence if both are given.
 class ProxyFixMiddleware(Middleware):
     name = 'proxy_fix'
     order = -10
     phase = 'pre'
 
-    def __init__(self, trusted_proxies=None, num_proxies=1):
+    def __init__(self, trusted_proxies=None, num_proxies=None):
         if trusted_proxies is not None:
             self.trusted = frozenset(trusted_proxies)
         else:
@@ -2406,7 +2437,10 @@ class ProxyFixMiddleware(Middleware):
         self.num_proxies = num_proxies
 
     def __call__(self, ctx, next_handler):
-        ctx.request.environ['lcore.trusted_proxies'] = self.trusted
+        env = ctx.request.environ
+        env['lcore.trusted_proxies'] = self.trusted
+        if self.num_proxies is not None:
+            env['lcore.trusted_proxy_hops'] = self.num_proxies
         return next_handler(ctx)
 
 

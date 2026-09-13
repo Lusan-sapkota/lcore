@@ -5,13 +5,14 @@ import json as json_mod
 import re
 import sys
 import os
+import warnings
 from dataclasses import dataclass
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from helpers import create_environ, run_request
-from lcore import (Lcore, SecurityHeadersMiddleware, CSRFMiddleware,
-                   rate_limit, validate_request)
+from lcore import (Lcore, Request, SecurityHeadersMiddleware, CSRFMiddleware,
+                   ProxyFixMiddleware, rate_limit, validate_request)
 
 
 def _run_environ(app, environ):
@@ -233,6 +234,93 @@ class TestCSRFMiddleware(unittest.TestCase):
             status, _, _ = run_request(app, method, '/safe')
             self.assertIn('200', status,
                           '%s should be a safe method' % method)
+
+    def test_missing_secret_warns(self):
+        """Omitting secret= warns: each worker process would sign with its own
+        random secret, so tokens fail verification across workers."""
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter('always')
+            CSRFMiddleware()
+        messages = [str(w.message) for w in caught
+                    if issubclass(w.category, UserWarning)]
+        self.assertTrue(messages, 'A UserWarning should be raised')
+        self.assertIn('secret', messages[0])
+
+    def test_explicit_secret_does_not_warn(self):
+        """Passing an explicit secret= raises no warning."""
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter('always')
+            CSRFMiddleware(secret='fixed-secret')
+        self.assertEqual(
+            [w for w in caught if issubclass(w.category, UserWarning)], [])
+
+
+# ---------------------------------------------------------------------------
+# ProxyFixMiddleware
+# ---------------------------------------------------------------------------
+
+class TestProxyFixMiddleware(unittest.TestCase):
+    """Tests for the two X-Forwarded-* trust modes."""
+
+    def _resolve(self, middleware, remote_addr, forwarded_for=None):
+        """Return request.remote_addr as resolved for the given environ."""
+        app = Lcore()
+        app.use(middleware)
+        headers = {'X-Forwarded-For': forwarded_for} if forwarded_for else None
+        environ = create_environ('GET', '/', headers=headers)
+        environ['REMOTE_ADDR'] = remote_addr
+        app._handle(environ)
+        return Request(environ).remote_addr
+
+    def test_num_proxies_trusts_hop_count(self):
+        """num_proxies=N trusts the last N X-Forwarded-For entries regardless
+        of the connecting peer's IP."""
+        addr = self._resolve(ProxyFixMiddleware(num_proxies=1),
+                             remote_addr='203.0.113.9',
+                             forwarded_for='9.9.9.9')
+        self.assertEqual(addr, '9.9.9.9')
+
+    def test_num_proxies_two_hops(self):
+        """num_proxies=2 skips two proxy hops to find the client."""
+        addr = self._resolve(ProxyFixMiddleware(num_proxies=2),
+                             remote_addr='203.0.113.9',
+                             forwarded_for='9.9.9.9, 10.0.0.7')
+        self.assertEqual(addr, '9.9.9.9')
+
+    def test_num_proxies_short_chain_falls_back(self):
+        """A chain shorter than num_proxies falls back to REMOTE_ADDR rather
+        than trusting a forged header."""
+        addr = self._resolve(ProxyFixMiddleware(num_proxies=3),
+                             remote_addr='203.0.113.9',
+                             forwarded_for='9.9.9.9')
+        self.assertEqual(addr, '203.0.113.9')
+
+    def test_trusted_proxies_allowlist(self):
+        """trusted_proxies=[...] resolves the client behind a known proxy."""
+        addr = self._resolve(ProxyFixMiddleware(trusted_proxies=['10.0.0.1']),
+                             remote_addr='10.0.0.1',
+                             forwarded_for='9.9.9.9, 6.6.6.6')
+        self.assertEqual(addr, '6.6.6.6')
+
+    def test_untrusted_peer_cannot_spoof(self):
+        """A peer that is not a trusted proxy cannot spoof its address via
+        X-Forwarded-For."""
+        addr = self._resolve(ProxyFixMiddleware(trusted_proxies=['10.0.0.1']),
+                             remote_addr='6.6.6.6',
+                             forwarded_for='9.9.9.9, 10.0.0.1')
+        self.assertEqual(addr, '6.6.6.6')
+
+    def test_forwarded_proto_trusted_by_hop_count(self):
+        """Hop-count mode also trusts X-Forwarded-Proto for request.urlparts."""
+        app = Lcore()
+        app.use(ProxyFixMiddleware(num_proxies=1))
+        environ = create_environ('GET', '/', headers={
+            'X-Forwarded-For': '9.9.9.9',
+            'X-Forwarded-Proto': 'https',
+        })
+        environ['REMOTE_ADDR'] = '203.0.113.9'
+        app._handle(environ)
+        self.assertEqual(Request(environ).urlparts.scheme, 'https')
 
 
 # ---------------------------------------------------------------------------

@@ -454,7 +454,7 @@
       <table>
         <thead><tr><th>Class</th><th>Constructor</th><th>Order / Phase</th></tr></thead>
         <tbody>
-          <tr><td><code>ProxyFixMiddleware</code></td><td><code>(trusted_proxies=None, num_proxies=1)</code></td><td>-10 / pre</td></tr>
+          <tr><td><code>ProxyFixMiddleware</code></td><td><code>(trusted_proxies=None, num_proxies=None)</code></td><td>-10 / pre</td></tr>
           <tr><td><code>TimeoutMiddleware</code></td><td><code>(timeout=30, max_workers=None)</code></td><td>-5 / post</td></tr>
           <tr><td><code>BodyLimitMiddleware</code></td><td><code>(max_size=10*1024*1024)</code></td><td>0 / pre</td></tr>
           <tr><td><code>RequestIDMiddleware</code></td><td><code>()</code></td><td>1 / post</td></tr>

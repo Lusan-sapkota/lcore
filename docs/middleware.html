@@ -200,7 +200,7 @@ app.use(CSRFMiddleware(
       <table class="params-table">
         <thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead>
         <tbody>
-          <tr><td><code>secret</code></td><td><code>None</code></td><td>HMAC secret. Auto-generated if not set (not persistent across restarts).</td></tr>
+          <tr><td><code>secret</code></td><td><code>None</code></td><td>HMAC secret. If not set, a random secret is generated per process and a <code>UserWarning</code> is raised &mdash; with multiple worker processes (e.g. <code>gunicorn -w N</code>) each gets its own secret, so tokens signed by one worker fail verification on another. Always pass a fixed secret in multi-process deployments.</td></tr>
           <tr><td><code>cookie_name</code></td><td><code>'_csrf_token'</code></td><td>Cookie name for the CSRF token.</td></tr>
           <tr><td><code>header_name</code></td><td><code>'X-CSRF-Token'</code></td><td>Header to check for the token (AJAX).</td></tr>
           <tr><td><code>form_field</code></td><td><code>'_csrf_token'</code></td><td>Form field name to check for the token.</td></tr>
@@ -227,11 +227,15 @@ app.use(CompressionMiddleware(
 ))</code></pre>
 
       <h3>ProxyFixMiddleware</h3>
-      <p>Tells <code>request.remote_addr</code> and <code>request.urlparts</code> to trust <code>X-Forwarded-*</code> headers from known reverse proxies. v0.0.4 alternative: set <code>app.config['proxy.trusted']</code> instead.</p>
+      <p>Tells <code>request.remote_addr</code> and <code>request.urlparts</code> to trust <code>X-Forwarded-*</code> headers from known reverse proxies. v0.0.4 alternative: set <code>app.config['proxy.trusted']</code> instead. Two independent modes &mdash; pass one or the other, not both:</p>
+      <ul>
+        <li><code>trusted_proxies=[...]</code> &mdash; IP allowlist. Forwarded headers are only trusted when the directly-connecting peer's address is in the list. Works for multi-hop chains as long as every proxy's IP is known.</li>
+        <li><code>num_proxies=N</code> &mdash; hop-count trust. Blindly trusts the last <code>N</code> entries of <code>X-Forwarded-For</code>, no IP check (same model as Werkzeug's <code>ProxyFix</code>). Use this when the proxy's IP isn't fixed, but your network guarantees exactly <code>N</code> proxies sit in front of the app.</li>
+      </ul>
       <pre><code>from lcore import ProxyFixMiddleware
 
 app.use(ProxyFixMiddleware(trusted_proxies=['127.0.0.1', '10.0.0.1']))
-app.use(ProxyFixMiddleware(num_proxies=1))  # trust first proxy in chain</code></pre>
+app.use(ProxyFixMiddleware(num_proxies=1))  # trust first proxy in chain, any IP</code></pre>
 
       <h3>TimeoutMiddleware</h3>
       <p>Runs the handler in a thread pool, returning 503 if it exceeds the deadline. v0.0.4 moves it to post-routing phase.</p>
