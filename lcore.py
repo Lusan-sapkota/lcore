@@ -4,7 +4,7 @@
 import sys
 
 __author__ = 'Lusan Sapkota'
-__version__ = '0.0.4'
+__version__ = '0.0.5'
 __license__ = 'MIT'
 
 def _cli_parse(args):
@@ -47,7 +47,7 @@ if __name__ == '__main__':
 # stdlib imports that's it, no pip install required
 import abc, asyncio, atexit, base64, calendar, concurrent.futures, email.utils, \
     functools, gzip, hmac, itertools, logging, mimetypes, os, re, tempfile, \
-    threading, time, uuid, warnings, weakref, hashlib
+    threading, time, uuid, warnings, weakref, hashlib, zlib
 
 from types import FunctionType
 from datetime import date as datedate, datetime, timedelta
@@ -71,11 +71,85 @@ from collections import OrderedDict
 from collections.abc import MutableMapping as DictMixin
 from types import ModuleType as new_module
 
-from io import BytesIO
+from io import BytesIO, StringIO
 import configparser
 from datetime import timezone
 UTC = timezone.utc
 import inspect
+
+# Without this, `from lcore import *` also dumps every stdlib module imported
+# above into the caller's namespace, shadowing their own os, re, time and sys.
+__all__ = [
+    # Application, routing, context
+    'Lcore', 'Route', 'Router', 'app', 'default_app', 'apps', 'AppStack',
+    'local', 'ctx', 'request', 'response', 'RequestContext', 'LocalContext',
+    'redirect', 'abort', 'static_file', 'run', 'view', 'auth_basic',
+    'make_default_app_wrapper', 'yieldroutes', 'path_shift',
+    'route', 'get', 'post', 'put', 'delete', 'patch', 'error', 'mount',
+    'hook', 'install', 'uninstall', 'url', 'use',
+
+    # Requests and responses
+    'BaseRequest', 'BaseResponse', 'LocalRequest', 'LocalResponse',
+    'Request', 'Response', 'HTTPResponse', 'HTTPError', 'FileUpload',
+    'FormsDict', 'MultiDict', 'HeaderDict', 'WSGIHeaderDict',
+    'HeaderProperty', 'WSGIFileWrapper',
+
+    # Errors
+    'LcoreException', 'RouteError', 'RouteSyntaxError', 'RouteBuildError',
+    'RouterUnknownModeError', 'PluginError', 'TemplateError',
+    'StplSyntaxError', 'MultipartError',
+
+    # Middleware
+    'Middleware', 'MiddlewareHook', 'MiddlewarePipeline',
+    'ProxyFixMiddleware', 'TimeoutMiddleware', 'BodyLimitMiddleware',
+    'RequestIDMiddleware', 'RequestLoggerMiddleware', 'CORSMiddleware',
+    'SecurityHeadersMiddleware', 'CSRFMiddleware', 'SessionMiddleware',
+    'CompressionMiddleware',
+
+    # Sessions
+    'Session', 'SessionBackend', 'MemorySessionBackend',
+    'SQLiteSessionBackend', 'RedisSessionBackend',
+
+    # Security and validation
+    'hash_password', 'verify_password', 'rate_limit', 'RateLimitBackend',
+    'RedisRateLimitBackend', 'validate_request', 'parse_auth',
+    'cookie_encode', 'cookie_decode', 'cookie_is_encoded',
+
+    # Dependency injection, plugins, resources
+    'DependencyContainer', 'BackgroundTaskPool', 'JSONPlugin',
+    'TemplatePlugin', 'ResourceManager', 'on_shutdown',
+
+    # Templates
+    'BaseTemplate', 'SimpleTemplate', 'Jinja2Template', 'MakoTemplate',
+    'CheetahTemplate', 'StplParser', 'template', 'TEMPLATES',
+    'TEMPLATE_PATH', 'ERROR_PAGE_TEMPLATE', 'pretty_error_page',
+    'jinja2_template', 'jinja2_view', 'mako_template', 'mako_view',
+    'cheetah_template', 'cheetah_view',
+
+    # Testing
+    'TestClient', 'TestResponse',
+
+    # Server adapters
+    'ServerAdapter', 'AsyncioServerAdapter', 'AutoServer', 'WSGIRefServer',
+    'GunicornServer', 'WaitressServer', 'GeventServer', 'EventletServer',
+    'CherryPyServer', 'CherootServer', 'PasteServer', 'MeinheldServer',
+    'FapwsServer', 'TornadoServer', 'TwistedServer', 'DieselServer',
+    'BjoernServer', 'AiohttpServer', 'AiohttpUVLoopServer', 'CGIServer',
+    'FlupFCGIServer', 'AppEngineServer',
+
+    # Reloading
+    'AsyncReloader', 'WatchdogReloader', 'FileCheckerThread',
+
+    # Configuration and loading
+    'ConfigDict', 'load', 'load_app', 'load_dotenv', 'debug', 'main',
+    'DEBUG', 'NORUN', 'HTTP_CODES',
+
+    # Utilities
+    'tob', 'touni', 'html_escape', 'html_quote', 'http_date', 'parse_date',
+    'parse_range_header', 'makelist', 'update_wrapper', 'cached_property',
+    'lazy_attribute', 'DictProperty', 'depr', 'json_dumps', 'json_loads',
+    'server_names', 'ext',
+]
 
 json_loads = lambda s: json_lds(touni(s))
 _UNSET = object()  # sentinel for unset config values
@@ -471,6 +545,21 @@ class Route:
     # Apply plugins, wrap async handlers for sync execution.
     def _make_callback(self):
         callback = self.callback
+        # Checked on the route's own callback, before plugins wrap it: with
+        # JSONPlugin auto-installed on every app, callback is already a
+        # plain sync wrapper by the time the plugin loop below finishes, so
+        # checking _is_async() only after the loop never fired here except
+        # on a route that explicitly skips every wrapping plugin.
+        if _is_async(callback):
+            warnings.warn(
+                "Lcore: route '%s %s' is async def, but WSGI is synchronous. "
+                "This will block a worker thread and won't give you "
+                "concurrency. Use sync handlers for WSGI; for real "
+                "concurrency without rewriting handlers, run under the "
+                "gevent or eventlet server adapter instead. For true async "
+                "execution, switch to an ASGI framework."
+                % (self.method, self.rule),
+                UserWarning, stacklevel=2)
         for plugin in self.all_plugins():
             if hasattr(plugin, 'apply'):
                 callback = plugin.apply(callback, self)
@@ -479,12 +568,9 @@ class Route:
             if callback is not self.callback:
                 update_wrapper(callback, self.callback)
         if _is_async(callback):
-            warnings.warn(
-                "Lcore: route '%s %s' is async def, but WSGI is synchronous. "
-                "This will block a worker thread and won't give you concurrency. "
-                "Use sync handlers for WSGI or switch to an ASGI framework."
-                % (self.method, self.rule),
-                UserWarning, stacklevel=2)
+            # Only reached when no plugin already handled execution (e.g.
+            # JSONPlugin's own iscoroutine()/_run_async() branch) -- the
+            # callback survived the loop still a bare coroutine function.
             original = callback
             @functools.wraps(original)
             def async_wrapper(*a, **ka):
@@ -1553,7 +1639,8 @@ class BaseRequest:
         env = self.environ
         trusted = env.get('lcore.trusted_proxies')
         direct = env.get('REMOTE_ADDR')
-        trust_forward = trusted and direct in trusted
+        hops = env.get('lcore.trusted_proxy_hops')
+        trust_forward = bool(hops) or bool(trusted and direct in trusted)
         if trust_forward:
             http = env.get('HTTP_X_FORWARDED_PROTO') or env.get('wsgi.url_scheme', 'http')
             host = env.get('HTTP_X_FORWARDED_HOST') or env.get('HTTP_HOST')
@@ -1623,8 +1710,14 @@ class BaseRequest:
     @property
     def remote_addr(self):
         direct = self.environ.get('REMOTE_ADDR')
-        trusted = self.environ.get('lcore.trusted_proxies')
         proxy = self.environ.get('HTTP_X_FORWARDED_FOR')
+        hops = self.environ.get('lcore.trusted_proxy_hops')
+        if proxy and hops:
+            addrs = [ip.strip() for ip in proxy.split(',') if ip.strip()]
+            if len(addrs) >= hops:
+                return addrs[-hops]
+            return direct
+        trusted = self.environ.get('lcore.trusted_proxies')
         if proxy and trusted:
             # Walk X-Forwarded-For from right, skipping known proxies
             addrs = [ip.strip() for ip in proxy.split(',')]
@@ -1905,6 +1998,13 @@ class BaseResponse:
                 options[key] = default_val
 
         for key, value in options.items():
+            # An unset attribute must be omitted, not rendered as "Domain=None".
+            # Checked before the falsy skip below: delete_cookie() relies on
+            # expires=0 and max_age=-1 still being emitted. samesite=None is
+            # exempt: it means "SameSite=None" (the explicit cross-site
+            # opt-in), not "omit this attribute".
+            if value is None and key not in ('same_site', 'samesite'):
+                continue
             if key in ('max_age', 'maxage'):
                 key = 'max-age'
                 if isinstance(value, timedelta):
@@ -2213,7 +2313,18 @@ class CSRFMiddleware(Middleware):
     def __init__(self, secret=None, cookie_name='_csrf_token',
                  header_name='X-CSRF-Token', form_field='_csrf_token',
                  safe_methods=('GET', 'HEAD', 'OPTIONS'), secure=False):
-        self.secret = secret or hashlib.sha256(os.urandom(32)).hexdigest()
+        if secret is None:
+            secret = hashlib.sha256(os.urandom(32)).hexdigest()
+            warnings.warn(
+                "CSRFMiddleware: no secret= given, using a random per-process "
+                "secret. Under multi-worker deployment (e.g. gunicorn -w N) "
+                "each worker generates its own secret, so a token cookie "
+                "signed by one worker fails verification on another and "
+                "legitimate submissions get randomly rejected with 403. Pass "
+                "a fixed secret= (e.g. from an environment variable) in any "
+                "multi-process deployment.",
+                UserWarning, stacklevel=2)
+        self.secret = secret
         self.cookie_name = cookie_name
         self.header_name = header_name
         self.form_field = form_field
@@ -2322,15 +2433,52 @@ class CORSMiddleware(Middleware):
         return result
 
 
+class _ClosingIterator:
+    """Wraps a body iterator so its underlying source is always closed, even
+    if this wrapper is discarded before ever being iterated. A bare
+    generator's own `finally` only runs once its frame has started
+    executing, so something that throws the returned iterable away unstarted
+    would otherwise leak whatever `source` holds open (a file, a DB cursor).
+    """
+    __slots__ = ('_it', '_source', '_closed')
+
+    def __init__(self, it, source):
+        self._it = it
+        self._source = source
+        self._closed = False
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return next(self._it)
+
+    def close(self):
+        if self._closed:
+            return
+        self._closed = True
+        _try_close(self._it)
+        _try_close(self._source)
+
+    def __del__(self):
+        try:
+            self.close()
+        except Exception:
+            pass
+
+
 # gzip for responses skips tiny bodies and already-encoded ones
 class CompressionMiddleware(Middleware):
     name = 'compression'
     order = 90
 
     def __init__(self, min_size=256, level=6,
-                 content_types=None):
+                 content_types=None, stream_threshold=256 * 1024):
         self.min_size = min_size
         self.level = level
+        # How much of a streamed body to buffer before giving up on knowing
+        # its length and switching to incremental compression.
+        self.stream_threshold = stream_threshold
         self.content_types = content_types or (
             'text/', 'application/json', 'application/javascript',
             'application/xml', 'application/xhtml+xml',
@@ -2349,21 +2497,17 @@ class CompressionMiddleware(Middleware):
             return result
         if ctx.response.get_header('Content-Encoding'):
             return result
+        # An ordinary bytes or str body is compressed in a single call with a
+        # known Content-Length, exactly as before streaming support existed.
         if isinstance(result, bytes):
             body = result
         elif isinstance(result, str):
             body = result.encode('utf-8')
         else:
-            # Generators/iterators: collect all chunks first
-            try:
-                chunks = []
-                for chunk in result:
-                    chunks.append(tob(chunk) if not isinstance(chunk, bytes) else chunk)
-                body = b''.join(chunks)
-            except Exception:
-                return result
-            finally:
-                _try_close(result)
+            return self._compress_iterable(ctx, result)
+        return self._compress_whole(ctx, body)
+
+    def _compress_whole(self, ctx, body):
         if len(body) < self.min_size:
             return body
         compressed = gzip.compress(body, compresslevel=self.level)
@@ -2371,6 +2515,53 @@ class CompressionMiddleware(Middleware):
         ctx.response.set_header('Content-Length', str(len(compressed)))
         ctx.response.set_header('Vary', 'Accept-Encoding')
         return compressed
+
+    def _compress_iterable(self, ctx, result):
+        """Buffer a streamed body up to stream_threshold, then stream.
+
+        Anything that fits in the buffer is compressed whole and keeps its
+        Content-Length, so ordinary responses behave exactly as they used to.
+        Only a body that outgrows the buffer switches to incremental gzip,
+        which trades Content-Length for constant memory. Buffering the whole
+        thing meant a 20MB response cost 40MB of RAM per concurrent request
+        and defeated streaming entirely.
+        """
+        iterator = iter(result)
+        buffered, total = [], 0
+        try:
+            for chunk in iterator:
+                chunk = tob(chunk)
+                buffered.append(chunk)
+                total += len(chunk)
+                if total > self.stream_threshold:
+                    break
+            else:
+                _try_close(result)
+                return self._compress_whole(ctx, b''.join(buffered))
+        except Exception:
+            _try_close(result)
+            return result
+
+        # Too big to buffer. The compressed length is unknown until the body
+        # ends, so any Content-Length already set would now be a lie.
+        ctx.response.set_header('Content-Encoding', 'gzip')
+        ctx.response.set_header('Vary', 'Accept-Encoding')
+        if 'Content-Length' in ctx.response:
+            del ctx.response['Content-Length']
+        return _ClosingIterator(
+            self._gzip_stream(buffered, iterator, result), result)
+
+    def _gzip_stream(self, buffered, iterator, source):
+        # wbits=31 is zlib's raw deflate plus a gzip wrapper
+        compressor = zlib.compressobj(self.level, zlib.DEFLATED, 31)
+        try:
+            for chunk in itertools.chain(buffered, iterator):
+                data = compressor.compress(tob(chunk))
+                if data:
+                    yield data
+            yield compressor.flush()
+        finally:
+            _try_close(source)
 
 
 # Rejects bodies over max_size before they clog your pipes
@@ -2392,13 +2583,26 @@ class BodyLimitMiddleware(Middleware):
         return next_handler(ctx)
 
 
-# Tells request.remote_addr to trust X-Forwarded-For from your nginx/load-balancer
+# Tells request.remote_addr to trust X-Forwarded-For from your nginx/load-balancer.
+#
+# Two independent trust modes:
+#   trusted_proxies=[...]  IP allowlist. X-Forwarded-* is only honored when the
+#                          directly-connecting peer (REMOTE_ADDR) is in the list.
+#                          Handles multi-hop chains as long as every proxy's IP
+#                          is known.
+#   num_proxies=N          Hop-count trust. Blindly trusts the last N entries of
+#                          X-Forwarded-For, no IP check at all just like
+#                          Werkzeug's ProxyFix. Use when your proxy's IP isn't
+#                          fixed/known but your network guarantees exactly N
+#                          proxies sit in front of the app (nothing else can
+#                          reach it directly).
+# Pass at most one of the two; num_proxies takes precedence if both are given.
 class ProxyFixMiddleware(Middleware):
     name = 'proxy_fix'
     order = -10
     phase = 'pre'
 
-    def __init__(self, trusted_proxies=None, num_proxies=1):
+    def __init__(self, trusted_proxies=None, num_proxies=None):
         if trusted_proxies is not None:
             self.trusted = frozenset(trusted_proxies)
         else:
@@ -2406,7 +2610,10 @@ class ProxyFixMiddleware(Middleware):
         self.num_proxies = num_proxies
 
     def __call__(self, ctx, next_handler):
-        ctx.request.environ['lcore.trusted_proxies'] = self.trusted
+        env = ctx.request.environ
+        env['lcore.trusted_proxies'] = self.trusted
+        if self.num_proxies is not None:
+            env['lcore.trusted_proxy_hops'] = self.num_proxies
         return next_handler(ctx)
 
 
@@ -2437,12 +2644,93 @@ class TimeoutMiddleware(Middleware):
 
     def __call__(self, ctx, next_handler):
         pool = self._get_pool()
-        future = pool.submit(next_handler, ctx)
+        # request, response and ctx are thread-locals bound in the serving
+        # thread; a pool thread has none of them, so a handler touching
+        # request used to die with "Request context not initialized". The
+        # worker's response is seeded from a snapshot of the outer one so a
+        # handler can read/overwrite/delete what pre-phase middleware set,
+        # same as it would with no thread hop at all.
+        environ = ctx.request.environ
+        app, route = ctx.app, ctx.route
+        user, request_id = ctx.user, ctx.request_id
+        state, lazy = ctx.state, ctx._lazy
+        seed = ctx.response.copy()
+        carried = {}
+
+        def run_bound():
+            request.bind(environ)
+            response.bind()
+            response._status_code = seed._status_code
+            response._status_line = seed._status_line
+            response._headers = seed._headers
+            response._cookies = seed._cookies
+            # Not ctx.bind() (RequestContext.__init__): that allocates fresh
+            # state={}/_lazy={} dicts and sets route/user/request_id to None,
+            # all immediately overwritten below. Setting every slot directly
+            # skips the wasted allocations and redundant writes.
+            ctx.request = request
+            ctx.response = response
+            ctx.app = app
+            ctx.route = route
+            ctx.user = user
+            ctx.request_id = request_id
+            # The same dict objects, not copies, so anything the handler adds
+            # to the session or a DI scope is visible to the serving thread.
+            # user/route/request_id are RequestContext __slots__, which are
+            # thread-local and NOT part of these dicts, so they don't cross
+            # the thread boundary this way; carried back explicitly below.
+            ctx.state = state
+            ctx._lazy = lazy
+            try:
+                return next_handler(ctx)
+            finally:
+                # A plain snapshot, not the thread-local `response` object
+                # itself: response._headers et al. are thread-local
+                # properties, so reading them from the serving thread would
+                # silently resolve to the SERVING thread's own slot rather
+                # than what this worker thread just set. Captured even when
+                # the handler raises, so a redirect still carries the
+                # cookies set before it.
+                carried['done'] = True
+                carried['response'] = response.copy()
+                carried['user'] = ctx.user
+                carried['route'] = ctx.route
+                carried['request_id'] = ctx.request_id
+
+        future = pool.submit(run_bound)
         try:
             return future.result(timeout=self.timeout)
         except concurrent.futures.TimeoutError:
             raise HTTPError(503, 'Request timed out (limit: %ds)'
                             % self.timeout)
+        finally:
+            if carried.get('done'):
+                self._carry_response_back(carried['response'], ctx.response)
+                ctx.user = carried['user']
+                ctx.route = carried['route']
+                ctx.request_id = carried['request_id']
+
+    @staticmethod
+    def _carry_response_back(worker_response, outer_response):
+        """Replace the outer response's status/headers/cookies with the
+        worker's.
+
+        The worker's response was seeded with a snapshot of the outer
+        response before the worker started (see __call__), so its final
+        state already reflects everything pre-phase middleware set, plus
+        whatever the handler and post-phase middleware (e.g. compression)
+        changed on top of that -- including deletions. A full replace is
+        correct here, not a merge: the worker's response is a strict
+        continuation of the outer one, not an independent, only-additive
+        view of it.
+
+        Deliberately not HTTPResponse.apply(): that also overwrites the body,
+        and here the body is the handler's return value, passed back separately.
+        """
+        outer_response._status_code = worker_response._status_code
+        outer_response._status_line = worker_response._status_line
+        outer_response._headers = worker_response._headers
+        outer_response._cookies = worker_response._cookies
 
 
 # Middleware with separate pre() and post() no chain-wrangling needed
@@ -2484,6 +2772,11 @@ class DependencyContainer:
     def register(self, name, factory, lifetime='singleton'):
         if lifetime not in (self.SINGLETON, self.SCOPED, self.TRANSIENT):
             raise ValueError("lifetime must be 'singleton', 'scoped', or 'transient'")
+        if name in RequestContext.__slots__ or hasattr(RequestContext, name):
+            raise ValueError(
+                "%r is reserved by RequestContext: ctx.%s would silently "
+                "resolve to the built-in attribute or method instead of "
+                "this dependency. Pick a different name." % (name, name))
         self._registry[name] = (factory, lifetime)
 
     def resolve(self, name, ctx=None):
@@ -2591,9 +2884,35 @@ class RateLimitBackend(abc.ABC):
         :func:`rate_limit` wrapper."""
 
 
+def _make_redis_client(requirer, redis_url, socket_connect_timeout,
+                        health_check_interval):
+    """Shared redis-py client construction for RedisRateLimitBackend and
+    RedisSessionBackend: same import guard, same from_url() options."""
+    try:
+        import redis as _redis_mod
+    except ImportError:
+        raise ImportError(
+            "%s requires the 'redis' package (lcore itself has zero "
+            "dependencies; redis is only imported if you use this backend).\n"
+            "Install it with:  uv add redis  (or: pip install redis)" % requirer)
+    return _redis_mod.from_url(
+        redis_url,
+        decode_responses=True,
+        socket_connect_timeout=socket_connect_timeout,
+        health_check_interval=health_check_interval)
+
+
+def _close_redis(client):
+    try:
+        client.close()
+    except Exception:
+        pass
+
+
 class RedisRateLimitBackend(RateLimitBackend):
-    """Redis-backed rate limiter. pip install redis, pass backend= to rate_limit().
-    Fails open on Redis outage your app keeps working, limits get a holiday."""
+    """Redis-backed rate limiter. uv add redis (or pip install redis), pass
+    backend= to rate_limit(). Fails open on Redis outage your app keeps
+    working, limits get a holiday."""
 
     # Atomic fixed-window counter.
     # INCR the key; on first increment set the TTL equal to the window; return count.
@@ -2607,18 +2926,10 @@ class RedisRateLimitBackend(RateLimitBackend):
                  prefix='lcore:rl:',
                  socket_connect_timeout=2,
                  health_check_interval=30):
-        try:
-            import redis as _redis_mod
-        except ImportError:
-            raise ImportError(
-                "RedisRateLimitBackend requires the 'redis' package.\n"
-                "Install it with:  pip install redis")
         self._prefix = prefix
-        self._r = _redis_mod.from_url(
-            redis_url,
-            decode_responses=True,
-            socket_connect_timeout=socket_connect_timeout,
-            health_check_interval=health_check_interval)
+        self._r = _make_redis_client('RedisRateLimitBackend', redis_url,
+                                      socket_connect_timeout,
+                                      health_check_interval)
         self._script = self._r.register_script(self._LUA)
         # Ensure the connection pool is released on normal process exit.
         atexit.register(self.close)
@@ -2637,10 +2948,7 @@ class RedisRateLimitBackend(RateLimitBackend):
 
     def close(self):
         """Close the Redis connection pool."""
-        try:
-            self._r.close()
-        except Exception:
-            pass
+        _close_redis(self._r)
 
 
 # Token bucket per IP with 64-way lock striping. Without a backend= each
@@ -2728,6 +3036,883 @@ def rate_limit(limit, per=60, max_buckets=10000, backend=None):
             return func(*a, **ka)
         return wrapper
     return decorator
+
+# Server-side sessions. The cookie carries a signed session id and nothing
+# else; all state lives in a backend you pick. Two revocation mechanisms, both
+# implemented by every shipped backend:
+#   index  per-user set of live session ids. Powers list_user() ("you are
+#          signed in on 3 devices") and revoking one device without the others.
+#   epoch  per-user counter stamped into a session when it is bound to a user.
+#          Bump it and every session issued before the bump dies on its next
+#          load, without walking the index. The cheap global kill switch.
+# revoke_all() does both, and is what a password reset should call.
+
+_SESSION_SID_BYTES = 32
+
+
+def _new_sid():
+    return os.urandom(_SESSION_SID_BYTES).hex()
+
+
+def _blank_session_record():
+    now = time.time()
+    return {'data': {}, 'uid': None, 'epoch': 0,
+            'created': now, 'seen': now, 'ip': None, 'ua': None}
+
+
+class SessionBackend(abc.ABC):
+    """ABC for session stores. Subclass for Postgres, DynamoDB, Memcached.
+
+    Records are plain dicts and must stay JSON-serialisable: every shipped
+    backend round-trips them through JSON, so what works in development with
+    MemorySessionBackend also works in production.
+    """
+
+    @abc.abstractmethod
+    def load(self, sid):
+        """Return the record dict stored under *sid*, or None if absent."""
+
+    @abc.abstractmethod
+    def save(self, sid, record, ttl):
+        """Store *record* under *sid*, expiring *ttl* seconds from now.
+
+        Implementations must index the session under ``record['uid']`` when
+        that key is set, so list_user() and revoke_user() can find it.
+        """
+
+    @abc.abstractmethod
+    def delete(self, sid):
+        """Remove one session. Returns True if it existed."""
+
+    @abc.abstractmethod
+    def list_user(self, user_key):
+        """Return ``[(sid, record), ...]`` for a user's live sessions."""
+
+    @abc.abstractmethod
+    def revoke_user(self, user_key, except_sid=None):
+        """Delete every session for *user_key*. Returns the number removed."""
+
+    @abc.abstractmethod
+    def get_epoch(self, user_key):
+        """Return the user's current epoch. 0 if never bumped."""
+
+    @abc.abstractmethod
+    def bump_epoch(self, user_key):
+        """Invalidate every session issued before now. Returns the new epoch."""
+
+    # Seconds to cache per-user epochs in this process. Without a cache every
+    # authenticated request costs a second round trip on top of loading the session.
+    epoch_cache_ttl = 5.0
+    epoch_cache_max = 10000
+
+    def cached_epoch(self, user_key):
+        """get_epoch() behind a short process-local TTL cache.
+
+        A local bump_epoch() drops the entry at once, so revocation from this
+        process is immediate. Another process's bump is picked up within
+        epoch_cache_ttl seconds.
+        """
+        ttl = self.epoch_cache_ttl
+        if not ttl:
+            return self.get_epoch(user_key)
+        key = str(user_key)
+        try:
+            cache = self._epoch_cache
+            gens = self._epoch_cache_gen
+        except AttributeError:
+            cache = self._epoch_cache = {}
+            gens = self._epoch_cache_gen = {}
+        # Unlocked on purpose: dict get/set are atomic under the GIL and the
+        # worst an ordinary race can do is fetch the same epoch twice.
+        entry = cache.get(key)
+        now = time.monotonic()
+        if entry is not None and entry[1] > now:
+            return entry[0]
+        # get_epoch() is a backend round trip, which releases the GIL: a
+        # concurrent bump_epoch()/_forget_epoch() for this key can run to
+        # completion while we're waiting on it. Detect that by generation
+        # number rather than caching unconditionally, otherwise the epoch we
+        # read here (possibly the pre-bump value) gets written into the cache
+        # right after the bump that was supposed to invalidate it, reviving a
+        # just-revoked epoch for up to epoch_cache_ttl seconds.
+        gen_before = gens.get(key, 0)
+        epoch = self.get_epoch(key)
+        if gens.get(key, 0) != gen_before:
+            return epoch
+        if len(cache) >= self.epoch_cache_max:
+            cache.clear()
+        cache[key] = (epoch, now + ttl)
+        return epoch
+
+    def _forget_epoch(self, user_key):
+        """Drop a cached epoch. Call from bump_epoch() implementations."""
+        key = str(user_key)
+        cache = getattr(self, '_epoch_cache', None)
+        if cache is not None:
+            cache.pop(key, None)
+        gens = getattr(self, '_epoch_cache_gen', None)
+        if gens is None:
+            gens = self._epoch_cache_gen = {}
+        gens[key] = gens.get(key, 0) + 1
+
+    def revoke_all(self, user_key, except_sid=None):
+        """Sign out everywhere. Call this on password reset.
+
+        The index pass kills every session this backend knows about; the epoch
+        bump catches the ones it does not (written by another worker while the
+        revoke was in flight, or dropped from the index).
+        """
+        removed = self.revoke_user(user_key, except_sid=except_sid)
+        self.bump_epoch(user_key)
+        return removed
+
+    def touch(self, sid, ttl):
+        """Refresh a session's TTL. Returns False if it no longer exists."""
+        record = self.load(sid)
+        if record is None:
+            return False
+        self.save(sid, record, ttl)
+        return True
+
+    def unindex(self, sid, user_key):
+        """Remove sid from user_key's per-user index without deleting the
+        session itself. Called by Session.bind_user(regenerate=False) when a
+        session is reassigned to a different user without a new sid, so the
+        old user's index does not keep pointing at a session that now
+        belongs to someone else. Default no-op: a backend whose list_user()/
+        revoke_user() derive membership structurally from the record itself
+        (e.g. a uid column, as SQLiteSessionBackend has) needs no override.
+        """
+        pass
+
+    def close(self):
+        """Optional: release connections or threads."""
+
+
+class MemorySessionBackend(SessionBackend):
+    """Sessions in process memory. Development and single-worker only."""
+
+    def __init__(self, max_sessions=100000, warn=True):
+        self._store = {}    # sid -> (expires_at, uid_key or None, json blob)
+        self._index = {}    # user key -> set of sid
+        self._epochs = {}   # user key -> int
+        self._lock = threading.RLock()
+        self._max_sessions = max_sessions
+        if warn:
+            warnings.warn(
+                "MemorySessionBackend keeps sessions in process memory: they "
+                "are lost on restart, and under multi-worker deployment (e.g. "
+                "gunicorn -w N) each worker has its own store, so a user is "
+                "logged in on one worker and logged out on the others. Use "
+                "SQLiteSessionBackend (single server) or RedisSessionBackend "
+                "(multi server) in production.",
+                UserWarning, stacklevel=2)
+
+    def load(self, sid):
+        with self._lock:
+            entry = self._store.get(sid)
+            if entry is None:
+                return None
+            if entry[0] <= time.time():
+                self._drop(sid)
+                return None
+            return json_loads(entry[2])
+
+    def save(self, sid, record, ttl):
+        blob = json_dumps(record)
+        uid = record.get('uid')
+        uid_key = None if uid is None else str(uid)
+        with self._lock:
+            old = self._store.get(sid)
+            if old is None and len(self._store) >= self._max_sessions:
+                self._evict_expired()
+                if len(self._store) >= self._max_sessions:
+                    # Nothing had expired: evict the oldest-inserted sessions
+                    # (dicts preserve insertion order) rather than growing
+                    # past max_sessions without bound.
+                    overflow = len(self._store) - self._max_sessions + 1
+                    for old_sid in list(itertools.islice(self._store, overflow)):
+                        self._drop(old_sid)
+            if old is not None and old[1] is not None and old[1] != uid_key:
+                # Session was re-pointed at a different uid (bind_user with
+                # regenerate=False) since it was last saved: the old uid's
+                # index must not keep claiming a session that is now
+                # someone else's.
+                self._deindex(sid, old[1])
+            self._store[sid] = (time.time() + ttl, uid_key, blob)
+            if uid_key is not None:
+                self._index.setdefault(uid_key, set()).add(sid)
+
+    def delete(self, sid):
+        with self._lock:
+            return self._drop(sid)
+
+    def unindex(self, sid, user_key):
+        with self._lock:
+            self._deindex(sid, str(user_key))
+
+    def list_user(self, user_key):
+        key = str(user_key)
+        with self._lock:
+            return [(sid, json_loads(entry[2]))
+                    for sid, entry in list(self._live_entries(key))]
+
+    def revoke_user(self, user_key, except_sid=None):
+        key = str(user_key)
+        removed = 0
+        with self._lock:
+            for sid, _entry in list(self._live_entries(key)):
+                if sid == except_sid:
+                    continue
+                if self._drop(sid):
+                    removed += 1
+        return removed
+
+    def get_epoch(self, user_key):
+        with self._lock:
+            return self._epochs.get(str(user_key), 0)
+
+    def bump_epoch(self, user_key):
+        with self._lock:
+            key = str(user_key)
+            epoch = self._epochs.get(key, 0) + 1
+            self._epochs[key] = epoch
+        self._forget_epoch(key)
+        return epoch
+
+    def _live_entries(self, key):
+        """Yield (sid, entry) for key's index members that are still live.
+
+        Prunes anything expired, vanished, or reassigned to a different user
+        by bind_user(regenerate=False) since it was indexed under key. Caller
+        holds the lock.
+        """
+        now = time.time()
+        for sid in list(self._index.get(key, ())):
+            entry = self._store.get(sid)
+            if entry is None or entry[0] <= now:
+                self._drop(sid)
+                continue
+            if entry[1] != key:
+                self._deindex(sid, key)
+                continue
+            yield sid, entry
+
+    def _drop(self, sid):
+        """Remove a session and its index entry. Caller holds the lock."""
+        entry = self._store.pop(sid, None)
+        if entry is None:
+            return False
+        self._deindex(sid, entry[1])
+        return True
+
+    def _deindex(self, sid, uid_key):
+        """Remove sid from uid_key's index set. Caller holds the lock."""
+        if uid_key is None:
+            return
+        sids = self._index.get(uid_key)
+        if sids is not None:
+            sids.discard(sid)
+            if not sids:
+                del self._index[uid_key]
+
+    def _evict_expired(self):
+        now = time.time()
+        for sid in [s for s, entry in list(self._store.items()) if entry[0] <= now]:
+            self._drop(sid)
+
+
+class SQLiteSessionBackend(SessionBackend):
+    """Sessions in a SQLite file. Stdlib only, so it keeps the zero-dependency
+    promise, survives restarts, and is safe across worker processes on a single
+    machine (WAL journalling plus a busy timeout). Reach for Redis only when
+    you outgrow one box."""
+
+    def __init__(self, path='lcore_sessions.db', busy_timeout=5000,
+                 cleanup_every=300, cleanup_batch=1000):
+        import sqlite3
+        self._sqlite3 = sqlite3
+        self._path = path
+        self._busy_timeout = busy_timeout
+        self._cleanup_every = cleanup_every
+        # Bounds each sweep to one write transaction over at most this many
+        # expired rows, so a backlog built up over cleanup_every seconds
+        # cannot turn one unlucky request's save() into a full-table scan
+        # and a write-transaction that (under WAL) blocks other writers for
+        # its duration. Leftover rows are caught by the next sweep.
+        self._cleanup_batch = cleanup_batch
+        self._last_cleanup = time.time()
+        self._local = threading.local()
+        with self._conn as conn:
+            conn.execute("CREATE TABLE IF NOT EXISTS lcore_sessions ("
+                         "sid TEXT PRIMARY KEY, uid TEXT, "
+                         "expires REAL NOT NULL, record TEXT NOT NULL)")
+            conn.execute("CREATE INDEX IF NOT EXISTS lcore_sessions_uid "
+                         "ON lcore_sessions (uid)")
+            conn.execute("CREATE INDEX IF NOT EXISTS lcore_sessions_expires "
+                         "ON lcore_sessions (expires)")
+            conn.execute("CREATE TABLE IF NOT EXISTS lcore_session_epochs ("
+                         "uid TEXT PRIMARY KEY, epoch INTEGER NOT NULL)")
+        atexit.register(self.close)
+
+    @property
+    def _conn(self):
+        # sqlite3 connections are not shareable across threads.
+        conn = getattr(self._local, 'conn', None)
+        if conn is None:
+            conn = self._sqlite3.connect(
+                self._path, timeout=self._busy_timeout / 1000.0)
+            conn.execute('PRAGMA journal_mode=WAL')
+            conn.execute('PRAGMA synchronous=NORMAL')
+            conn.execute('PRAGMA busy_timeout=%d' % self._busy_timeout)
+            self._local.conn = conn
+        return conn
+
+    def load(self, sid):
+        row = self._conn.execute(
+            'SELECT record, expires FROM lcore_sessions WHERE sid = ?',
+            (sid,)).fetchone()
+        if row is None:
+            return None
+        if row[1] <= time.time():
+            self.delete(sid)
+            return None
+        return json_loads(row[0])
+
+    def save(self, sid, record, ttl):
+        uid = record.get('uid')
+        with self._conn as conn:
+            conn.execute(
+                'INSERT OR REPLACE INTO lcore_sessions '
+                '(sid, uid, expires, record) VALUES (?, ?, ?, ?)',
+                (sid, None if uid is None else str(uid),
+                 time.time() + ttl, json_dumps(record)))
+        self._maybe_cleanup()
+
+    def delete(self, sid):
+        with self._conn as conn:
+            cur = conn.execute('DELETE FROM lcore_sessions WHERE sid = ?', (sid,))
+        return cur.rowcount > 0
+
+    def list_user(self, user_key):
+        rows = self._conn.execute(
+            'SELECT sid, record FROM lcore_sessions '
+            'WHERE uid = ? AND expires > ?',
+            (str(user_key), time.time())).fetchall()
+        return [(row[0], json_loads(row[1])) for row in rows]
+
+    def revoke_user(self, user_key, except_sid=None):
+        # expires > ? matches list_user()'s definition of "live": without it,
+        # rows that expired but haven't been swept yet by _maybe_cleanup are
+        # deleted and counted anyway, so the returned count (surfaced to apps
+        # as "signed out of N devices") can be higher than list_user() ever
+        # reported as active.
+        now = time.time()
+        with self._conn as conn:
+            if except_sid is None:
+                cur = conn.execute(
+                    'DELETE FROM lcore_sessions WHERE uid = ? AND expires > ?',
+                    (str(user_key), now))
+            else:
+                cur = conn.execute(
+                    'DELETE FROM lcore_sessions '
+                    'WHERE uid = ? AND expires > ? AND sid != ?',
+                    (str(user_key), now, except_sid))
+        return cur.rowcount
+
+    def get_epoch(self, user_key):
+        row = self._conn.execute(
+            'SELECT epoch FROM lcore_session_epochs WHERE uid = ?',
+            (str(user_key),)).fetchone()
+        return row[0] if row else 0
+
+    def bump_epoch(self, user_key):
+        key = str(user_key)
+        with self._conn as conn:
+            conn.execute(
+                'INSERT INTO lcore_session_epochs (uid, epoch) VALUES (?, 1) '
+                'ON CONFLICT(uid) DO UPDATE SET epoch = epoch + 1', (key,))
+        self._forget_epoch(key)
+        return self.get_epoch(key)
+
+    def _maybe_cleanup(self):
+        now = time.time()
+        if not self._cleanup_every or now - self._last_cleanup < self._cleanup_every:
+            return
+        self._last_cleanup = now
+        with self._conn as conn:
+            conn.execute(
+                'DELETE FROM lcore_sessions WHERE rowid IN ('
+                'SELECT rowid FROM lcore_sessions WHERE expires <= ? '
+                'LIMIT ?)', (now, self._cleanup_batch))
+
+    def close(self):
+        conn = getattr(self._local, 'conn', None)
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
+            self._local.conn = None
+
+
+class RedisSessionBackend(SessionBackend):
+    """Redis-backed sessions for multi-server deployments.
+    uv add redis (or pip install redis), then pass backend=RedisSessionBackend()."""
+
+    # Add sid to the per-user index and extend the index's TTL, but never
+    # shrink it: a plain EXPIRE on every save() would reset the index's TTL
+    # to whatever ttl that particular save() used, so a short-lived save (or
+    # a plain touch()) after a long-lived one could expire the whole index
+    # while the long-lived session is still alive.
+    _INDEX_LUA = (
+        "redis.call('SADD', KEYS[1], ARGV[1])\n"
+        "local cur = redis.call('PTTL', KEYS[1])\n"
+        "if cur < tonumber(ARGV[2]) then\n"
+        "  redis.call('PEXPIRE', KEYS[1], ARGV[2])\n"
+        "end\n"
+    )
+
+    def __init__(self, redis_url='redis://localhost:6379/0',
+                 prefix='lcore:sess:',
+                 socket_connect_timeout=2,
+                 health_check_interval=30):
+        self._prefix = prefix
+        self._r = _make_redis_client('RedisSessionBackend', redis_url,
+                                      socket_connect_timeout,
+                                      health_check_interval)
+        self._index_script = self._r.register_script(self._INDEX_LUA)
+        atexit.register(self.close)
+
+    def _skey(self, sid):
+        return '%s%s' % (self._prefix, sid)
+
+    def _ukey(self, user_key):
+        return '%su:%s' % (self._prefix, user_key)
+
+    def _ekey(self, user_key):
+        return '%se:%s' % (self._prefix, user_key)
+
+    def load(self, sid):
+        blob = self._r.get(self._skey(sid))
+        return json_loads(blob) if blob else None
+
+    def save(self, sid, record, ttl):
+        ttl = int(ttl)
+        uid = record.get('uid')
+        self._r.setex(self._skey(sid), ttl, json_dumps(record))
+        if uid is not None:
+            # Not pipelined with the setex above: the index update needs to
+            # read its own current TTL (via the Lua script) before deciding
+            # whether to extend it, so it runs as its own round trip.
+            self._index_script(keys=[self._ukey(uid)],
+                                args=[sid, ttl * 1000])
+
+    def delete(self, sid):
+        # No GET-then-SREM here: the per-user index already tolerates dead
+        # members (list_user/revoke_user prune anything whose session key is
+        # gone), so a plain DEL is one round trip instead of two, with no
+        # wasted deserialization of the record just to find its uid.
+        return bool(self._r.delete(self._skey(sid)))
+
+    def unindex(self, sid, user_key):
+        self._r.srem(self._ukey(user_key), sid)
+
+    def list_user(self, user_key):
+        ukey = self._ukey(user_key)
+        sids = list(self._r.smembers(ukey))
+        if not sids:
+            return []
+        blobs = self._r.mget([self._skey(sid) for sid in sids])
+        live, stale = [], []
+        for sid, blob in zip(sids, blobs):
+            if blob is None:
+                stale.append(sid)
+            else:
+                live.append((sid, json_loads(blob)))
+        if stale:
+            self._r.srem(ukey, *stale)
+        return live
+
+    def revoke_user(self, user_key, except_sid=None):
+        ukey = self._ukey(user_key)
+        sids = [sid for sid in self._r.smembers(ukey) if sid != except_sid]
+        if not sids:
+            return 0
+        pipe = self._r.pipeline()
+        pipe.delete(*[self._skey(sid) for sid in sids])
+        pipe.srem(ukey, *sids)
+        return int(pipe.execute()[0] or 0)
+
+    def get_epoch(self, user_key):
+        value = self._r.get(self._ekey(user_key))
+        return int(value) if value else 0
+
+    def bump_epoch(self, user_key):
+        # Epoch keys carry no TTL: they must outlive every session they guard.
+        epoch = int(self._r.incr(self._ekey(user_key)))
+        self._forget_epoch(user_key)
+        return epoch
+
+    def close(self):
+        _close_redis(self._r)
+
+
+class Session:
+    """Dict-like view over a server-side session record.
+
+    Reads are free. The record is only written back to the backend when
+    something actually changes, so anonymous browsing costs no writes and
+    sets no cookie.
+    """
+
+    __slots__ = ('_backend', '_sid', '_record', '_new', '_dirty', '_destroyed')
+
+    def __init__(self, backend, sid, record, is_new=False):
+        self._backend = backend
+        self._sid = sid
+        self._record = record
+        self._new = is_new
+        self._dirty = False
+        self._destroyed = False
+
+    @property
+    def sid(self):
+        return self._sid
+
+    @property
+    def is_new(self):
+        return self._new
+
+    @property
+    def modified(self):
+        return self._dirty
+
+    @property
+    def user_id(self):
+        return self._record.get('uid')
+
+    @property
+    def created_at(self):
+        return self._record.get('created')
+
+    @property
+    def last_seen(self):
+        return self._record.get('seen')
+
+    @property
+    def data(self):
+        """The raw underlying dict. Mutating it in place, or mutating a
+        nested container fetched via session[key]/session.data[key], does
+        NOT mark the session dirty and will not be persisted. Assign through
+        session[key] = value (or update()/pop()/setdefault()/clear()) so the
+        change is tracked."""
+        return self._record['data']
+
+    def __getitem__(self, key):
+        return self._record['data'][key]
+
+    def __setitem__(self, key, value):
+        self._record['data'][key] = value
+        self._dirty = True
+
+    def __delitem__(self, key):
+        del self._record['data'][key]
+        self._dirty = True
+
+    def __contains__(self, key):
+        return key in self._record['data']
+
+    def __iter__(self):
+        return iter(self._record['data'])
+
+    def __len__(self):
+        return len(self._record['data'])
+
+    def __repr__(self):
+        return '<Session %s%s keys=%d>' % (
+            self._sid[:8], '' if self.user_id is None else ' uid=%s' % self.user_id,
+            len(self._record['data']))
+
+    def get(self, key, default=None):
+        return self._record['data'].get(key, default)
+
+    def keys(self):
+        return self._record['data'].keys()
+
+    def values(self):
+        return self._record['data'].values()
+
+    def items(self):
+        return self._record['data'].items()
+
+    def pop(self, key, *default):
+        # Dirty only on an actual removal: request.session.pop('flash', None)
+        # is a common read-mostly idiom (checking for and clearing a
+        # one-shot flash message), and marking every miss dirty would cost a
+        # backend write and a fresh Set-Cookie on every request that merely
+        # checks, defeating "reads are free".
+        data = self._record['data']
+        if key in data:
+            self._dirty = True
+        return data.pop(key, *default)
+
+    def setdefault(self, key, default=None):
+        data = self._record['data']
+        if key not in data:
+            self._dirty = True
+        return data.setdefault(key, default)
+
+    def update(self, *args, **kwargs):
+        self._record['data'].update(*args, **kwargs)
+        self._dirty = True
+
+    def clear(self):
+        """Empty the session data but keep the session id."""
+        if self._record['data']:
+            self._dirty = True
+        self._record['data'].clear()
+
+    def regenerate(self):
+        """Issue a fresh session id, keeping the data.
+
+        Call on login and on any privilege change. Reusing the pre-login id is
+        session fixation: an attacker who plants a known id before login still
+        holds a valid session after it.
+        """
+        old_sid = self._sid
+        self._sid = _new_sid()
+        self._dirty = True
+        if old_sid:
+            self._backend.delete(old_sid)
+        return self._sid
+
+    def bind_user(self, user_id, regenerate=True):
+        """Attach this session to a user and stamp the user's current epoch.
+
+        Regenerates the session id by default. Pass regenerate=False only if
+        you have already regenerated it in this request.
+        """
+        new_uid = str(user_id)
+        if regenerate:
+            self.regenerate()
+        else:
+            old_uid = self._record.get('uid')
+            if old_uid is not None and old_uid != new_uid and self._sid:
+                # Reassigning an existing sid to a different user: the old
+                # user's index must not keep pointing at it.
+                self._backend.unindex(self._sid, old_uid)
+        self._record['uid'] = new_uid
+        self._record['epoch'] = self._backend.get_epoch(user_id)
+        self._dirty = True
+
+    def destroy(self):
+        """Delete the session server-side and clear the cookie. A real logout:
+        the id is dead everywhere, not just in this browser."""
+        if self._sid:
+            self._backend.delete(self._sid)
+        self._record = _blank_session_record()
+        self._destroyed = True
+        self._dirty = False
+
+    def list_sessions(self):
+        """Every live session for this session's user, for an account page."""
+        uid = self._record.get('uid')
+        if uid is None:
+            return []
+        return self._backend.list_user(uid)
+
+    def revoke_other_sessions(self):
+        """Sign out this user's other devices, keeping this one signed in."""
+        uid = self._record.get('uid')
+        if uid is None:
+            return 0
+        return self._backend.revoke_user(uid, except_sid=self._sid)
+
+    def revoke_all_sessions(self):
+        """Sign out everywhere including this browser. For password resets."""
+        uid = self._record.get('uid')
+        if uid is None:
+            return 0
+        removed = self._backend.revoke_all(uid)
+        self.destroy()
+        return removed
+
+
+class _SessionAccessor:
+    """Installed at environ['lcore.request.ext.session'] to back
+    request.session. BaseRequest.__getattr__ calls __get__ with one argument."""
+
+    __slots__ = ()
+
+    def __get__(self, req):
+        return _session_for(req.environ)
+
+
+_SESSION_ACCESSOR = _SessionAccessor()
+
+
+def _session_for(environ):
+    session = environ.get('lcore.session.obj')
+    if session is None:
+        middleware = environ.get('lcore.session.mw')
+        if middleware is None:
+            raise RuntimeError(
+                "No session middleware installed. Add "
+                "app.use(SessionMiddleware(backend=..., secret=...)).")
+        session = middleware._open(environ)
+        environ['lcore.session.obj'] = session
+    return session
+
+
+# Loads the session lazily and writes it back only when it changed.
+class SessionMiddleware(Middleware):
+    name = 'session'
+    order = 20
+    phase = 'post'
+
+    def __init__(self, backend=None, secret=None, cookie_name='lcore_session',
+                 ttl=14 * 24 * 3600, absolute_ttl=None, refresh_every=None,
+                 secure=False, httponly=True, samesite='Lax',
+                 path='/', domain=None, on_backend_error='unavailable'):
+        if on_backend_error not in ('unavailable', 'anonymous', 'raise'):
+            raise ValueError(
+                "on_backend_error must be 'unavailable', 'anonymous' or 'raise'")
+        self.on_backend_error = on_backend_error
+        if secret is None:
+            secret = hashlib.sha256(os.urandom(32)).hexdigest()
+            warnings.warn(
+                "SessionMiddleware: no secret= given, using a random "
+                "per-process secret. Every restart invalidates all sessions, "
+                "and under multi-worker deployment (e.g. gunicorn -w N) a "
+                "cookie signed by one worker is rejected by the others, so "
+                "users are logged out at random. Pass a fixed secret= (e.g. "
+                "from an environment variable).",
+                UserWarning, stacklevel=2)
+        self.backend = MemorySessionBackend() if backend is None else backend
+        self.secret = secret
+        self.cookie_name = cookie_name
+        self.ttl = ttl
+        self.absolute_ttl = absolute_ttl
+        # Idle TTL is refreshed at most this often, so a read-only request on an
+        # existing session does not cost a backend write.
+        self.refresh_every = ttl // 10 if refresh_every is None else refresh_every
+        self.secure = secure
+        self.httponly = httponly
+        self.samesite = samesite
+        self.path = path
+        self.domain = domain
+
+    def __call__(self, ctx, next_handler):
+        environ = ctx.request.environ
+        environ['lcore.session.mw'] = self
+        environ['lcore.request.ext.session'] = _SESSION_ACCESSOR
+        if 'session' in ctx.state or 'session' in ctx._lazy:
+            raise RuntimeError(
+                "SessionMiddleware: a dependency named 'session' is already "
+                "registered with app.inject(). It would silently shadow (or "
+                "be shadowed by) ctx.session since both share the same "
+                "context namespace. Rename the injected dependency.")
+        ctx.lazy('session', lambda: _session_for(environ))
+        try:
+            return next_handler(ctx)
+        finally:
+            # finally, not a plain return: redirect() and abort() raise
+            # HTTPResponse, and a login that redirects must still be saved.
+            self._persist(ctx, environ)
+
+    def _open(self, environ):
+        req = Request(environ)
+        sid = req.get_cookie(self.cookie_name, secret=self.secret)
+        if sid:
+            try:
+                record = self.backend.load(sid)
+            except Exception as exc:
+                self._backend_failed('load', exc)
+                record = None
+            if record is not None:
+                if self._is_valid(record):
+                    return Session(self.backend, sid, record, is_new=False)
+                self.backend.delete(sid)
+        record = _blank_session_record()
+        record['ip'] = req.remote_addr
+        record['ua'] = req.get_header('User-Agent')
+        return Session(self.backend, _new_sid(), record, is_new=True)
+
+    def _is_valid(self, record):
+        if self.absolute_ttl:
+            created = record.get('created') or 0
+            if time.time() - created > self.absolute_ttl:
+                return False
+        uid = record.get('uid')
+        if uid is not None:
+            # Cached: without it every authenticated request pays a second
+            # round trip on top of loading the session. Anonymous sessions
+            # skip the check entirely. Strictly less-than, not !=: epochs only
+            # increase, so a record stamped with a newer epoch than this
+            # worker's (briefly stale) cached value is still valid, not a
+            # mismatch to reject. Using != would delete a session stamped by
+            # bind_user() moments after another worker's revoke_all(), for as
+            # long as this worker's epoch cache lags behind.
+            if record.get('epoch', 0) < self.backend.cached_epoch(uid):
+                return False
+        return True
+
+    def _backend_failed(self, operation, exc):
+        """Apply the configured policy to a backend failure.
+
+        Sessions cannot fail open the way rate limiting does: ignoring the
+        store would mean ignoring revocation. So the default refuses the
+        request rather than quietly downgrading a signed-in user to anonymous
+        mid-checkout.
+        """
+        logging.getLogger('lcore.session').error(
+            'Session backend %s failed: %s', operation, exc, exc_info=True)
+        if self.on_backend_error == 'raise':
+            raise exc
+        if self.on_backend_error == 'unavailable':
+            raise HTTPError(503, 'Session store unavailable')
+
+    def _persist(self, ctx, environ):
+        session = environ.get('lcore.session.obj')
+        if session is None:
+            return
+        if session._destroyed:
+            ctx.response.delete_cookie(self.cookie_name, path=self.path,
+                                       domain=self.domain)
+            return
+        now = time.time()
+        if session._dirty:
+            session._record['seen'] = now
+            try:
+                self.backend.save(session._sid, session._record, self.ttl)
+            except Exception as exc:
+                # Raised from a finally block on purpose. If the write failed
+                # there is nothing to set a cookie for, and a login that
+                # redirects must not report success it did not achieve.
+                self._backend_failed('save', exc)
+                return
+            self._set_cookie(ctx, session)
+        elif not session._new and self.refresh_every:
+            if now - (session._record.get('seen') or 0) >= self.refresh_every:
+                session._record['seen'] = now
+                try:
+                    self.backend.save(session._sid, session._record, self.ttl)
+                except Exception as exc:
+                    # A failed idle refresh is not worth failing the request:
+                    # the session is still valid until its existing TTL runs out.
+                    logging.getLogger('lcore.session').warning(
+                        'Session TTL refresh failed: %s', exc)
+                    return
+                self._set_cookie(ctx, session)
+
+    def _set_cookie(self, ctx, session):
+        ctx.response.set_cookie(
+            self.cookie_name, session._sid, secret=self.secret,
+            max_age=self.ttl, path=self.path, domain=self.domain,
+            secure=self.secure, httponly=self.httponly,
+            samesite=self.samesite)
+
 
 # Validates request.json / query params against a schema. Supports Optional[type].
 def validate_request(body=None, query=None):
@@ -3997,7 +5182,7 @@ class TestClient:
             'SERVER_PORT': '80',
             'SERVER_PROTOCOL': 'HTTP/1.1',
             'wsgi.input': BytesIO(body),
-            'wsgi.errors': BytesIO(),
+            'wsgi.errors': StringIO(),
             'wsgi.url_scheme': 'http',
             'QUERY_STRING': query_string,
             'CONTENT_LENGTH': str(len(body)),
@@ -4628,7 +5813,10 @@ server_names = {
 
 # Module loading. Give it "pkg.mod:App" and it gives you back the App.
 
-def load(target, **namespace):
+def load(target):
+    # No **namespace: it existed only as the globals dict for the eval() this
+    # function used to do. The eval is gone, replaced by the getattr chain
+    # below, so the parameter could not affect anything.
     module, target = target.split(":", 1) if ':' in target else (target, None)
     if module not in sys.modules: __import__(module)
     if not target: return sys.modules[module]

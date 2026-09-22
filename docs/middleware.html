@@ -41,7 +41,7 @@
         <a href="api-reference.html">API</a>
       </nav>
       <div class="header-right">
-        <span class="version-badge">v0.0.4</span>
+        <span class="version-badge">v0.0.5</span>
         <a href="https://github.com/Lusan-sapkota/lcore" class="github-link">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
           GitHub
@@ -68,6 +68,7 @@
         <a href="middleware.html" class="sidebar-link">Middleware</a>
         <a href="middleware.html#overview" class="sidebar-link sub">Overview</a>
         <a href="middleware.html#built-in" class="sidebar-link sub">Built-in Middleware</a>
+        <a href="middleware.html#sessions" class="sidebar-link sub">Sessions</a>
         <a href="middleware.html#custom" class="sidebar-link sub">Custom Middleware</a>
         <a href="middleware.html#middleware-hooks" class="sidebar-link sub">Middleware Hooks</a>
         <a href="middleware.html#hooks" class="sidebar-link sub">Lifecycle Hooks</a>
@@ -80,6 +81,7 @@
         <a href="advanced.html#mounting" class="sidebar-link">Module Mounting</a>
         <a href="advanced.html#security" class="sidebar-link">Security</a>
         <a href="advanced.html#production" class="sidebar-link">Production</a>
+        <a href="advanced.html#request-timeouts" class="sidebar-link">Request Timeouts</a>
       </div>
       <div class="sidebar-section">
         <div class="sidebar-title">Reference</div>
@@ -125,6 +127,7 @@ app.use(SecurityHeadersMiddleware(hsts=True))     # phase='post'  wraps handler<
           <tr><td><code>CORSMiddleware</code></td><td>3</td><td>pre</td><td>Cross-origin resource sharing (preflight before routing)</td></tr>
           <tr><td><code>SecurityHeadersMiddleware</code></td><td>5</td><td>post</td><td>Security headers to every response</td></tr>
           <tr><td><code>CSRFMiddleware</code></td><td>10</td><td>pre</td><td>CSRF token generation and validation</td></tr>
+          <tr><td><code>SessionMiddleware</code></td><td>20</td><td>post</td><td>Server-side sessions with a signed id cookie</td></tr>
           <tr><td><code>TimeoutMiddleware</code></td><td>-5</td><td>post</td><td>Enforce per-request time limit</td></tr>
           <tr><td><code>CompressionMiddleware</code></td><td>90</td><td>post</td><td>Gzip response compression</td></tr>
         </tbody>
@@ -200,7 +203,7 @@ app.use(CSRFMiddleware(
       <table class="params-table">
         <thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead>
         <tbody>
-          <tr><td><code>secret</code></td><td><code>None</code></td><td>HMAC secret. Auto-generated if not set (not persistent across restarts).</td></tr>
+          <tr><td><code>secret</code></td><td><code>None</code></td><td>HMAC secret. If not set, a random secret is generated per process and a <code>UserWarning</code> is raised &mdash; with multiple worker processes (e.g. <code>gunicorn -w N</code>) each gets its own secret, so tokens signed by one worker fail verification on another. Always pass a fixed secret in multi-process deployments.</td></tr>
           <tr><td><code>cookie_name</code></td><td><code>'_csrf_token'</code></td><td>Cookie name for the CSRF token.</td></tr>
           <tr><td><code>header_name</code></td><td><code>'X-CSRF-Token'</code></td><td>Header to check for the token (AJAX).</td></tr>
           <tr><td><code>form_field</code></td><td><code>'_csrf_token'</code></td><td>Form field name to check for the token.</td></tr>
@@ -221,24 +224,196 @@ app.use(BodyLimitMiddleware(max_size=5 * 1024 * 1024))</code></pre>
       <pre><code>from lcore import CompressionMiddleware
 
 app.use(CompressionMiddleware(
-    min_size=256,       # Don't compress small responses
-    level=6,            # Compression level (1-9)
-    content_types=None  # Compress all content types
+    min_size=256,               # Don't compress small responses
+    level=6,                    # Compression level (1-9)
+    content_types=None,         # Compress all content types
+    stream_threshold=256*1024   # Buffer limit before streaming
 ))</code></pre>
+      <p>A <code>str</code> or <code>bytes</code> body is compressed in one call and gets a <code>Content-Length</code>. An iterable body is buffered up to <code>stream_threshold</code>; if it fits, it is compressed whole and also keeps its <code>Content-Length</code>, so ordinary responses are unaffected.</p>
+      <p>A body that outgrows the buffer switches to incremental gzip and is sent in chunks. Memory then stays flat instead of tracking the response size: a 20MB streamed body used to be buffered in full, costing roughly 40MB per concurrent request and removing the benefit of streaming in the first place. The trade is that <code>Content-Length</code> is dropped, because the compressed size is not known until the body ends. Raise <code>stream_threshold</code> if you would rather buffer more and keep the header.</p>
 
       <h3>ProxyFixMiddleware</h3>
-      <p>Tells <code>request.remote_addr</code> and <code>request.urlparts</code> to trust <code>X-Forwarded-*</code> headers from known reverse proxies. v0.0.4 alternative: set <code>app.config['proxy.trusted']</code> instead.</p>
+      <p>Tells <code>request.remote_addr</code> and <code>request.urlparts</code> to trust <code>X-Forwarded-*</code> headers from known reverse proxies. v0.0.4 alternative: set <code>app.config['proxy.trusted']</code> instead. Two independent modes &mdash; pass one or the other, not both:</p>
+      <ul>
+        <li><code>trusted_proxies=[...]</code> &mdash; IP allowlist. Forwarded headers are only trusted when the directly-connecting peer's address is in the list. Works for multi-hop chains as long as every proxy's IP is known.</li>
+        <li><code>num_proxies=N</code> &mdash; hop-count trust. Blindly trusts the last <code>N</code> entries of <code>X-Forwarded-For</code>, no IP check (same model as Werkzeug's <code>ProxyFix</code>). Use this when the proxy's IP isn't fixed, but your network guarantees exactly <code>N</code> proxies sit in front of the app.</li>
+      </ul>
       <pre><code>from lcore import ProxyFixMiddleware
 
 app.use(ProxyFixMiddleware(trusted_proxies=['127.0.0.1', '10.0.0.1']))
-app.use(ProxyFixMiddleware(num_proxies=1))  # trust first proxy in chain</code></pre>
+app.use(ProxyFixMiddleware(num_proxies=1))  # trust the nearest proxy hop, any IP</code></pre>
 
-      <h3>TimeoutMiddleware</h3>
+      <h3 id="timeoutmiddleware">TimeoutMiddleware</h3>
       <p>Runs the handler in a thread pool, returning 503 if it exceeds the deadline. v0.0.4 moves it to post-routing phase.</p>
       <pre><code>from lcore import TimeoutMiddleware
 
 app.use(TimeoutMiddleware(timeout=30))       # 30 second limit
 app.use(TimeoutMiddleware(timeout=10, max_workers=8))</code></pre>
+
+      <div class="info-box tip">
+        <strong>Scope it to the routes that need it</strong>
+        <p>The thread-pool hop has a real, measured cost &mdash; roughly 30&micro;s/request on a trivial handler versus a ~9&micro;s bare route, most of it inherent to marshaling <code>request</code>/<code>response</code> across the thread boundary (they're <code>threading.local()</code>-backed). Python also can't actually kill the stuck thread on timeout, so it keeps running in the background after the client gets its 503. For most deployments, Gunicorn's own <code>timeout</code> and your reverse proxy's read timeout handle this better &mdash; see <a href="advanced.html#request-timeouts">Request Timeouts</a>. Reach for this middleware for per-route limits tighter than your infra timeout, and scope it with <code>routes=</code> (e.g. <code>app.use(TimeoutMiddleware(timeout=30), routes='/slow/*')</code>) rather than installing it globally.</p>
+      </div>
+
+      <h3>SessionMiddleware</h3>
+      <p>Server-side sessions. The cookie carries a signed session id and nothing else, so session state can be revoked from the server. See <a href="#sessions">Sessions</a> for the full API.</p>
+      <pre><code>from lcore import SessionMiddleware, SQLiteSessionBackend
+
+app.use(SessionMiddleware(
+    backend=SQLiteSessionBackend('var/sessions.db'),
+    secret=os.environ['SESSION_SECRET'],
+))</code></pre>
+
+      <p class="note">Installing <code>SessionMiddleware</code> costs something on every request even on a route that never touches <code>request.session</code> &mdash; roughly 25-30% versus no session middleware at all in measurements, mostly the cookie-signing setup and the lazy accessor registration that run regardless. That's the price of it being available; routes that actually read or write the session pay more on top for the backend round trip and, when dirty, the write and re-signed cookie.</p>
+
+      <!-- Sessions -->
+      <h2 id="sessions">Sessions</h2>
+
+      <p>Lcore's signed cookies are fine for carrying a few bytes of state, but they cannot be taken back: once issued, a signed cookie stays valid until it expires. Anything that needs to be revocable, which means logins, carts and anything tied to a password, needs server-side state. <code>SessionMiddleware</code> stores the record in a backend and puts only a signed session id in the cookie.</p>
+
+      <pre><code>import os
+from lcore import Lcore, SessionMiddleware, SQLiteSessionBackend, request
+
+app = Lcore()
+app.use(SessionMiddleware(
+    backend=SQLiteSessionBackend('var/sessions.db'),
+    secret=os.environ['SESSION_SECRET'],
+    ttl=14 * 24 * 3600,      # idle timeout
+    absolute_ttl=30 * 24 * 3600,  # hard cap regardless of activity
+    secure=True,             # HTTPS only
+))
+
+@app.post('/cart/add')
+def add_to_cart():
+    cart = request.session.setdefault('cart', [])
+    cart.append(request.forms.get('sku'))
+    request.session['cart'] = cart     # assignment marks it dirty
+    return {'items': len(cart)}</code></pre>
+
+      <p>The session is loaded lazily and written back only when it changes, so anonymous browsing costs no backend writes and sets no cookie. It is reachable as both <code>request.session</code> and <code>ctx.session</code>. <code>pop()</code>, <code>setdefault()</code> and <code>clear()</code> only mark it dirty when they actually change something &mdash; the common flash-message idiom <code>request.session.pop('flash', None)</code> is a free read on a request that has nothing to pop, not a guaranteed write.</p>
+
+      <h3>Choosing a backend</h3>
+      <table>
+        <thead><tr><th>Backend</th><th>Dependencies</th><th>Use when</th></tr></thead>
+        <tbody>
+          <tr><td><code>MemorySessionBackend</code></td><td>None</td><td>Development only. Sessions die on restart, and each worker process has its own store, so users appear logged in on one worker and out on the next. It warns when constructed.</td></tr>
+          <tr><td><code>SQLiteSessionBackend</code></td><td>None (stdlib)</td><td>Single-server production. Uses WAL journalling and a busy timeout, so it is safe across worker processes on one machine. Keeps the zero-dependency promise.</td></tr>
+          <tr><td><code>RedisSessionBackend</code></td><td><code>uv add redis</code></td><td>Multiple application servers, or when sessions should outlive the machine.</td></tr>
+        </tbody>
+      </table>
+
+      <p>Write your own by subclassing <code>SessionBackend</code> and implementing seven methods: <code>load</code>, <code>save</code>, <code>delete</code>, <code>list_user</code>, <code>revoke_user</code>, <code>get_epoch</code> and <code>bump_epoch</code>. <code>revoke_all()</code> and <code>touch()</code> are provided by the base class. Records must stay JSON-serialisable: every shipped backend round-trips them through JSON, so development behaviour matches production.</p>
+
+      <div class="info-box tip">
+        <strong>unindex()</strong>
+        <p>If your backend keeps its own per-user index (as <code>MemorySessionBackend</code> and <code>RedisSessionBackend</code> do, for <code>list_sessions()</code>/<code>revoke_other_sessions()</code>), also override <code>unindex(sid, user_key)</code>. It's called when <code>bind_user(regenerate=False)</code> reassigns an existing session to a different user, so the old user's index doesn't keep pointing at a session that now belongs to someone else. The base implementation is a no-op, which is correct only for a backend like <code>SQLiteSessionBackend</code> whose membership comes structurally from a <code>uid</code> column rather than a separate index.</p>
+      </div>
+
+      <h3>Logging in and out</h3>
+      <p><code>bind_user()</code> attaches the session to a user and regenerates the session id. That regeneration is what closes session fixation, where an attacker plants a known session id before login and still holds a valid session afterwards:</p>
+      <pre><code>@app.post('/login')
+def login():
+    user = authenticate(request.forms.get('email'),
+                        request.forms.get('password'))
+    if not user:
+        raise HTTPError(401, 'Invalid credentials')
+    request.session.bind_user(user.id)   # regenerates the id
+    request.session['name'] = user.name
+    redirect('/account')
+
+@app.post('/logout')
+def logout():
+    request.session.destroy()   # deleted server-side, not just in this browser
+    redirect('/')</code></pre>
+
+      <h3>Revoking sessions</h3>
+      <p>Two independent mechanisms, both implemented by every backend:</p>
+      <ul>
+        <li><strong>Index</strong> &mdash; a per-user set of live session ids. Powers <code>list_sessions()</code> for an "active devices" page and revoking one device without the others.</li>
+        <li><strong>Epoch</strong> &mdash; a per-user counter stamped into a session when it is bound to a user. Bump it and every session issued before the bump dies on its next load, without walking the index.</li>
+      </ul>
+      <p><code>revoke_all()</code> does both, and is what a password reset should call. The index pass kills every session the backend knows about; the epoch bump catches any it does not, such as one written by another worker while the revoke was in flight.</p>
+      <pre><code>@app.post('/account/password')
+def change_password():
+    save_new_password(...)
+    # Sign out everywhere, including this browser.
+    request.session.revoke_all_sessions()
+    redirect('/login')
+
+@app.post('/account/sessions/revoke-others')
+def revoke_others():
+    n = request.session.revoke_other_sessions()   # keeps the current device
+    return {'revoked': n}
+
+@app.get('/account/sessions')
+def active_sessions():
+    return {'sessions': [
+        {'current': sid == request.session.sid,
+         'ip': rec['ip'], 'user_agent': rec['ua'], 'since': rec['created']}
+        for sid, rec in request.session.list_sessions()
+    ]}</code></pre>
+
+      <p>Outside a request, for example from an admin tool or a background job, call the backend directly:</p>
+      <pre><code>sessions = SQLiteSessionBackend('var/sessions.db')
+sessions.revoke_all(user_id)          # index and epoch
+sessions.list_user(user_id)           # [(sid, record), ...]
+sessions.bump_epoch(user_id)          # epoch only</code></pre>
+
+      <h3>SessionMiddleware parameters</h3>
+      <table class="params-table">
+        <thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>backend</code></td><td><code>MemorySessionBackend()</code></td><td>Where records are stored. Set this in production.</td></tr>
+          <tr><td><code>secret</code></td><td><code>None</code></td><td>HMAC secret for the session cookie. If unset, a random per-process secret is generated and a <code>UserWarning</code> is raised: every restart logs everyone out, and each worker rejects the others' cookies. Always set it in production.</td></tr>
+          <tr><td><code>cookie_name</code></td><td><code>'lcore_session'</code></td><td>Name of the session cookie.</td></tr>
+          <tr><td><code>ttl</code></td><td><code>1209600</code> (14 days)</td><td>Idle timeout in seconds, refreshed as the session is used.</td></tr>
+          <tr><td><code>absolute_ttl</code></td><td><code>None</code></td><td>Hard lifetime cap from creation, regardless of activity.</td></tr>
+          <tr><td><code>refresh_every</code></td><td><code>ttl // 10</code></td><td>Minimum interval between idle-TTL refreshes, so a read-only request on an existing session does not cost a write.</td></tr>
+          <tr><td><code>secure</code></td><td><code>False</code></td><td>Set the <code>Secure</code> flag. Enable whenever you serve over HTTPS.</td></tr>
+          <tr><td><code>httponly</code></td><td><code>True</code></td><td>Keep the cookie out of reach of JavaScript.</td></tr>
+          <tr><td><code>samesite</code></td><td><code>'Lax'</code></td><td><code>'Lax'</code>, <code>'Strict'</code> or <code>'None'</code>.</td></tr>
+          <tr><td><code>path</code> / <code>domain</code></td><td><code>'/'</code> / <code>None</code></td><td>Cookie scope.</td></tr>
+          <tr><td><code>on_backend_error</code></td><td><code>'unavailable'</code></td><td>What to do when the store is unreachable. See below.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>When the session store is down</h3>
+      <p>Rate limiting can fail open, because the worst case is that limits stop applying for a while. Sessions cannot: ignoring the store would mean ignoring revocation, and silently downgrading a signed-in customer to anonymous in the middle of a checkout loses their cart. So the default refuses the request instead.</p>
+      <table class="params-table">
+        <thead><tr><th>Value</th><th>Behaviour</th></tr></thead>
+        <tbody>
+          <tr><td><code>'unavailable'</code> (default)</td><td>Raise <code>503 Service Unavailable</code>. A login that cannot be stored never sets a cookie and never reports success.</td></tr>
+          <tr><td><code>'anonymous'</code></td><td>Treat the request as having no session. The site stays up, but signed-in users appear signed out for the duration of the outage.</td></tr>
+          <tr><td><code>'raise'</code></td><td>Let the backend exception propagate to your own error handler.</td></tr>
+        </tbody>
+      </table>
+      <p>A failed <em>idle TTL refresh</em> is the one exception: it is logged and ignored, because the session is still valid until its existing TTL runs out, and failing the request would gain nothing.</p>
+
+      <h3 id="epoch-caching">Epoch caching</h3>
+      <p>Checking the epoch on every authenticated request would mean a second round trip on top of loading the session. Backends cache it per process for <code>epoch_cache_ttl</code> seconds (default 5), which removes that read almost entirely:</p>
+      <pre><code>backend.epoch_cache_ttl = 5.0   # seconds; 0 disables the cache
+backend.epoch_cache_max = 10000 # bound on cached users</code></pre>
+      <p>Staleness costs very little here. <code>revoke_all()</code> deletes sessions through the index immediately, so the epoch is only the backstop for sessions the index did not reach, and a bump in <em>this</em> process drops the cached entry at once. Only a bump by another worker waits out the TTL. Set <code>epoch_cache_ttl = 0</code> if you need every revocation visible across all workers instantly and can afford the extra read.</p>
+
+      <h3>Session object</h3>
+      <table class="params-table">
+        <thead><tr><th>Member</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>dict API</td><td><code>[]</code>, <code>get</code>, <code>pop</code>, <code>setdefault</code>, <code>update</code>, <code>clear</code>, <code>keys</code>, <code>values</code>, <code>items</code>, <code>in</code>, <code>len()</code>. Any mutation marks the session dirty.</td></tr>
+          <tr><td><code>sid</code></td><td>Current session id.</td></tr>
+          <tr><td><code>user_id</code></td><td>Bound user, or <code>None</code>.</td></tr>
+          <tr><td><code>created_at</code> / <code>last_seen</code></td><td>Unix timestamps.</td></tr>
+          <tr><td><code>is_new</code> / <code>modified</code></td><td>Whether this request created it, and whether it will be written back.</td></tr>
+          <tr><td><code>regenerate()</code></td><td>New session id, same data. Call on any privilege change.</td></tr>
+          <tr><td><code>bind_user(user_id)</code></td><td>Attach to a user, stamp the epoch, and regenerate the id.</td></tr>
+          <tr><td><code>destroy()</code></td><td>Delete server-side and clear the cookie.</td></tr>
+          <tr><td><code>list_sessions()</code></td><td>Every live session for this user.</td></tr>
+          <tr><td><code>revoke_other_sessions()</code></td><td>Sign out the user's other devices.</td></tr>
+          <tr><td><code>revoke_all_sessions()</code></td><td>Sign out everywhere including here. For password resets.</td></tr>
+        </tbody>
+      </table>
+
+      <p class="note">Binding a session to a user means every authenticated request checks the epoch, but almost never against the backend: the <a href="#epoch-caching">per-process cache</a> above answers nearly all of them from memory, so this is not a second backend round trip per request in practice. Anonymous sessions skip the check entirely.</p>
 
       <!-- Custom Middleware -->
       <h2 id="custom">Custom Middleware</h2>

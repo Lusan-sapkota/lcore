@@ -40,7 +40,7 @@
         <a href="api-reference.html">API</a>
       </nav>
       <div class="header-right">
-        <span class="version-badge">v0.0.4</span>
+        <span class="version-badge">v0.0.5</span>
         <a href="https://github.com/Lusan-sapkota/lcore" class="github-link">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
           GitHub
@@ -83,6 +83,7 @@
         <a href="advanced.html#templates" class="sidebar-link">Templates</a>
         <a href="advanced.html#security" class="sidebar-link">Security</a>
         <a href="advanced.html#production" class="sidebar-link">Production</a>
+        <a href="advanced.html#request-timeouts" class="sidebar-link">Request Timeouts</a>
       </div>
       <div class="sidebar-section">
         <div class="sidebar-title">Reference</div>
@@ -269,9 +270,37 @@ def article(year, month, slug):
             and a new event loop, adding roughly 0.5 to 2 ms per request versus a plain sync handler.</li>
         </ul>
         <p style="margin-top:10px">
-          Lcore will emit a <code>UserWarning</code> at startup for every <code>async def</code> route
-          you register, so you are always informed.
+          Lcore emits a <code>UserWarning</code> naming the route the first time each <code>async def</code>
+          route is actually invoked (immediately, at reset, if running with <code>debug=True</code>;
+          otherwise on that route's first request), so you are always informed.
         </p>
+      </div>
+
+      <div class="info-box tip">
+        <strong>What you probably actually want: gevent or eventlet, not async def</strong>
+        <p>If the goal is "don't let one slow request block everything else," that's not what
+          <code>async def</code> gives you here &mdash; but Lcore already solves it, with zero handler
+          changes. Write completely ordinary, blocking-looking synchronous code, and run the app
+          under the <code>gevent</code> or <code>eventlet</code> server adapter instead of a plain
+          threaded one. Both monkey-patch the standard library so a blocking call (<code>socket</code>,
+          <code>time.sleep</code>, most DB drivers) cooperatively yields to other in-flight requests
+          instead of blocking a real OS thread &mdash; the actual "start a slow task and move on to
+          other work" behavior, delivered by the runtime, not by rewriting handlers as coroutines.</p>
+        <p style="margin-top:8px">Measured directly: 200 concurrent requests to a handler that sleeps
+          0.2s each. A threaded server with 20 threads (200 connections into 20 workers) took
+          <strong>2.07s</strong> &mdash; linear backlog, exactly 10&times;0.2s. The identical app and
+          handler under <code>gevent</code> took <strong>0.58s</strong>. At a concurrency level a fixed
+          thread pool comfortably covers, they're roughly equal (0.23s vs. 0.22s at 20 concurrent
+          requests / 20 threads) &mdash; the advantage shows up specifically once concurrency outgrows
+          the thread pool, which is exactly the "many slow requests at once" scenario this section is about.</p>
+        <pre><code># No code changes to handlers needed:
+app.run(server='gevent', host='0.0.0.0', port=8080)
+# or: app.run(server='eventlet', host='0.0.0.0', port=8080)</code></pre>
+        <p style="margin-top:8px">This isn't the same thing as an event loop with <code>async</code>/<code>await</code>
+          and async-native libraries (<code>asyncpg</code>, <code>httpx</code>) &mdash; for that, see
+          <code>lcore-asgi</code> below or an ASGI framework. But for "many concurrent slow requests,"
+          which is what most people mean by wanting async, this is the WSGI-native answer and it's
+          available today.</p>
       </div>
 
       <h3>When async def is acceptable in Lcore</h3>
