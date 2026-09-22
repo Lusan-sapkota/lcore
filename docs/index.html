@@ -301,14 +301,14 @@ app.run(host='0.0.0.0', port=8080)</code></pre>
             <tr><td>Your team is already on Flask and migration cost outweighs any benefit</td><td>Stay on Flask</td></tr>
             <tr><td>You need automatic OpenAPI / Swagger generation</td><td>FastAPI</td></tr>
             <tr><td>You need ASGI and Uvicorn / Daphne today</td><td>FastAPI, Starlette</td></tr>
-            <tr><td>Your workload is I/O-bound and you want event-loop concurrency</td><td>FastAPI, Starlette</td></tr>
+            <tr><td>You specifically need asyncio-native libraries (<code>asyncpg</code>, <code>httpx</code>, <code>motor</code>) with a persistent event loop</td><td>FastAPI, Starlette</td></tr>
             <tr><td>You need a full MVC framework with ORM, admin panel, and migrations</td><td>Django</td></tr>
           </tbody>
         </table>
       </div>
       <div class="info-box tip" style="margin-top:20px">
         <strong>Lcore is a good fit when...</strong>
-        <p>Your workload is primarily synchronous: REST APIs, internal services, background job APIs, or microservices that talk to SQL databases via sync drivers (<code>psycopg2</code>, <code>sqlite3</code>, <code>mysqlclient</code>). If you want maximum feature density in a single file with no installation ceremony, Lcore is built for that.</p>
+        <p>Your workload is primarily synchronous: REST APIs, internal services, background job APIs, or microservices that talk to SQL databases via sync drivers (<code>psycopg2</code>, <code>sqlite3</code>, <code>mysqlclient</code>). If you want maximum feature density in a single file with no installation ceremony, Lcore is built for that. That includes high-concurrency I/O-bound workloads too, as long as they don't specifically need asyncio-native libraries: the <code>gevent</code>/<code>eventlet</code> server adapters give ordinary synchronous handlers real concurrency under slow I/O with zero code changes &mdash; <a href="routing.html#async-routes">measured numbers</a>.</p>
       </div>
     </section>
 

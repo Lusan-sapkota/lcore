@@ -77,6 +77,7 @@
         <a href="advanced.html#templates" class="sidebar-link">Templates</a>
         <a href="advanced.html#security" class="sidebar-link">Security</a>
         <a href="advanced.html#production" class="sidebar-link">Production</a>
+        <a href="advanced.html#request-timeouts" class="sidebar-link">Request Timeouts</a>
       </div>
       <div class="sidebar-section">
         <div class="sidebar-title">Reference</div>
@@ -157,6 +158,17 @@ app.run(port=8080)</code></pre>
       <pre><code>python app.py</code></pre>
       <p>Visit <code>http://localhost:8080</code> to see your app running.</p>
 
+      <h3>Classic single-file style</h3>
+      <p>If you'd rather not create an <code>Lcore()</code> instance explicitly, <code>from lcore import *</code> exports the whole public API  including <code>route</code>/<code>get</code>/<code>post</code>/<code>put</code>/<code>delete</code>/<code>patch</code>/<code>mount</code>/<code>hook</code>/<code>use</code> and <code>run</code>  as shortcuts bound to a default app instance:</p>
+      <pre><code>from lcore import *
+
+@route('/')
+def index():
+    return 'Hello, World!'
+
+run(port=8080)</code></pre>
+      <p>Both styles produce the same app; the explicit <code>app = Lcore()</code> form scales better once you have more than one app or need to mount sub-apps, but the shortcuts are there for small scripts. <code>__all__</code> lists exactly what a wildcard import brings in  it deliberately excludes the stdlib modules (<code>os</code>, <code>re</code>, <code>time</code>, ...) that Lcore itself imports, so <code>from lcore import *</code> won't shadow your own.</p>
+
       <h3>JSON API</h3>
       <p>Return a <code>dict</code> from any handler and Lcore automatically serializes it as JSON with the correct <code>Content-Type</code>:</p>
       <pre><code>from lcore import Lcore, request, abort
@@ -223,9 +235,19 @@ async def async_handler():
             <code>asyncpg</code>, <code>motor</code>, and similar libraries require a persistent
             event loop and will malfunction or deadlock inside Lcore handlers.</li>
         </ul>
-        <p>Lcore emits a <code>UserWarning</code> at startup for every <code>async def</code> route registered.
+        <p>Lcore emits a <code>UserWarning</code> naming the route the first time it's actually invoked.
         For genuine async I/O concurrency, see the note below or use an ASGI framework (FastAPI, Starlette, Quart) in the meantime.
         <a href="routing.html#async-routes">Full details</a></p>
+      </div>
+
+      <div class="info-box tip">
+        <strong>Want concurrency, not necessarily async/await?</strong>
+        <p>If what you actually need is "don't let one slow request block everything else" rather than
+        event-loop syntax specifically, Lcore already provides that: run under the <code>gevent</code> or
+        <code>eventlet</code> server adapter with completely ordinary synchronous handlers, no code changes.
+        Measured: 200 concurrent 0.2s-each requests took 2.07s on a 20-thread server (linear backlog once
+        concurrency outgrows the thread pool) vs. 0.58s under <code>gevent</code>, same app, same handler.
+        <a href="routing.html#async-routes">Details and numbers</a></p>
       </div>
 
       <div class="info-box tip">

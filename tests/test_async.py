@@ -3,6 +3,7 @@
 import unittest
 import json
 import asyncio
+import warnings
 
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -506,6 +507,47 @@ class TestAsyncRouteWithAwait(unittest.TestCase):
 
         _, _, body = run_request(self.app, 'GET', '/gather')
         self.assertEqual(body, b'A,B')
+
+
+class TestAsyncHandlerWarning(unittest.TestCase):
+    """The async def warning must fire under the default plugin stack.
+
+    JSONPlugin is auto-installed and wraps every route callback in a plain
+    sync function before Route._make_callback's own async check used to run,
+    so the warning was checking the wrapped callback and never firing except
+    on a route that explicitly skipped every wrapping plugin.
+    """
+
+    def test_warns_under_default_json_plugin(self):
+        app = Lcore()
+
+        @app.route('/async')
+        async def handler():
+            return 'ok'
+
+        route = [r for r in app.routes if r.rule == '/async'][0]
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter('always')
+            route.call
+        matches = [w for w in caught if issubclass(w.category, UserWarning)
+                   and 'async def' in str(w.message)]
+        self.assertEqual(len(matches), 1)
+        self.assertIn('/async', str(matches[0].message))
+
+    def test_sync_handler_does_not_warn(self):
+        app = Lcore()
+
+        @app.route('/sync')
+        def handler():
+            return 'ok'
+
+        route = [r for r in app.routes if r.rule == '/sync'][0]
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter('always')
+            route.call
+        matches = [w for w in caught if issubclass(w.category, UserWarning)
+                   and 'async def' in str(w.message)]
+        self.assertEqual(matches, [])
 
 
 if __name__ == '__main__':

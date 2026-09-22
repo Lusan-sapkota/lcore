@@ -235,6 +235,89 @@ class TestCSRFMiddleware(unittest.TestCase):
             self.assertIn('200', status,
                           '%s should be a safe method' % method)
 
+    def test_token_accepted_in_form_field(self):
+        """The form fallback is what every non-AJAX HTML form relies on."""
+        app = self._make_app()
+        _, get_headers, _ = run_request(app, 'GET', '/form')
+        set_cookie = get_headers.get('Set-Cookie', '')
+        signed = self._extract_csrf_cookie(set_cookie)
+        token = self._extract_csrf_token(set_cookie)
+
+        status, _, body = run_request(
+            app, 'POST', '/form',
+            body=('_csrf_token=%s' % token).encode(),
+            headers={'Cookie': '_csrf_token=%s' % signed},
+            content_type='application/x-www-form-urlencoded')
+        self.assertEqual(status, '200 OK')
+        self.assertEqual(body, b'submitted')
+
+    def test_custom_form_field_is_used(self):
+        """A renamed form_field is the one actually read."""
+        app = Lcore()
+        app.use(CSRFMiddleware(secret='fixed', form_field='authenticity_token'))
+
+        @app.route('/form', method=['GET', 'POST'])
+        def form():
+            return 'ok'
+
+        _, headers, _ = run_request(app, 'GET', '/form')
+        set_cookie = headers.get('Set-Cookie', '')
+        signed = self._extract_csrf_cookie(set_cookie)
+        token = self._extract_csrf_token(set_cookie)
+
+        # The default field name must no longer work.
+        status, _, _ = run_request(
+            app, 'POST', '/form',
+            body=('_csrf_token=%s' % token).encode(),
+            headers={'Cookie': '_csrf_token=%s' % signed},
+            content_type='application/x-www-form-urlencoded')
+        self.assertIn('403', status)
+
+        status, _, _ = run_request(
+            app, 'POST', '/form',
+            body=('authenticity_token=%s' % token).encode(),
+            headers={'Cookie': '_csrf_token=%s' % signed},
+            content_type='application/x-www-form-urlencoded')
+        self.assertEqual(status, '200 OK')
+
+    def test_custom_cookie_name_is_used(self):
+        """A renamed cookie_name is the one written and read."""
+        app = Lcore()
+        app.use(CSRFMiddleware(secret='fixed', cookie_name='xsrf'))
+
+        @app.route('/form')
+        def form():
+            return 'ok'
+
+        _, headers, _ = run_request(app, 'GET', '/form')
+        self.assertIn('xsrf=', headers.get('Set-Cookie', ''))
+        self.assertNotIn('_csrf_token=', headers.get('Set-Cookie', ''))
+
+    def test_secure_flag_is_applied(self):
+        """secure=True marks the CSRF cookie HTTPS-only."""
+        app = Lcore()
+        app.use(CSRFMiddleware(secret='fixed', secure=True))
+
+        @app.route('/form')
+        def form():
+            return 'ok'
+
+        _, headers, _ = run_request(app, 'GET', '/form')
+        self.assertIn('secure', headers.get('Set-Cookie', '').lower())
+
+    def test_custom_safe_methods_are_honoured(self):
+        """Narrowing safe_methods makes a previously exempt method validated."""
+        app = Lcore()
+        app.use(CSRFMiddleware(secret='fixed', safe_methods=('GET',)))
+
+        @app.route('/thing', method=['GET', 'OPTIONS'])
+        def thing():
+            return 'ok'
+
+        self.assertEqual(run_request(app, 'GET', '/thing')[0], '200 OK')
+        # OPTIONS is no longer in safe_methods, so it now needs a token.
+        self.assertIn('403', run_request(app, 'OPTIONS', '/thing')[0])
+
     def test_missing_secret_warns(self):
         """Omitting secret= warns: each worker process would sign with its own
         random secret, so tokens fail verification across workers."""

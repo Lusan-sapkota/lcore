@@ -79,6 +79,7 @@
         <a href="advanced.html#testing" class="sidebar-link">Testing</a>
         <a href="advanced.html#background-tasks" class="sidebar-link">Background Tasks</a>
         <a href="advanced.html#production" class="sidebar-link">Production</a>
+        <a href="advanced.html#request-timeouts" class="sidebar-link">Request Timeouts</a>
         <a href="advanced.html#hot-reload" class="sidebar-link">Hot Reload</a>
         <a href="advanced.html#server-adapters" class="sidebar-link">Server Adapters</a>
       </div>
@@ -134,14 +135,19 @@ app.inject('db', DBSession, lifetime='scoped')
 
 # Transient: new each time
 import uuid
-app.inject('request_id', lambda: str(uuid.uuid4()), lifetime='transient')
+app.inject('trace_id', lambda: str(uuid.uuid4()), lifetime='transient')
 
 # Access in handlers via ctx
 @app.route('/users')
 def list_users():
     users = ctx.db.query('SELECT * FROM users')
     ctx.cache.set('last_query', 'users')
-    return {'users': users, 'request_id': ctx.request_id}</code></pre>
+    return {'users': users, 'trace_id': ctx.trace_id}</code></pre>
+
+      <div class="info-box">
+        <strong>Reserved names</strong>
+        <p><code>app.inject()</code> rejects a name that shadows a built-in <code>RequestContext</code> attribute or method (<code>request</code>, <code>response</code>, <code>app</code>, <code>route</code>, <code>request_id</code>, <code>user</code>, <code>state</code>, <code>lazy</code>, ...) &mdash; <code>ctx.&lt;name&gt;</code> would silently resolve to the built-in instead of your dependency. Pick a different name, as above.</p>
+      </div>
 
       <div class="info-box tip">
         <strong>Auto-Cleanup</strong>
@@ -456,7 +462,7 @@ def login():
         <br><br>
         <strong>Fix:</strong> Lcore ships a built-in <code>RedisRateLimitBackend</code> that
         is shared across all workers via Redis. Install the Redis client, then wire it in:
-        <pre style="margin:10px 0 0"><code>pip install redis</code></pre>
+        <pre style="margin:10px 0 0"><code>uv add redis</code></pre>
         <pre style="margin:4px 0 0"><code>from lcore import RedisRateLimitBackend, rate_limit
 
 # Create once at module level  the connection pool is reused.
@@ -834,7 +840,7 @@ app.run(server='gunicorn', host='0.0.0.0', port=8080)</code></pre>
           1. Use a production server (Gunicorn, Waitress, Gevent)<br>
           2. Set <code>debug=False</code> (default)  debug mode exposes tracebacks to users<br>
           3. Add <code>ProxyFixMiddleware(trusted_proxies=[...])</code> when behind a reverse proxy  prevents IP spoofing and wrong-scheme URLs<br>
-          4. Add <code>TimeoutMiddleware(timeout=30)</code> to protect workers from slow clients<br>
+          4. Prefer your process manager and reverse proxy for request timeouts (Gunicorn's <code>timeout</code>, nginx's <code>proxy_read_timeout</code>)  see <a href="#request-timeouts">Request Timeouts</a> below. Reach for <code>TimeoutMiddleware(timeout=30)</code> only for per-route limits or when nothing in front of the app enforces one<br>
           5. Enable HSTS and security headers via <code>SecurityHeadersMiddleware</code><br>
           6. Configure CORS with <strong>explicit origins</strong>  never use <code>'*'</code> with <code>allow_credentials=True</code><br>
           7. Set body size limits via <code>BodyLimitMiddleware</code><br>
@@ -852,6 +858,36 @@ app.run(server='gunicorn', host='0.0.0.0', port=8080)</code></pre>
       <div class="info-box">
         <strong>Zero Dependencies</strong>
         <p>Lcore is built entirely on Python's standard library. No <code>pip install</code> required beyond Lcore itself. Every module it uses  <code>hashlib</code>, <code>gzip</code>, <code>json</code>, <code>concurrent.futures</code>, <code>threading</code>, <code>asyncio</code>, <code>logging</code>  ships with Python 3.8+. It works anywhere Python runs: containers, serverless, air-gapped networks.</p>
+      </div>
+
+      <!-- Request Timeouts -->
+      <h2 id="request-timeouts">Request Timeouts</h2>
+
+      <p><code>TimeoutMiddleware</code> (see <a href="middleware.html#timeoutmiddleware">Middleware</a>) runs each request in a thread pool and can't actually kill a stuck handler &mdash; Python can't kill a thread &mdash; so on timeout it hands the client a 503 while the original thread keeps running to completion in the background. It also has a measured per-request cost (roughly 30&micro;s vs. a ~9&micro;s bare route), because <code>request</code>/<code>response</code> have to be marshaled across the thread boundary on every call, timed out or not. For most deployments, two things outside the Python process do this job better:</p>
+
+      <h3>Gunicorn's own <code>timeout</code></h3>
+      <p>Gunicorn's master process watches each worker and <strong>kills and restarts the OS process</strong> &mdash; not just abandons a thread &mdash; if it goes silent longer than <code>timeout</code> seconds (default 30). That's a real fix for a truly stuck handler, which <code>TimeoutMiddleware</code> cannot provide on its own.</p>
+      <pre><code># CLI
+gunicorn -w 4 --timeout 30 -b 0.0.0.0:8080 myapp:app
+
+# Or via app.run()
+app.run(server='gunicorn', host='0.0.0.0', port=8080, workers=4, timeout=30)</code></pre>
+
+      <h3>Your reverse proxy's timeout</h3>
+      <p>nginx, Caddy, Traefik, an ALB, or whatever sits in front of the app closes the client-facing connection on its own schedule, independent of what the Python process is doing, at zero per-request cost to your app. For nginx:</p>
+      <pre><code>location / {
+    proxy_pass http://127.0.0.1:8080;
+    proxy_connect_timeout 5s;
+    proxy_send_timeout    30s;
+    proxy_read_timeout    30s;
+}</code></pre>
+
+      <h3>Async, for I/O-bound handlers</h3>
+      <p>If handlers spend most of their time waiting on I/O (a slow upstream API, a database), an async-capable server adapter (<code>gevent</code>, <code>eventlet</code>) lets many in-flight requests share a worker instead of blocking one thread each &mdash; a concurrency fix, not a timeout mechanism, but it addresses the same "slow client/slow backend" problem from a different angle and pairs well with a Gunicorn/proxy timeout instead of <code>TimeoutMiddleware</code>.</p>
+
+      <div class="info-box tip">
+        <strong>When TimeoutMiddleware still earns its cost</strong>
+        <p>Reach for it when you need a limit tighter than the process-manager/proxy timeout for one specific route (e.g. a route calling a flaky third-party API that should fail fast at 5s while the rest of the app keeps a 30s ceiling), or when the app is exposed directly with no reverse proxy and no process manager providing one. Scope it with <code>routes=</code> rather than installing it globally, and treat Gunicorn's <code>timeout</code> and your proxy's read timeout as the backstop either way &mdash; they're what actually reclaims a truly stuck worker.</p>
       </div>
 
       <!-- Hot Reload -->

@@ -76,6 +76,7 @@
         <a href="api-reference.html#route-class" class="sidebar-link">Route</a>
         <a href="api-reference.html#config-class" class="sidebar-link">ConfigDict</a>
         <a href="api-reference.html#middleware-classes" class="sidebar-link">Middleware</a>
+        <a href="api-reference.html#session-backends" class="sidebar-link">Session Backends</a>
         <a href="api-reference.html#dependency-container" class="sidebar-link">DependencyContainer</a>
         <a href="api-reference.html#exceptions" class="sidebar-link">Exceptions</a>
         <a href="api-reference.html#data-structures" class="sidebar-link">Data Structures</a>
@@ -84,6 +85,7 @@
         <a href="api-reference.html#test-client" class="sidebar-link">Test Client</a>
         <a href="api-reference.html#background-task-pool" class="sidebar-link">Background Tasks</a>
         <a href="api-reference.html#decorators" class="sidebar-link">Decorators</a>
+        <a href="api-reference.html#rate-limit-backends" class="sidebar-link">Rate Limit Backends</a>
         <a href="api-reference.html#template-classes" class="sidebar-link">Templates</a>
         <a href="api-reference.html#server-adapters" class="sidebar-link">Server Adapters</a>
       </div>
@@ -462,7 +464,21 @@
           <tr><td><code>CORSMiddleware</code></td><td><code>(allow_origins='*', allow_methods=None, allow_headers=None, expose_headers=None, allow_credentials=False, max_age=86400)</code></td><td>3 / pre  handles OPTIONS before routing</td></tr>
           <tr><td><code>SecurityHeadersMiddleware</code></td><td><code>(hsts=False, hsts_max_age=31536000, **overrides)</code></td><td>5 / post</td></tr>
           <tr><td><code>CSRFMiddleware</code></td><td><code>(secret=None, cookie_name='_csrf_token', header_name='X-CSRF-Token', safe_methods=('GET','HEAD','OPTIONS'))</code></td><td>10 / pre  sets token cookie before routing</td></tr>
-          <tr><td><code>CompressionMiddleware</code></td><td><code>(min_size=256, level=6, content_types=None)</code></td><td>90 / post</td></tr>
+          <tr><td><code>SessionMiddleware</code></td><td><code>(backend=None, secret=None, cookie_name='lcore_session', ttl=1209600, absolute_ttl=None, refresh_every=None, secure=False, httponly=True, samesite='Lax', path='/', domain=None, on_backend_error='unavailable')</code></td><td>20 / post</td></tr>
+          <tr><td><code>CompressionMiddleware</code></td><td><code>(min_size=256, level=6, content_types=None, stream_threshold=262144)</code></td><td>90 / post</td></tr>
+        </tbody>
+      </table>
+
+      <!-- Session backends -->
+      <h2 id="session-backends">Session Backends</h2>
+
+      <table>
+        <thead><tr><th>Class</th><th>Constructor</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td><code>MemorySessionBackend</code></td><td><code>(max_sessions=100000, warn=True)</code></td><td>Development only. Per-process, lost on restart.</td></tr>
+          <tr><td><code>SQLiteSessionBackend</code></td><td><code>(path='lcore_sessions.db', busy_timeout=5000, cleanup_every=300, cleanup_batch=1000)</code></td><td>Stdlib only. Multi-worker safe on one machine. <code>cleanup_batch</code> bounds each periodic sweep to that many expired rows, so a backlog cannot turn one request into a full-table scan.</td></tr>
+          <tr><td><code>RedisSessionBackend</code></td><td><code>(redis_url='redis://localhost:6379/0', prefix='lcore:sess:', socket_connect_timeout=2, health_check_interval=30)</code></td><td>Requires <code>uv add redis</code>. Multi-server.</td></tr>
+          <tr><td><code>SessionBackend</code></td><td>ABC</td><td>Implement <code>load</code>, <code>save</code>, <code>delete</code>, <code>list_user</code>, <code>revoke_user</code>, <code>get_epoch</code>, <code>bump_epoch</code>. <code>revoke_all()</code>, <code>touch()</code> and <code>cached_epoch()</code> are inherited. Also override <code>unindex(sid, user_key)</code> if your backend keeps its own per-user index (the base implementation is a no-op) &mdash; it is called when <code>bind_user(regenerate=False)</code> reassigns a session to a different user, so the old user's index does not keep pointing at it. Class attributes <code>epoch_cache_ttl</code> (default <code>5.0</code>) and <code>epoch_cache_max</code> (default <code>10000</code>) tune the per-process epoch cache; call <code>self._forget_epoch(key)</code> from a custom <code>bump_epoch</code>.</td></tr>
         </tbody>
       </table>
 
@@ -613,7 +629,7 @@
           <tr><td><code>redirect</code></td><td><code>(url, code=None)</code></td><td>Raise a redirect HTTPResponse.</td></tr>
           <tr><td><code>abort</code></td><td><code>(code=500, text='Unknown Error.')</code></td><td>Raise an HTTPError.</td></tr>
           <tr><td><code>static_file</code></td><td><code>(filename, root, mimetype=True, download=False, charset='UTF-8', etag=None, headers=None)</code></td><td>Serve a static file with caching, range requests, and security.</td></tr>
-          <tr><td><code>load</code></td><td><code>(target, **namespace)</code></td><td>Dynamically load module/attribute (safe getattr chain).</td></tr>
+          <tr><td><code>load</code></td><td><code>(target)</code></td><td>Dynamically load module/attribute (safe getattr chain).</td></tr>
           <tr><td><code>load_app</code></td><td><code>(target)</code></td><td>Load WSGI app from "module:app" string.</td></tr>
           <tr><td><code>load_dotenv</code></td><td><code>(path=None)</code></td><td>v0.0.4: Load .env file into os.environ. Auto-called by <code>app.run()</code>.</td></tr>
           <tr><td><code>debug</code></td><td><code>(mode=True)</code></td><td>Enable/disable debug mode globally.</td></tr>
@@ -753,7 +769,7 @@ from lcore import error, mount, hook, install, uninstall, url, use</code></pre>
         <div class="api-body">
           <p>Built-in Redis-backed backend. Enforces per-IP limits <strong>across all worker
           processes</strong> via an atomic Lua script (<code>INCR</code> + <code>EXPIRE</code>
-          in one round-trip). Requires: <code>pip install redis</code>.</p>
+          in one round-trip). Requires: <code>uv add redis</code>.</p>
           <p>Fails <strong>open</strong> (allows request, logs warning) when Redis is
           unavailable so a Redis outage cannot take down your application.</p>
           <table>
