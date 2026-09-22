@@ -4,7 +4,7 @@
 import sys
 
 __author__ = 'Lusan Sapkota'
-__version__ = '0.0.4'
+__version__ = '0.0.5'
 __license__ = 'MIT'
 
 def _cli_parse(args):

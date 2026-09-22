@@ -17,7 +17,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/python-3.8%2B-blue" alt="Python 3.8+">
-  <img src="https://img.shields.io/badge/version-0.0.4-informational" alt="v0.0.4">
+  <img src="https://img.shields.io/badge/version-0.0.5-informational" alt="v0.0.5">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT">
   <img src="https://img.shields.io/badge/dependencies-none-brightgreen" alt="Zero Dependencies">
 </p>
