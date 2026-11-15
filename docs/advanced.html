@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Advanced - Lcore Documentation</title>
   <meta name="description" content="Advanced Lcore features - dependency injection, module mounting, template engines, security utilities, and production deployment.">
   <meta name="keywords" content="Python,WSGI,microservice,framework,web,API,REST,Lcore,advanced,DI,security,production">
@@ -26,6 +26,7 @@
 <!--chrome:head-->
   <meta name="theme-color" content="#23272f">
   <meta name="color-scheme" content="dark light">
+  <link rel="alternate" type="text/markdown" href="advanced.md">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="Lcore: fast, single-file Python WSGI framework">
@@ -61,11 +62,18 @@
 
   <div class="doc-layout">
     <!--chrome:sidebar--><aside class="sidebar" id="sidebar" aria-label="Documentation">
+<div class="drawer-head"><span class="drawer-title">Menu</span><button class="icon-btn drawer-close" type="button" aria-label="Close menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+      <nav class="drawer-nav" aria-label="Site">
+        <a href="getting-started.html">Guide</a>
+        <a href="middleware.html">Middleware</a>
+        <a href="api-reference.html">API</a>
+        <a href="changelog.html">Changelog</a>
+      </nav>
       <nav aria-label="Docs">
       <details class="sidebar-section" open>
         <summary class="sidebar-title">Getting Started</summary>
-        <a href="getting-started.html" class="sidebar-link">Getting Started</a>
-        <div class="sidebar-subs" data-page="getting-started.html">
+        <div class="sidebar-row"><a href="getting-started.html" class="sidebar-link">Getting Started</a><button class="sub-toggle" type="button" aria-expanded="false" aria-controls="subs-getting-started" aria-label="Sections of Getting Started"></button></div>
+        <div class="sidebar-subs" id="subs-getting-started" data-page="getting-started.html">
           <a href="getting-started.html#installation" class="sidebar-link sub">Installation</a>
           <a href="getting-started.html#first-app" class="sidebar-link sub">Your First App</a>
           <a href="getting-started.html#concepts" class="sidebar-link sub">Core Concepts</a>
@@ -74,8 +82,8 @@
           <a href="getting-started.html#cli" class="sidebar-link sub">Command-Line Interface</a>
           <a href="getting-started.html#project-structure" class="sidebar-link sub">Project Structure</a>
         </div>
-        <a href="tutorial.html" class="sidebar-link">Tutorial: Build a Notes API</a>
-        <div class="sidebar-subs" data-page="tutorial.html">
+        <div class="sidebar-row"><a href="tutorial.html" class="sidebar-link">Tutorial: Build a Notes API</a><button class="sub-toggle" type="button" aria-expanded="false" aria-controls="subs-tutorial" aria-label="Sections of Tutorial: Build a Notes API"></button></div>
+        <div class="sidebar-subs" id="subs-tutorial" data-page="tutorial.html">
           <a href="tutorial.html#tutorial-setup" class="sidebar-link sub">Set up</a>
           <a href="tutorial.html#tutorial-routes" class="sidebar-link sub">Routes and URL parameters</a>
           <a href="tutorial.html#tutorial-validation" class="sidebar-link sub">Validate input</a>
@@ -90,8 +98,8 @@
       </details>
       <details class="sidebar-section" open>
         <summary class="sidebar-title">Core</summary>
-        <a href="routing.html" class="sidebar-link">Routing</a>
-        <div class="sidebar-subs" data-page="routing.html">
+        <div class="sidebar-row"><a href="routing.html" class="sidebar-link">Routing</a><button class="sub-toggle" type="button" aria-expanded="false" aria-controls="subs-routing" aria-label="Sections of Routing"></button></div>
+        <div class="sidebar-subs" id="subs-routing" data-page="routing.html">
           <a href="routing.html#basic-routing" class="sidebar-link sub">Basic Routing</a>
           <a href="routing.html#http-methods" class="sidebar-link sub">HTTP Methods</a>
           <a href="routing.html#dynamic-routes" class="sidebar-link sub">Dynamic Routes</a>
@@ -102,8 +110,8 @@
           <a href="routing.html#url-building" class="sidebar-link sub">URL Building</a>
           <a href="routing.html#route-inspection" class="sidebar-link sub">Route Inspection</a>
         </div>
-        <a href="request-response.html" class="sidebar-link">Request &amp; Response</a>
-        <div class="sidebar-subs" data-page="request-response.html">
+        <div class="sidebar-row"><a href="request-response.html" class="sidebar-link">Request &amp; Response</a><button class="sub-toggle" type="button" aria-expanded="false" aria-controls="subs-request-response" aria-label="Sections of Request &amp; Response"></button></div>
+        <div class="sidebar-subs" id="subs-request-response" data-page="request-response.html">
           <a href="request-response.html#request-object" class="sidebar-link sub">The Request Object</a>
           <a href="request-response.html#query-params" class="sidebar-link sub">Query Parameters</a>
           <a href="request-response.html#form-data" class="sidebar-link sub">Form Data</a>
@@ -115,8 +123,8 @@
           <a href="request-response.html#static-files" class="sidebar-link sub">Static Files</a>
           <a href="request-response.html#redirects" class="sidebar-link sub">Redirects</a>
         </div>
-        <a href="middleware.html" class="sidebar-link">Middleware &amp; Hooks</a>
-        <div class="sidebar-subs" data-page="middleware.html">
+        <div class="sidebar-row"><a href="middleware.html" class="sidebar-link">Middleware &amp; Hooks</a><button class="sub-toggle" type="button" aria-expanded="false" aria-controls="subs-middleware" aria-label="Sections of Middleware &amp; Hooks"></button></div>
+        <div class="sidebar-subs" id="subs-middleware" data-page="middleware.html">
           <a href="middleware.html#overview" class="sidebar-link sub">Overview</a>
           <a href="middleware.html#built-in" class="sidebar-link sub">Built-in Middleware</a>
           <a href="middleware.html#sessions" class="sidebar-link sub">Sessions</a>
@@ -125,8 +133,8 @@
           <a href="middleware.html#hooks" class="sidebar-link sub">Lifecycle Hooks</a>
           <a href="middleware.html#pipeline" class="sidebar-link sub">Middleware Pipeline</a>
         </div>
-        <a href="plugins.html" class="sidebar-link">Plugins</a>
-        <div class="sidebar-subs" data-page="plugins.html">
+        <div class="sidebar-row"><a href="plugins.html" class="sidebar-link">Plugins</a><button class="sub-toggle" type="button" aria-expanded="false" aria-controls="subs-plugins" aria-label="Sections of Plugins"></button></div>
+        <div class="sidebar-subs" id="subs-plugins" data-page="plugins.html">
           <a href="plugins.html#overview" class="sidebar-link sub">Overview</a>
           <a href="plugins.html#built-in" class="sidebar-link sub">Built-in Plugins</a>
           <a href="plugins.html#writing-plugins" class="sidebar-link sub">Writing Plugins</a>
@@ -136,8 +144,8 @@
       </details>
       <details class="sidebar-section" open>
         <summary class="sidebar-title">Advanced</summary>
-        <a href="advanced.html" class="sidebar-link active">Advanced Features</a>
-        <div class="sidebar-subs open" data-page="advanced.html">
+        <div class="sidebar-row"><a href="advanced.html" class="sidebar-link active">Advanced Features</a><button class="sub-toggle" type="button" aria-expanded="false" aria-controls="subs-advanced" aria-label="Sections of Advanced Features"></button></div>
+        <div class="sidebar-subs open" id="subs-advanced" data-page="advanced.html">
           <a href="advanced.html#dependency-injection" class="sidebar-link sub">Dependency Injection</a>
           <a href="advanced.html#mounting" class="sidebar-link sub">Module Mounting</a>
           <a href="advanced.html#templates" class="sidebar-link sub">Templates</a>
@@ -154,8 +162,8 @@
       </details>
       <details class="sidebar-section" open>
         <summary class="sidebar-title">Reference</summary>
-        <a href="api-reference.html" class="sidebar-link">API Reference</a>
-        <div class="sidebar-subs" data-page="api-reference.html">
+        <div class="sidebar-row"><a href="api-reference.html" class="sidebar-link">API Reference</a><button class="sub-toggle" type="button" aria-expanded="false" aria-controls="subs-api-reference" aria-label="Sections of API Reference"></button></div>
+        <div class="sidebar-subs" id="subs-api-reference" data-page="api-reference.html">
           <a href="api-reference.html#lcore-class" class="sidebar-link sub">Lcore</a>
           <a href="api-reference.html#request-class" class="sidebar-link sub">BaseRequest</a>
           <a href="api-reference.html#response-class" class="sidebar-link sub">BaseResponse</a>
@@ -177,8 +185,8 @@
           <a href="api-reference.html#template-classes" class="sidebar-link sub">Template Classes</a>
           <a href="api-reference.html#server-adapters" class="sidebar-link sub">Server Adapters</a>
         </div>
-        <a href="changelog.html" class="sidebar-link">Changelog</a>
-        <div class="sidebar-subs" data-page="changelog.html">
+        <div class="sidebar-row"><a href="changelog.html" class="sidebar-link">Changelog</a><button class="sub-toggle" type="button" aria-expanded="false" aria-controls="subs-changelog" aria-label="Sections of Changelog"></button></div>
+        <div class="sidebar-subs" id="subs-changelog" data-page="changelog.html">
           <a href="changelog.html#v0-0-6" class="sidebar-link sub">0.0.6 (2026-11-15)</a>
           <a href="changelog.html#v0-0-5" class="sidebar-link sub">0.0.5 (2026-09-22)</a>
           <a href="changelog.html#v0-0-4" class="sidebar-link sub">0.0.4 (2026-05-22)</a>

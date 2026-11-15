@@ -1,0 +1,16 @@
+# Lcore
+
+> A fast, single-file Python WSGI framework with zero dependencies.
+
+## Docs
+
+- [Lcore - Fast Python Microservice Framework](https://lcore.lusansapkota.com.np/index.md): Lcore is a fast, single-file Python WSGI framework with zero dependencies. CORS, CSRF, rate limiting and DI built in. 3.6-6.7x faster than Flask.
+- [Getting Started](https://lcore.lusansapkota.com.np/getting-started.md): Get started with Lcore - installation, first app, core concepts, and configuration for the Python WSGI microservice framework.
+- [Tutorial: Build a Notes API](https://lcore.lusansapkota.com.np/tutorial.md): Step-by-step Lcore tutorial: build and test a notes JSON API with routes, validation, route groups, middleware, sessions, rate limiting and error handlers.
+- [Routing](https://lcore.lusansapkota.com.np/routing.md): Routing in Lcore - typed parameters, wildcard filters, method decorators, route groups, and async handler support.
+- [Request &amp; Response](https://lcore.lusansapkota.com.np/request-response.md): Request and Response handling in Lcore - JSON parsing, form data, file uploads, cookies, headers, and status codes.
+- [Middleware &amp; Hooks](https://lcore.lusansapkota.com.np/middleware.md): Middleware and lifecycle hooks in Lcore - CORS, CSRF, security headers, rate limiting, compression, and custom middleware.
+- [Plugins](https://lcore.lusansapkota.com.np/plugins.md): Plugin system in Lcore - JSON serialization, template rendering, and custom plugin architecture.
+- [Advanced](https://lcore.lusansapkota.com.np/advanced.md): Advanced Lcore features - dependency injection, module mounting, template engines, security utilities, and production deployment.
+- [API Reference](https://lcore.lusansapkota.com.np/api-reference.md): Lcore API Reference - complete documentation for all classes, functions, middleware, decorators, and server adapters.
+- [Changelog](https://lcore.lusansapkota.com.np/changelog.md): Lcore release notes: every added feature, behavior change, fix and security note, version by version.

@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
   var root = document.documentElement;
   var page = location.pathname.split('/').pop() || 'index.html';
+  if (!/\.html$/.test(page)) page += '.html'; // extensionless URLs such as /routing
 
   if (typeof hljs !== 'undefined') {
     hljs.configure({ languages: ['python', 'bash', 'json', 'http', 'ini', 'xml', 'sql'] });
@@ -25,30 +26,44 @@ document.addEventListener('DOMContentLoaded', function () {
     try { localStorage.setItem('lcore-theme', next); } catch (e) {}
   });
 
-  // Slide-over menu
-  var toggle = $('.menu-toggle'), sidebar = $('.sidebar'), scrim = null;
+  // Slide-over menu: scroll lock, inert page, focus in and back out
+  var toggle = $('.menu-toggle'), sidebar = $('.sidebar'), closeBtn = $('.drawer-close'), scrim = null;
   function setMenu(open) {
-    if (!sidebar) return;
+    if (!sidebar || sidebar.classList.contains('open') === open) return;
     sidebar.classList.toggle('open', open);
     toggle.setAttribute('aria-expanded', open);
-    if (open && !scrim) {
+    root.classList.toggle('menu-open', open);
+    $$('.skip-link, .site-header, main.content, .toc, .site-footer').forEach(function (el) { el.inert = open; });
+    if (!scrim) {
       scrim = document.createElement('div');
       scrim.className = 'scrim';
       scrim.addEventListener('click', function () { setMenu(false); });
       document.body.appendChild(scrim);
-    } else if (!open && scrim) { scrim.remove(); scrim = null; }
+    }
+    scrim.classList.toggle('show', open);
+    if (open) closeBtn.focus({ preventScroll: true }); else toggle.focus({ preventScroll: true });
   }
   if (toggle && sidebar) {
-    toggle.addEventListener('click', function () { setMenu(!sidebar.classList.contains('open')); });
+    toggle.addEventListener('click', function () { setMenu(true); });
+    closeBtn.addEventListener('click', function () { setMenu(false); });
     sidebar.addEventListener('click', function (e) { if (e.target.closest('a')) setMenu(false); });
-    document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && sidebar.classList.contains('open')) { setMenu(false); toggle.focus(); }
-    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') setMenu(false); });
     matchMedia('(min-width: 901px)').addEventListener('change', function (m) { if (m.matches) setMenu(false); });
+    // Group titles announce their state; sub-link lists open from the chevron (phone only)
+    $$('.sidebar-section').forEach(function (d) {
+      var sum = d.firstElementChild;
+      sum.setAttribute('aria-expanded', d.open);
+      d.addEventListener('toggle', function () { sum.setAttribute('aria-expanded', d.open); });
+    });
+    $$('.sub-toggle').forEach(function (b) {
+      b.addEventListener('click', function () {
+        b.setAttribute('aria-expanded', document.getElementById(b.getAttribute('aria-controls')).classList.toggle('show'));
+      });
+    });
   }
 
   // Active nav + sidebar
-  $$('.header-nav a').forEach(function (a) { if (a.getAttribute('href') === page) a.classList.add('active'); });
+  $$('.header-nav a, .drawer-nav a').forEach(function (a) { if (a.getAttribute('href') === page) a.classList.add('active'); });
   $$('.sidebar-link:not(.sub)').forEach(function (a) { if (a.getAttribute('href') === page) a.classList.add('active'); });
   var subs = $('.sidebar-subs[data-page="' + page + '"]');
   if (subs) subs.classList.add('open');
@@ -161,6 +176,33 @@ document.addEventListener('DOMContentLoaded', function () {
       try { navigator.clipboard.writeText(b.dataset.copy).then(function () { done(true); }, function () { done(false); }); } catch (e) { done(false); }
     });
   });
+
+  // Copy page: copies the generated Markdown twin of this page (see docs/build.py)
+  var contentEl = $('main.content');
+  if (contentEl && !document.body.classList.contains('index-page')) {
+    var cp = document.createElement('button');
+    cp.type = 'button';
+    cp.className = 'copy-page';
+    cp.setAttribute('aria-label', 'Copy page as Markdown');
+    cp.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span>Copy page</span>';
+    var label = cp.querySelector('span');
+    cp.addEventListener('click', function () {
+      function done(t) { label.textContent = t; cp.classList.toggle('done', t === 'Copied!'); setTimeout(function () { label.textContent = 'Copy page'; cp.classList.remove('done'); }, 2000); }
+      fetch(page.replace(/\.html$/, '.md')).then(function (r) {
+        if (!r.ok) throw new Error(r.status);
+        return r.text();
+      }).then(function (t) { return navigator.clipboard.writeText(t); })
+        .then(function () { done('Copied!'); }, function () { done('Copy failed'); });
+    });
+    var h1 = $('h1', contentEl);
+    if (h1) { // title on the left, button on the right, same row
+      var head = document.createElement('div');
+      head.className = 'page-head';
+      h1.parentNode.insertBefore(head, h1);
+      head.appendChild(h1);
+      head.appendChild(cp);
+    }
+  }
 
   // Previous / next page links
   var pages = $$('.sidebar-link:not(.sub)').filter(function (a) { return /^[a-z-]+\.html$/.test(a.getAttribute('href')); });

@@ -40,6 +40,15 @@ HEADER = f"""<a class="skip-link" href="#main">Skip to content</a>
     </div>
   </header>"""
 
+# Phone drawer only (hidden above 900px): title, close button and the top-nav links
+DRAWER_HEAD = f"""<div class="drawer-head"><span class="drawer-title">Menu</span><button class="icon-btn drawer-close" type="button" aria-label="Close menu"><svg {SVG}><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+      <nav class="drawer-nav" aria-label="Site">
+        <a href="getting-started.html">Guide</a>
+        <a href="middleware.html">Middleware</a>
+        <a href="api-reference.html">API</a>
+        <a href="changelog.html">Changelog</a>
+      </nav>"""
+
 
 class Headings(HTMLParser):
     """Collects h1/h2/h3 (with ids) and the first paragraph after each, inside <main>."""
@@ -80,14 +89,18 @@ def slug(s):
 
 
 def sidebar(info, cur=''):
-    out = ['<aside class="sidebar" id="sidebar" aria-label="Documentation">', '      <nav aria-label="Docs">']
+    out = ['<aside class="sidebar" id="sidebar" aria-label="Documentation">', DRAWER_HEAD, '      <nav aria-label="Docs">']
     for title, pages in GROUPS:
         out.append(f'      <details class="sidebar-section" open>\n        <summary class="sidebar-title">{title}</summary>')
         for pg in pages:
             h = info[pg]
             on = pg == cur  # active state is baked in so nothing shifts after load
-            out.append(f'        <a href="{pg}.html" class="sidebar-link{" active" if on else ""}">{html.escape(h[0])}</a>')
-            out.append(f'        <div class="sidebar-subs{" open" if on else ""}" data-page="{pg}.html">')
+            link = f'<a href="{pg}.html" class="sidebar-link{" active" if on else ""}">{html.escape(h[0])}</a>'
+            if h[1]:  # phone drawer: the chevron button expands the sub-links
+                link = (f'<div class="sidebar-row">{link}<button class="sub-toggle" type="button" aria-expanded="false" '
+                        f'aria-controls="subs-{pg}" aria-label="Sections of {html.escape(h[0])}"></button></div>')
+            out.append('        ' + link)
+            out.append(f'        <div class="sidebar-subs{" open" if on else ""}" id="subs-{pg}" data-page="{pg}.html">')
             out += [f'          <a href="{pg}.html#{i}" class="sidebar-link sub">{html.escape(x)}</a>' for i, x in h[1]]
             out.append('        </div>')
         out.append('      </details>')
@@ -139,6 +152,133 @@ def region(src, name, new, fallback=None, where=None):
     if pat.search(src): return pat.sub(lambda m: block, src)
     if fallback and re.search(fallback, src, re.S): return re.sub(fallback, lambda m: block, src, count=1, flags=re.S)
     return src.replace(where, block + where, 1) if where else src
+
+
+class Node:
+    def __init__(self, tag, attrs=()):
+        self.tag, self.attrs, self.kids = tag, dict(attrs), []
+
+
+class Tree(HTMLParser):
+    VOID = {'br', 'hr', 'img', 'input', 'meta', 'link'}
+
+    def __init__(self):
+        super().__init__()
+        self.root = Node('root'); self.stack = [self.root]
+
+    def handle_starttag(self, tag, attrs):
+        if self.stack[-1].tag == 'p' and tag in ('p', 'pre', 'ul', 'ol', 'table', 'div', 'h1', 'h2', 'h3', 'h4'):
+            self.stack.pop()  # browsers auto-close <p> before block elements
+        n = Node(tag, attrs); self.stack[-1].kids.append(n)
+        if tag not in self.VOID: self.stack.append(n)
+
+    def handle_endtag(self, tag):
+        for i in range(len(self.stack) - 1, 0, -1):
+            if self.stack[i].tag == tag: del self.stack[i:]; return
+
+    def handle_data(self, d):
+        self.stack[-1].kids.append(d)
+
+
+def _text(n):
+    return n if isinstance(n, str) else ''.join(_text(k) for k in n.kids)
+
+
+def _inline(n):
+    if isinstance(n, str): return re.sub(r'\s+', ' ', n)
+    t, k = n.tag, ''.join(_inline(x) for x in n.kids)
+    if t in ('script', 'style', 'button', 'svg', 'img'): return ''
+    if t == 'code': return '`' + _text(n).strip() + '`'
+    if t in ('strong', 'b'): return f'**{k.strip()}**' if k.strip() else ''
+    if t in ('em', 'i'): return f'*{k.strip()}*' if k.strip() else ''
+    if t == 'br': return '  \n'
+    if t == 'a' and n.attrs.get('href'):
+        href = n.attrs['href']
+        if not href.startswith(('http', 'mailto:')): href = SITE + '/' + href.lstrip('/')
+        return f'[{k.strip()}]({href})'
+    return k
+
+
+BLOCKS = {'h1', 'h2', 'h3', 'h4', 'p', 'pre', 'ul', 'ol', 'table', 'div', 'section', 'main', 'footer', 'blockquote'}
+
+
+def _lang(n, src):
+    m = re.search(r'language-([\w-]+)', ' '.join(k.attrs.get('class', '') for k in n.kids if not isinstance(k, str)))
+    if m: return m.group(1)
+    first = src.lstrip().split(None, 1)[0] if src.strip() else ''
+    return 'bash' if first in ('pip', 'uv', 'curl', 'python', 'python3', 'gunicorn', 'lcore', 'git', '$') else 'python'
+
+
+def _blocks(kids):
+    """Render children to markdown blocks; runs of inline nodes become one paragraph."""
+    out, run = [], []
+
+    def flush():
+        s = ''.join(run).strip()
+        if s: out.append(s)
+        run.clear()
+    for n in kids:
+        if isinstance(n, str) or n.tag not in BLOCKS: run.append(_inline(n)); continue
+        flush(); out.extend(_block(n))
+    flush()
+    return out
+
+
+def _block(n):
+    t, cls = n.tag, n.attrs.get('class', '')
+    if t in ('h1', 'h2', 'h3', 'h4'): return ['#' * int(t[1]) + ' ' + _inline(n).strip()]
+    if t == 'p': return [_inline(n).strip()] if _inline(n).strip() else []
+    if t == 'pre':
+        src = _text(n).strip('\n')
+        return [f'```{_lang(n.kids[0] if n.kids and not isinstance(n.kids[0], str) else n, src)}\n{src}\n```']
+    if t in ('ul', 'ol'):
+        items = []
+        for i, li in enumerate(k for k in n.kids if not isinstance(k, str) and k.tag == 'li'):
+            mark = f'{i + 1}.' if t == 'ol' else '-'
+            head = ''.join(_inline(x) for x in li.kids if isinstance(x, str) or x.tag not in ('ul', 'ol')).strip()
+            sub = [l for x in li.kids if not isinstance(x, str) and x.tag in ('ul', 'ol') for l in _block(x)[0].splitlines()]
+            items.append(f'{mark} {head}' + ''.join('\n   ' + l for l in sub))
+        return ['\n'.join(items)]
+    if t == 'table':
+        rows = [[re.sub(r'\s+', ' ', _inline(c)).strip().replace('|', '\\|') for c in r.kids if not isinstance(c, str) and c.tag in ('td', 'th')]
+                for r in _find(n, 'tr')]
+        if not rows: return []
+        return ['\n'.join(['| ' + ' | '.join(rows[0]) + ' |', '|' + '---|' * len(rows[0])] + ['| ' + ' | '.join(r) + ' |' for r in rows[1:]])]
+    if 'perf-bars' in cls or 'hero-buttons' in cls or 'pager' in cls or t in ('script', 'style'): return []
+    if 'install-term' in cls:
+        return ['```bash\n' + '\n'.join(_text(c).strip() for c in _find(n, 'code')) + '\n```']
+    if 'info-box' in cls:
+        return ['\n'.join('> ' + l if l else '>' for b in _blocks(n.kids) for l in (b + '\n').splitlines())]
+    if 'api-item' in cls:
+        hdr = next((k for k in n.kids if not isinstance(k, str) and 'api-header' in k.attrs.get('class', '')), None)
+        body = next((k for k in n.kids if not isinstance(k, str) and 'api-body' in k.attrs.get('class', '')), None)
+        name = ''.join(_text(s) for s in (hdr.kids if hdr else []) if not isinstance(s, str) and 'api-name' in s.attrs.get('class', ''))
+        sig = ''.join(_text(s) for s in (hdr.kids if hdr else []) if not isinstance(s, str) and 'api-sig' in s.attrs.get('class', ''))
+        return [f'### `{name}{sig}`'] + (_blocks(body.kids) if body else [])
+    return _blocks(n.kids)
+
+
+def _find(n, tag):
+    return [x for k in n.kids if not isinstance(k, str) for x in ([k] if k.tag == tag else []) + _find(k, tag)]
+
+
+def to_markdown(page_html, url):
+    tree = Tree(); tree.feed(re.search(r'<main[^>]*>(.*)</main>', page_html, re.S).group(1))
+    return f'Source: {url}\n\n' + '\n\n'.join(_blocks(tree.root.kids)) + '\n'
+
+
+def markdown_files():
+    """Write <page>.md next to each page (the Copy page button fetches it) and an llms.txt index."""
+    lines = ['# Lcore', '', '> A fast, single-file Python WSGI framework with zero dependencies.', '', '## Docs', '']
+    for pg in PAGES:
+        page = (DOCS / f'{pg}.html').read_text()
+        url = f'{SITE}/{"" if pg == "index" else pg + ".html"}'
+        md = (DOCS.parent / 'CHANGELOG.md').read_text() if pg == 'changelog' else to_markdown(page, url)
+        (DOCS / f'{pg}.md').write_text(md)
+        desc = html.unescape(re.search(r'name="description" content="([^"]*)"', page).group(1))
+        title = re.search(r'<title>(.*?)</title>', page, re.S).group(1).replace(' - Lcore Documentation', '')
+        lines.append(f'- [{title}]({SITE}/{pg}.md): {desc}')
+    (DOCS / 'llms.txt').write_text('\n'.join(lines) + '\n')
 
 
 def lastmod(pg):
@@ -196,10 +336,11 @@ def main():
                  'inLanguage': 'en', 'dateModified': lastmod(pg), 'image': SITE + '/og-image.png',
                  'author': {'@type': 'Person', 'name': 'Lusan Sapkota', 'url': 'https://lusansapkota.com.np'},
                  'publisher': {'@type': 'Person', 'name': 'Lusan Sapkota'}}]}) + '</script>'
+        alt = f'\n  <link rel="alternate" type="text/markdown" href="{pg}.md">'
         social = ('\n  <meta property="og:image:width" content="1200">\n  <meta property="og:image:height" content="630">'
                   '\n  <meta property="og:image:alt" content="Lcore: fast, single-file Python WSGI framework">'
                   '\n  <meta property="og:locale" content="en_US">\n  <meta name="twitter:image:alt" content="Lcore: fast, single-file Python WSGI framework">')
-        s = region(s, 'head', '\n  <meta name="theme-color" content="#23272f">\n  <meta name="color-scheme" content="dark light">' + social + '\n  ' + THEME_JS + graph + '\n  ', where='</head>')
+        s = region(s, 'head', '\n  <meta name="theme-color" content="#23272f">\n  <meta name="color-scheme" content="dark light">' + alt + social + '\n  ' + THEME_JS + graph + '\n  ', where='</head>')
         s = region(s, 'header', HEADER, fallback=r'<header class="site-header">.*?</header>', where='<body')
         s = region(s, 'sidebar', sidebar(info, pg), fallback=r'<aside class="sidebar">.*?</aside>')
         if pg == 'index' and '<!--chrome:sidebar-->' not in s:
@@ -215,3 +356,4 @@ def main():
 if __name__ == '__main__':
     main()
     sitemap()
+    markdown_files()
