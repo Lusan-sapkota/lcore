@@ -36,3 +36,22 @@ def test_malformed_content_type_is_not_a_500():
     c = TestClient(app)
     assert c.post('/p', body=b'a=1', content_type='application/x-www-form-urlencoded;charset').json == {'a': '1'}
     assert c.post('/p', body=b'a=1', content_type='multipart/form-data;boundary').status_code == 400
+
+
+def test_rate_limit_cleanup_survives_concurrent_inserts():
+    import threading
+    from lcore import rate_limit
+    errs = []
+
+    @rate_limit(10 ** 9, per=0.0001, single_process=True)
+    def f(): return 1
+
+    def w(t):
+        for i in range(15000):
+            request.bind({'REMOTE_ADDR': '10.%d.%d.%d' % (t, i >> 8 & 255, i & 255)})
+            try: f()
+            except RuntimeError as e: errs.append(e); return
+
+    ts = [threading.Thread(target=w, args=(t,)) for t in range(8)]
+    [t.start() for t in ts]; [t.join() for t in ts]
+    assert not errs

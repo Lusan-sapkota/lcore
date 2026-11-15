@@ -3028,14 +3028,15 @@ def rate_limit(limit, per=60, max_buckets=10000, backend=None, single_process=Fa
                 # Periodic cleanup of stale buckets (once per window).
                 if now - _last_cleanup[0] > per:
                     _last_cleanup[0] = now
-                    stale = [k for k, v in buckets.items()
-                             if now - v[0] > per]
-                    for k in stale:
-                        del buckets[k]
+                    # Snapshot first: other stripes insert into this dict concurrently.
+                    snap = list(buckets.items())
+                    for k, v in snap:
+                        if now - v[0] > per:
+                            buckets.pop(k, None)
                     if len(buckets) > max_buckets:
-                        oldest = sorted(buckets, key=lambda k: buckets[k][0])
-                        for k in oldest[:len(buckets) - max_buckets]:
-                            del buckets[k]
+                        oldest = sorted(snap, key=lambda kv: kv[1][0])
+                        for k, _ in oldest[:len(buckets) - max_buckets]:
+                            buckets.pop(k, None)
                 if addr not in buckets:
                     buckets[addr] = [now, limit]
                 tokens_info = buckets[addr]
