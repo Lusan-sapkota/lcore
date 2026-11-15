@@ -175,7 +175,7 @@ def create_user():
 
       <div class="info-box note">
         <strong>Note</strong>
-        <p><code>request.json</code> returns <code>None</code> if the Content-Type is not <code>application/json</code> or the body cannot be parsed. Always check for <code>None</code>.</p>
+        <p><code>request.json</code> returns <code>None</code> if the Content-Type is not <code>application/json</code> or the body is empty. A malformed body raises <code>HTTPError(400, 'Invalid JSON')</code>, so you never see half-parsed data. Use <code>request.json or {}</code> to treat empty as an empty dict.</p>
       </div>
 
       <div class="info-box tip">
@@ -374,7 +374,10 @@ raise HTTPError(422, body=json_dumps({'error': 'Validation failed', 'fields': {.
       <h4>Global JSON errors</h4>
       <p>For pure API servers, one config line replaces every per-status-code error handler:</p>
       <pre><code>app.config['error.format'] = 'json'
-# All errors now return {"error": "...", "status": N}  no handlers needed</code></pre>
+# All errors now return {"error": "...", "status": N}  no handlers needed
+
+# Without the config, any request with Accept: application/json (listed before
+# text/html) gets the same JSON, and browsers still get the HTML page.</code></pre>
 
       <!-- Static Files -->
       <h2 id="static-files">Static Files</h2>

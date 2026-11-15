@@ -454,6 +454,7 @@ def login():
 
       <div class="info-box warning">
         <strong>Multi-worker deployment warning</strong>
+        <p>Running a single worker? Pass <code>rate_limit(5, single_process=True)</code> to silence the startup warning. Counters live in memory, so a restart resets them; use <code>RedisRateLimitBackend</code> if limits must survive restarts.</p>
         <p>The default in-process backend stores token buckets in <strong>process memory</strong>.
         Under a multi-worker server (e.g. <code>gunicorn -w 4</code>), each worker has its own
         independent buckets. A single client can make <code>N × limit</code>
@@ -656,7 +657,10 @@ if verify_password(request.json['password'], stored_hash):
     return {'token': generate_token(user)}
 
 # Custom iteration count (higher = slower but more secure)
-hashed = hash_password('password', iterations=800000)</code></pre>
+hashed = hash_password('password', iterations=800000)
+
+# In tests only: a low count keeps the suite fast (default 600000 takes ~0.3s per call)
+hashed = hash_password('password', iterations=1000)</code></pre>
 
       <table class="params-table">
         <thead><tr><th>Function</th><th>Signature</th><th>Description</th></tr></thead>
@@ -701,6 +705,8 @@ resp = client.get('/api/data', headers={'Authorization': 'Bearer token123'})
 
 # Query strings
 resp = client.get('/search', query_string='q=hello&amp;page=1')</code></pre>
+
+      <p><code>TestClient(app)</code> keeps a cookie jar (<code>client.cookies</code>): a login's <code>Set-Cookie</code> is sent on later calls automatically. Use <code>TestClient(app, cookies=False)</code> to turn it off. <code>resp.get_all('Set-Cookie')</code> returns every repeated header value.</p>
 
       <h3>TestClient Methods</h3>
       <table>
