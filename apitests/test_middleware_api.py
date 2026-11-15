@@ -395,7 +395,6 @@ def test_logger_logs_on_exception(client):
     assert len(h.recs) == 1
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: RequestLoggerMiddleware logs ctx.response.status_code before HTTPError status is applied -> logs 200 for 418 (lcore.py:2295)")
 def test_logger_status_for_error(client):
     lg, h = _logger()
     app = mk(RequestLoggerMiddleware(lg))
@@ -1333,7 +1332,6 @@ def test_logger_logs_404(client):
     assert len(h.recs) == 1
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: RequestLoggerMiddleware logs status 200 for uncaught exception (500) (lcore.py:2295)")
 def test_logger_status_500(client):
     lg, h = _logger()
     app = mk(RequestLoggerMiddleware(lg))

@@ -2300,9 +2300,18 @@ class RequestLoggerMiddleware(Middleware):
 
     def __call__(self, ctx, next_handler):
         start = time.monotonic()
+        status = None
         try:
             result = next_handler(ctx)
+            if isinstance(result, HTTPResponse):  # not applied to ctx.response yet
+                status = result.status_code
             return result
+        except HTTPResponse as E:
+            status = E.status_code
+            raise
+        except Exception:
+            status = 500
+            raise
         finally:
             duration_ms = (time.monotonic() - start) * 1000
             self.logger.info(json_dumps({
@@ -2310,7 +2319,7 @@ class RequestLoggerMiddleware(Middleware):
                 'request_id': getattr(ctx, 'request_id', None),
                 'method': ctx.request.method,
                 'path': ctx.request.path,
-                'status': ctx.response.status_code,
+                'status': status or ctx.response.status_code,
                 'duration_ms': round(duration_ms, 2),
                 'remote_addr': ctx.request.remote_addr,
             }))
