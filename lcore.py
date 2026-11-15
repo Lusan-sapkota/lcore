@@ -1995,24 +1995,26 @@ class BaseResponse:
         return self.headerlist
 
     def _wsgi_status_line(self):
-        return self._status_line.encode('utf8', 'surrogateescape').decode('latin1')
+        line = self._status_line
+        return line if line.isascii() else line.encode('utf8', 'surrogateescape').decode('latin1')
 
     @property
     def headerlist(self):
+        hdrs = self._headers
+        bad = self.bad_headers.get(self._status_code)
         out = []
-        headers = list(self._headers.items())
-        if 'Content-Type' not in self._headers:
-            headers.append(('Content-Type', [self.default_content_type]))
-        if self._status_code in self.bad_headers:
-            bad_headers = self.bad_headers[self._status_code]
-            headers = [h for h in headers if h[0] not in bad_headers]
-        out += [(name, val) for (name, vals) in headers for val in vals]
+        for name, vals in hdrs.items():
+            if bad and name in bad: continue
+            for v in vals:
+                # PEP 3333 wants latin-1 str; ascii values (nearly all) need no re-encode
+                out.append((name, v if v.isascii() else v.encode('utf8', 'surrogateescape').decode('latin1')))
+        if 'Content-Type' not in hdrs and not (bad and 'Content-Type' in bad):
+            out.append(('Content-Type', self.default_content_type))
         if self._cookies:
             for c in self._cookies.values():
-                out.append(('Set-Cookie', _hval(c.OutputString())))
-        # PEP 3333 wants latin-1 str; ascii values (nearly all) need no re-encode
-        return [(k, v if v.isascii() else v.encode('utf8', 'surrogateescape').decode('latin1'))
-                for (k, v) in out]
+                v = _hval(c.OutputString())
+                out.append(('Set-Cookie', v if v.isascii() else v.encode('utf8', 'surrogateescape').decode('latin1')))
+        return out
 
     content_type = HeaderProperty('Content-Type')
     content_length = HeaderProperty('Content-Length', reader=int, default=-1)
