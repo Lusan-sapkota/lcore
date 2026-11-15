@@ -124,3 +124,12 @@ def test_static_file_etag_quoted_weak_and_416(tmp_path=None):
     assert c.get('/f', headers={'If-None-Match': '"x"'}).status_code == 200
     r = c.get('/f', headers={'Range': 'bytes=500-600'})
     assert r.status_code == 416 and r.headers['Content-Range'] == 'bytes */11'
+
+
+def test_xss_protection_header_disabled():
+    app = Lcore(); app.use(SecurityHeadersMiddleware())
+
+    @app.get('/')
+    def i(): return 'x'
+
+    assert TestClient(app).get('/').headers['X-Xss-Protection'] == '0'
