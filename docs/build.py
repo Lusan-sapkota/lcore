@@ -40,6 +40,15 @@ HEADER = f"""<a class="skip-link" href="#main">Skip to content</a>
     </div>
   </header>"""
 
+# Phone drawer only (hidden above 900px): title, close button and the top-nav links
+DRAWER_HEAD = f"""<div class="drawer-head"><span class="drawer-title">Menu</span><button class="icon-btn drawer-close" type="button" aria-label="Close menu"><svg {SVG}><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+      <nav class="drawer-nav" aria-label="Site">
+        <a href="getting-started.html">Guide</a>
+        <a href="middleware.html">Middleware</a>
+        <a href="api-reference.html">API</a>
+        <a href="changelog.html">Changelog</a>
+      </nav>"""
+
 
 class Headings(HTMLParser):
     """Collects h1/h2/h3 (with ids) and the first paragraph after each, inside <main>."""
@@ -80,14 +89,18 @@ def slug(s):
 
 
 def sidebar(info, cur=''):
-    out = ['<aside class="sidebar" id="sidebar" aria-label="Documentation">', '      <nav aria-label="Docs">']
+    out = ['<aside class="sidebar" id="sidebar" aria-label="Documentation">', DRAWER_HEAD, '      <nav aria-label="Docs">']
     for title, pages in GROUPS:
         out.append(f'      <details class="sidebar-section" open>\n        <summary class="sidebar-title">{title}</summary>')
         for pg in pages:
             h = info[pg]
             on = pg == cur  # active state is baked in so nothing shifts after load
-            out.append(f'        <a href="{pg}.html" class="sidebar-link{" active" if on else ""}">{html.escape(h[0])}</a>')
-            out.append(f'        <div class="sidebar-subs{" open" if on else ""}" data-page="{pg}.html">')
+            link = f'<a href="{pg}.html" class="sidebar-link{" active" if on else ""}">{html.escape(h[0])}</a>'
+            if h[1]:  # phone drawer: the chevron button expands the sub-links
+                link = (f'<div class="sidebar-row">{link}<button class="sub-toggle" type="button" aria-expanded="false" '
+                        f'aria-controls="subs-{pg}" aria-label="Sections of {html.escape(h[0])}"></button></div>')
+            out.append('        ' + link)
+            out.append(f'        <div class="sidebar-subs{" open" if on else ""}" id="subs-{pg}" data-page="{pg}.html">')
             out += [f'          <a href="{pg}.html#{i}" class="sidebar-link sub">{html.escape(x)}</a>' for i, x in h[1]]
             out.append('        </div>')
         out.append('      </details>')
