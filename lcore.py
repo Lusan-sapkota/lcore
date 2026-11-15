@@ -45,7 +45,7 @@ if __name__ == '__main__':
     _cli_patch(sys.argv)
 
 # stdlib imports that's it, no pip install required
-import abc, asyncio, atexit, base64, codecs, errno, calendar, concurrent.futures, email.utils, \
+import abc, asyncio, atexit, base64, codecs, errno, json, calendar, concurrent.futures, email.utils, \
     functools, gzip, hmac, itertools, logging, mimetypes, os, re, tempfile, \
     threading, time, uuid, warnings, weakref, hashlib, zlib
 
@@ -4244,14 +4244,21 @@ class JSONPlugin:
         stock = dumps is json_dumps
         cfg = route.app.config
 
+        dumpers = {}  # (ascii, indent) -> dump function, built once
+
+        def _build(ascii_, indent):
+            if getattr(dumps, '__module__', '') == 'json':  # stdlib: a prebuilt encoder skips per-call setup
+                return json.JSONEncoder(ensure_ascii=ascii_, indent=2 if indent else None).encode
+            return functools.partial(dumps, ensure_ascii=ascii_, **({'indent': 2} if indent else {}))
+
         def _dump(rv):
             fn = cfg.get('json.dump_func')
             if fn: return fn(rv)
             if not stock: return dumps(rv)
-            kw = {}
-            if not cfg.get('json.ascii'): kw['ensure_ascii'] = False
-            if cfg.get('json.indent'): kw['indent'] = 2
-            return dumps(rv, **kw)
+            key = (bool(cfg.get('json.ascii')), bool(cfg.get('json.indent')))
+            d = dumpers.get(key)
+            if d is None: d = dumpers[key] = _build(*key)
+            return d(rv)
 
         def _json_convert(rv):
             if isinstance(rv, dict) or (isinstance(rv, list) and rv
