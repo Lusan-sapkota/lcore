@@ -5251,10 +5251,23 @@ class TestClient:
                     self.cookies[name] = m.value
 
     def request(self, method, path, body=b'', headers=None,
-                query_string='', content_type=None, json=None, _hops=0):
+                query_string='', content_type=None, json=None):
         if json is not None:
             body = tob(json_dumps(json))
             content_type = content_type or 'application/json'
+        resp = self._send(method, path, body, headers, query_string, content_type)
+        for _ in range(10):  # redirect limit
+            loc = resp.headers.get('Location')
+            if not (self.follow_redirects and loc and resp.status_code in (301, 302, 303, 307, 308)):
+                break
+            u = urlparse(loc)  # same-app only; host is ignored
+            keep = resp.status_code in (307, 308)
+            resp = self._send(method if keep else 'GET', u.path or '/',
+                              body if keep else b'', headers, u.query,
+                              content_type if keep else None)
+        return resp
+
+    def _send(self, method, path, body, headers, query_string, content_type):
         environ = {
             'REQUEST_METHOD': method.upper(),
             'PATH_INFO': path,
@@ -5293,14 +5306,6 @@ class TestClient:
                             list(response_headers[0]))
         if self.cookies is not None:
             self._store_cookies(resp)
-        loc = resp.headers.get('Location')
-        if self.follow_redirects and loc and resp.status_code in (301, 302, 303, 307, 308) and _hops < 10:
-            u = urlparse(loc)  # same-app only; host is ignored
-            keep = resp.status_code in (307, 308)
-            return self.request(method if keep else 'GET', u.path or '/',
-                                body=body if keep else b'', headers=headers,
-                                query_string=u.query, content_type=content_type if keep else None,
-                                _hops=_hops + 1)
         return resp
 
     def get(self, path, **kw):

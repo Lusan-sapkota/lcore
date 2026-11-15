@@ -159,3 +159,15 @@ def test_accept_q_weights():
     assert p(h('text/html;q=0.5, application/json'))
     assert not p(h('text/html, application/json'))
     assert not p(h('*/*')) and not p({})
+
+
+def test_testclient_redirect_loop_is_capped_and_private():
+    import inspect
+    app = Lcore()
+
+    @app.get('/loop')
+    def l(): redirect('/loop')
+
+    c = TestClient(app, follow_redirects=True)
+    assert c.get('/loop').status_code in (302, 303)
+    assert '_hops' not in inspect.signature(c.request).parameters
