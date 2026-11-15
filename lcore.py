@@ -1638,6 +1638,17 @@ class BaseRequest:
         except KeyError:
             self.environ['wsgi.input'] = BytesIO()
             return self.environ['wsgi.input']
+        env = self.environ
+        if 'HTTP_TRANSFER_ENCODING' not in env:  # fast path: small, length-declared body
+            cl, limit = self.content_length, env.get('lcore.body_max_size', 0)
+            if 0 < cl <= self.MEMFILE_MAX and not (limit and cl > limit):
+                data = read_func(cl)
+                while len(data) < cl:
+                    more = read_func(cl - len(data))
+                    if not more: break
+                    data += more
+                env['wsgi.input'] = body = BytesIO(data)
+                return body
         body_iter = self._iter_chunked if self.chunked else self._iter_body
         body, body_size, is_temp_file = BytesIO(), 0, False
         for part in body_iter(read_func, self.MEMFILE_MAX):
