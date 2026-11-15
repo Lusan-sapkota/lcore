@@ -79,3 +79,13 @@ def test_redirect_with_line_break_is_400():
     c = TestClient(app)
     assert c.get('/r', query_string='u=%0d%0aSet-Cookie:x=1').status_code == 400
     assert c.get('/r', query_string='u=/ok').headers['Location'] == 'http://localhost/ok'
+
+
+def test_background_pool_tracks_pending():
+    import time
+    from lcore import BackgroundTaskPool
+    p = BackgroundTaskPool(max_workers=1)
+    for _ in range(3): p.submit(time.sleep, 0.05)
+    assert p.pending >= 1
+    p.shutdown(wait=True)
+    assert p.pending == 0

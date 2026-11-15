@@ -2849,23 +2849,19 @@ class BackgroundTaskPool:
 
     def __init__(self, max_workers=4):
         self._pool = concurrent.futures.ThreadPoolExecutor(max_workers=max_workers)
-        self._futures = []
-        self._lock = threading.Lock()
+        self._futures = set()
 
     def submit(self, fn, *args, **kwargs):
         """Submit a task for background execution. Returns a Future."""
         future = self._pool.submit(fn, *args, **kwargs)
-        with self._lock:
-            self._futures = [f for f in self._futures if not f.done()]
-            self._futures.append(future)
+        self._futures.add(future)
+        future.add_done_callback(self._futures.discard)  # O(1), no list rebuild
         return future
 
     @property
     def pending(self):
         """Number of tasks still running or queued."""
-        with self._lock:
-            self._futures = [f for f in self._futures if not f.done()]
-            return len(self._futures)
+        return len(self._futures)
 
     def shutdown(self, wait=True):
         """Shut down the pool, optionally waiting for pending tasks."""
