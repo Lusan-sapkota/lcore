@@ -404,6 +404,12 @@ app.run(host='0.0.0.0', port=8080)</code></pre>
         <div class="info-box note">
           <strong>Standard Python throughout.</strong> No metaclass magic, no descriptor abuse, no import-time side effects beyond what is declared. The source is meant to be read and understood.
         </div>
+        <div class="info-box note">
+          <strong>Fast, and measured.</strong> The request path is kept to roughly 10 µs. Any change that touches it is benchmarked before and after, so speed is a tested property, not a hope. The numbers are in the Performance section above.
+        </div>
+        <div class="info-box tip">
+          <strong>Safe defaults, not safe options.</strong> Request bodies are capped at 10 MB, CRLF in headers and cookies is rejected, and the development server refuses a public address unless you opt in. Input is validated at the boundary, so the secure path is the default one.
+        </div>
         <div class="info-box tip">
           <strong>449 tests, zero test dependencies.</strong> The test suite uses only <code>unittest</code> from the standard library. Run it anywhere with <code>python -m pytest tests/</code> after installing pytest.
         </div>
