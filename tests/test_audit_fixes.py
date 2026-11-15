@@ -104,3 +104,23 @@ def test_cors_vary_and_security_headers_on_404():
     assert 'Access-Control-Allow-Origin' not in r.headers and 'Origin' in r.headers['Vary']
     r = c.get('/nope')
     assert r.status_code == 404 and r.headers['X-Content-Type-Options'] == 'nosniff'
+
+
+def test_static_file_etag_quoted_weak_and_416(tmp_path=None):
+    import tempfile
+    d = tempfile.mkdtemp()
+    open(os.path.join(d, 'a.txt'), 'w').write('hello world')
+    app = Lcore()
+
+    @app.get('/f')
+    def f(): return static_file('a.txt', root=d)
+
+    c = TestClient(app)
+    tag = c.get('/f').headers['Etag']
+    assert tag.startswith('"') and tag.endswith('"')
+    assert c.get('/f', headers={'If-None-Match': tag}).status_code == 304
+    assert c.get('/f', headers={'If-None-Match': 'W/' + tag}).status_code == 304
+    assert c.get('/f', headers={'If-None-Match': '"x", ' + tag}).status_code == 304
+    assert c.get('/f', headers={'If-None-Match': '"x"'}).status_code == 200
+    r = c.get('/f', headers={'Range': 'bytes=500-600'})
+    assert r.status_code == 416 and r.headers['Content-Range'] == 'bytes */11'

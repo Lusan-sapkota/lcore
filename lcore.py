@@ -4940,9 +4940,12 @@ def static_file(filename, root,
         etag = hashlib.sha256(tob(etag)).hexdigest()
 
     if etag:
+        if not etag.startswith(('"', 'W/')): etag = '"%s"' % etag
         headers['ETag'] = etag
         check = getenv('HTTP_IF_NONE_MATCH')
-        if check and check == etag:
+        tags = [t.strip()[2:] if t.strip().startswith('W/') else t.strip()
+                for t in (check or '').split(',')]
+        if etag in tags or '*' in tags:
             _try_close(body)
             return HTTPResponse(status=304, **headers)
 
@@ -4963,7 +4966,8 @@ def static_file(filename, root,
         ranges = list(parse_range_header(range_header, clen))
         if not ranges:
             _try_close(body)
-            return HTTPError(416, "Requested Range Not Satisfiable")
+            return HTTPError(416, "Requested Range Not Satisfiable",
+                             **{'Content-Range': 'bytes */%d' % clen})
         offset, end = ranges[0]
         rlen = end - offset
         headers["Content-Range"] = "bytes %d-%d/%d" % (offset, end - 1, clen)
