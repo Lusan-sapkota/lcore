@@ -222,9 +222,16 @@ document.addEventListener('DOMContentLoaded', function () {
       hits = data.filter(function (e) { return !e[2]; });
     }
     sel = 0;
+    // Group by page, in order of best hit
+    var order = [];
+    hits.forEach(function (e) { if (order.indexOf(e[1]) < 0) order.push(e[1]); });
+    hits = [].concat.apply([], order.map(function (t) { return hits.filter(function (e) { return e[1] === t; }); }));
+    var last = null;
     list.innerHTML = hits.length ? hits.map(function (e, i) {
-      return '<li role="presentation"><a role="option" id="sr' + i + '" href="' + e[0] + (e[2] ? '#' + e[2] : '') + '"' + (i ? '' : ' aria-selected="true"') + '>' +
-        '<span class="sr-title">' + mark(e[3], words) + '</span><span class="sr-page">' + esc(e[1]) + '</span>' +
+      var head = e[1] !== last ? '<li class="sr-group" role="presentation">' + esc(e[1]) + '</li>' : '';
+      last = e[1];
+      return head + '<li role="presentation"><a role="option" id="sr' + i + '" href="' + e[0] + (e[2] ? '#' + e[2] : '') + '"' + (i ? '' : ' aria-selected="true"') + '>' +
+        '<span class="sr-title">' + mark(e[3], words) + '</span>' +
         (e[4] ? '<span class="sr-snip">' + mark(e[4], words) + '</span>' : '') + '</a></li>';
     }).join('') : '<li class="search-empty">No results for “' + esc(input.value) + '”</li>';
     input.setAttribute('aria-activedescendant', hits.length ? 'sr0' : '');
