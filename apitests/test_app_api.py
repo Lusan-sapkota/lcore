@@ -2012,3 +2012,12 @@ def test_load_rejects_dunder_attributes():
     import pytest, lcore
     with pytest.raises(AttributeError):
         lcore.load('lcore:Lcore.__init__')
+
+
+def test_cli_bad_target_and_port_are_one_line_errors():
+    import subprocess, sys, os
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    for args, needle in ((['nosuch_mod:app'], 'Cannot load'), (['x:app', '--bind', '127.0.0.1:99999'], 'Invalid port')):
+        r = subprocess.run([sys.executable, os.path.join(root, 'lcore.py')] + args,
+                           capture_output=True, text=True, cwd=root, timeout=20)
+        assert r.returncode == 1 and needle in r.stderr and 'Traceback' not in r.stderr

@@ -6939,9 +6939,21 @@ def _main(argv):
         else:
             config[cval] = True
 
-    run(args.app,
+    try:
+        port = int(port)
+        if not 0 <= port <= 65535: raise ValueError
+    except ValueError:
+        _cli_error("Invalid port: %r" % (port,))
+    target = args.app
+    if not args.reload:  # the reloader's parent must not import the app
+        try:
+            target = load_app(target)
+        except (ImportError, AttributeError) as error:
+            _cli_error("Cannot load %r: %s" % (args.app, error))
+
+    run(target,
         host=host,
-        port=int(port),
+        port=port,
         server=args.server,
         reloader=args.reload,
         plugins=args.plugin,
