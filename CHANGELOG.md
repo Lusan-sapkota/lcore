@@ -21,8 +21,30 @@ All notable changes to Lcore will be documented here.
 - **`validate_request` is stricter:** `null`, dicts and lists no longer pass as `str`; `nan`/`inf`, fractional ints and non-boolean junk for `bool` are rejected; `Optional[...]` accepts an explicit `null`.
 - **Static files:** ETags are quoted, weak (`W/`) and listed `If-None-Match` values match, and 416 sends `Content-Range: bytes */size`.
 - **`Accept` negotiation honours q-weights** when choosing JSON or HTML errors.
+- **JSON responses honour `json.enable`, `json.dump_func`, `json.ascii`, `json.indent`.** Defaults changed to match the docs: non-ASCII is emitted as UTF-8 (was `\uXXXX`), no indentation. A returned `list` of non-strings is now serialised as JSON, as documented; error handlers may return a `dict`; a `dict` that reaches the response layer without the JSON plugin is a 500, not a key-by-key body.
+- **Config bool strings are strict:** `validate_config` accepts true/1/yes/on and false/0/no/off; anything else is an error. Field `max_body` now matches a literal `max_body` key before `max.body`.
+- **Post-routing middleware (request id, logging, compression) now also wraps 404 and 405 responses.**
+- **`CompressionMiddleware`** parses `Accept-Encoding` properly (`q=0`, case, `x-gzip...` lookalikes), merges `Vary`, adds `Vary` for every compressible response, compresses `image/svg+xml`, and no longer turns error responses into empty 200s.
+- **`verify_password` only accepts `sha256`/`sha512` and at most 10,000,000 iterations** from a stored hash.
+- **`rate_limit(backend=...)` takes any object with `consume()`**, and `max_buckets` is enforced on every insert.
+- **`Router.build`/`get_url` percent-encode path values.**
+- **`run()` raises `ValueError` for an unknown server name**; `on_shutdown` hooks run once; `trigger_hook` returns the list of results.
+- **A text field larger than the in-memory limit in a multipart POST is rejected (400)** instead of silently disappearing from `request.forms`.
+- **Signed cookies keep the type of their value** (dict, int...) instead of its `str()`.
+- **~10-15% lower per-request overhead** (cheaper context setup, cached header names, hook calls skipped when nobody listens, prebuilt JSON encoder).
 
 ### Fixed
+- **Invalid UTF-8 in a request path crashed the error page** (and the last-resort 500 handler). Now a clean 404.
+- **Chunked request bodies failed** when the bytes arrived in one read; they now parse, and over-limit chunked bodies return 413.
+- **`request.max_body = 0` ("unlimited") broke every multipart upload.**
+- **Malformed multipart parts** (bad part `Content-Length`, unknown charset, invalid UTF-8) and **deeply nested JSON** returned 500; they return 400.
+- **`static_file`:** NUL in a name returned 500; an unknown `Range` unit returned 416; `If-Modified-Since` was honoured despite a non-matching `If-None-Match`.
+- **Bad template lookups raised `None`** (a `TypeError`) instead of `TemplateError`.
+- **`set_cookie`** accepted `;` in `path`/`domain` and garbage `max_age`/`expires`. **`set_header`** accepted invalid header names. **Generators mixing `str` and `bytes`** crashed mid-stream. **Text file-likes** (`StringIO`) returned an invalid body.
+- **`RequestIDMiddleware`** echoed any `X-Request-ID`; only `[A-Za-z0-9._-]{1,128}` is accepted now. **`RequestLoggerMiddleware`** logged 200 for error responses and uncaught exceptions. **`auth_basic`** did not escape its realm. **`remote_addr`** could return `''` for empty `X-Forwarded-For` entries.
+- **`validate_request`** accepted `'abc'` for `list`; `query=` values are now coerced like `body=`.
+- **`_run_async`** hid a coroutine's own `RuntimeError`. **`load()`** allowed dunder attributes. **The CLI** printed raw tracebacks for a bad app target or port.
+- **Known limitation, documented:** concurrent writes to one session are last-writer-wins.
 - **Malformed `Content-Type` parameters** (e.g. `;charset` with no value) returned 500; they are now ignored.
 - **Rate limiter cleanup could raise `RuntimeError`** when other threads inserted buckets at the same moment.
 - **`redirect()` with a line break in the URL** returned 500; it now returns 400.
