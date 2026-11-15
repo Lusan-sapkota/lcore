@@ -133,3 +133,21 @@ def test_accept_json_gets_json_errors():
         assert r.status_code == code and r.headers['Content-Type'] == 'application/json'
         assert r.json['status'] == code and (msg is None or r.json['error'] == msg)
     assert c.get('/e', headers={'Accept': 'text/html,application/json'}).headers['Content-Type'].startswith('text/html')
+
+
+def test_client_cookie_jar_and_repeated_headers():
+    from lcore import Lcore, TestClient, request, response
+    app = Lcore()
+
+    @app.get('/login')
+    def login():
+        response.set_cookie('a', '1'); response.set_cookie('b', '2')
+        return 'ok'
+
+    @app.get('/me')
+    def me(): return request.get_cookie('a', '') + request.get_cookie('b', '')
+
+    c = TestClient(app)
+    assert len(c.get('/login').get_all('Set-Cookie')) == 2
+    assert c.get('/me').text == '12'
+    assert TestClient(app, cookies=False).get('/me').text == ''

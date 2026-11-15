@@ -5147,12 +5147,18 @@ class TestResponse:
     """Parsed response from TestClient."""
     __test__ = False  # not a pytest test class
 
-    __slots__ = ('status', 'headers', 'body')
+    __slots__ = ('status', 'headers', 'body', 'raw_headers')
 
-    def __init__(self, status, headers, body):
+    def __init__(self, status, headers, body, raw_headers=None):
         self.status = status
         self.headers = headers
         self.body = body
+        self.raw_headers = raw_headers if raw_headers is not None else list(headers.items())
+
+    def get_all(self, name):
+        """All values of a header that can repeat, e.g. Set-Cookie."""
+        name = name.lower()
+        return [v for k, v in self.raw_headers if k.lower() == name]
 
     @property
     def status_code(self):
@@ -5171,8 +5177,21 @@ class TestClient:
     """Calls your app directly. No HTTP, no server, no tears."""
     __test__ = False  # not a pytest test class
 
-    def __init__(self, app):
+    def __init__(self, app, cookies=True):
         self.app = app
+        # Cookie jar: Set-Cookie responses are replayed on later requests,
+        # like a browser. Pass cookies=False to disable.
+        self.cookies = {} if cookies else None
+
+    def _store_cookies(self, resp):
+        for line in resp.get_all('Set-Cookie'):
+            c = SimpleCookie()
+            c.load(line)
+            for name, m in c.items():
+                if m.value == '' or m['max-age'] == '0':
+                    self.cookies.pop(name, None)
+                else:
+                    self.cookies[name] = m.value
 
     def request(self, method, path, body=b'', headers=None,
                 query_string='', content_type=None, json=None):
@@ -5194,6 +5213,8 @@ class TestClient:
         }
         if content_type:
             environ['CONTENT_TYPE'] = content_type
+        if self.cookies:
+            environ['HTTP_COOKIE'] = '; '.join('%s=%s' % kv for kv in self.cookies.items())
         if headers:
             for key, value in headers.items():
                 k = key.upper().replace('-', '_')
@@ -5205,13 +5226,17 @@ class TestClient:
 
         def start_response(status, headers, exc_info=None):
             status_line[0] = status
-            response_headers[0] = dict(headers)
+            response_headers[0] = headers
 
         chunks = self.app(environ, start_response)
         body_out = b''.join(chunks)
         if hasattr(chunks, 'close'):
             chunks.close()
-        return TestResponse(status_line[0], response_headers[0], body_out)
+        resp = TestResponse(status_line[0], dict(response_headers[0]), body_out,
+                            list(response_headers[0]))
+        if self.cookies is not None:
+            self._store_cookies(resp)
+        return resp
 
     def get(self, path, **kw):
         return self.request('GET', path, **kw)
