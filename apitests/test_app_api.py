@@ -49,7 +49,7 @@ def _cases():
         'set': (lambda: {1}, 500, None),
         'gen_int': (lambda: (x for x in [1]), 500, None),
         'gen_first_raises': (lambda: (1 / 0 for _ in [1]), 500, None),
-        'list_of_int': (lambda: [1, 2], 500, None),
+        'list_of_int': (lambda: [1, 2], 200, b'[1, 2]'),
         'mixed_list': (lambda: ['a', b'b'], 500, None),
     }
 
@@ -90,7 +90,6 @@ def test_empty_response_has_zero_content_length(rt_app):
     assert TestClient(rt_app).get('/none').headers['Content-Length'] == '0'
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: docs/routing.html promise 'dict / list -> JSON' but a list (e.g. [{'a':1}] or [1,2]) is not serialised and returns 500")
 @pytest.mark.parametrize('val', [[{'a': 1}], [1, 2]])
 def test_list_return_serialised_as_json_documented(val):
     a = mk()
@@ -99,7 +98,6 @@ def test_list_return_serialised_as_json_documented(val):
     assert r.status_code == 200 and (r.body == b'' or json.loads(r.text) == val)
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: a dict reaching _cast un-JSONed (error handler / skipped JSON plugin) is iterated and the body becomes the first key ('err')")
 def test_error_handler_returning_dict_is_not_key_iterated():
     a = mk()
 
@@ -111,7 +109,6 @@ def test_error_handler_returning_dict_is_not_key_iterated():
     assert not r.body.startswith(b'err')
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: a StringIO / text file-like return is passed to WSGIFileWrapper yielding str chunks -> invalid WSGI body (TypeError at join)")
 def test_text_filelike_return():
     a = mk()
     a.route('/s')(lambda: io.StringIO('hello'))
@@ -1289,7 +1286,6 @@ def test_jsonplugin_uninstalled_dict_not_treated_as_json():
     assert not r.headers['Content-Type'].startswith('application/json')
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: JSONPlugin defines config 'json.enable' (and json.dump_func/json.ascii/json.indent) but apply() never reads them; Lcore(autojson=False) advice is a no-op")
 def test_jsonplugin_json_enable_false_is_honoured():
     a = mk()
     a.config['json.enable'] = False
@@ -1298,7 +1294,6 @@ def test_jsonplugin_json_enable_false_is_honoured():
     assert not r.headers['Content-Type'].startswith('application/json')
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: config 'json.dump_func' ignored by JSONPlugin")
 def test_jsonplugin_dump_func_config_honoured():
     a = mk()
     a.config['json.dump_func'] = lambda o: 'XX'
@@ -1306,7 +1301,6 @@ def test_jsonplugin_dump_func_config_honoured():
     assert TestClient(a).get('/').text == 'XX'
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: config 'json.ascii' (default False) ignored; non-ASCII always escaped to \\uXXXX")
 def test_jsonplugin_ascii_false_emits_utf8():
     a = mk()
     a.route('/')(lambda: {'a': '\u00e9'})

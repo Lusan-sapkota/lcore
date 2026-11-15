@@ -1321,6 +1321,9 @@ class Lcore:
             out.apply(response)
             out = self.error_handler.get(out.status_code,
                                          self.default_error_handler)(out)
+            if isinstance(out, dict):  # error handlers may return a dict too
+                response.content_type = 'application/json'
+                out = json_dumps(out)
             return self._cast(out)
         if isinstance(out, HTTPResponse):
             out.apply(response)
@@ -1331,6 +1334,9 @@ class Lcore:
                 return request.environ['wsgi.file_wrapper'](out)
             elif hasattr(out, 'close') or not hasattr(out, '__iter__'):
                 return WSGIFileWrapper(out)
+
+        if isinstance(out, dict):  # JSON plugin off or skipped: don't iterate the keys
+            return self._cast(HTTPError(500, 'Unsupported response type: dict'))
 
         try:
             iout = iter(out)
@@ -4149,25 +4155,39 @@ class JSONPlugin:
         app.config._define('json.enable', default=True, validate=bool,
                           help="Enable or disable automatic dict->json filter.")
         app.config._define('json.ascii', default=False, validate=bool,
-                          help="Use only 7-bit ASCII characters in output.")
-        app.config._define('json.indent', default=True, validate=bool,
+                          help="Escape non-ASCII characters as \\uXXXX.")
+        app.config._define('json.indent', default=False, validate=bool,
                           help="Add whitespace to make json more readable.")
         app.config._define('json.dump_func', default=None,
                           help="If defined, use this function to transform"
-                               " dict into json. The other options no longer"
+                               " the value into json. The other options no longer"
                                " apply.")
 
     def apply(self, callback, route):
         dumps = self.json_dumps
-        if not self.json_dumps: return callback
+        if not dumps: return callback
+        stock = dumps is json_dumps
+        cfg = route.app.config
+
+        def _dump(rv):
+            fn = cfg.get('json.dump_func')
+            if fn: return fn(rv)
+            if not stock: return dumps(rv)
+            kw = {}
+            if not cfg.get('json.ascii'): kw['ensure_ascii'] = False
+            if cfg.get('json.indent'): kw['indent'] = 2
+            return dumps(rv, **kw)
 
         def _json_convert(rv):
-            if isinstance(rv, dict):
-                json_response = dumps(rv)
+            if isinstance(rv, dict) or (isinstance(rv, list) and rv
+                                        and not isinstance(rv[0], (str, bytes))):
+                if not cfg.get('json.enable'): return rv
+                json_response = _dump(rv)
                 response.content_type = 'application/json'
                 return json_response
             elif isinstance(rv, HTTPResponse) and isinstance(rv.body, dict):
-                rv.body = dumps(rv.body)
+                if not cfg.get('json.enable'): return rv
+                rv.body = _dump(rv.body)
                 rv.content_type = 'application/json'
             return rv
 
@@ -4643,7 +4663,7 @@ class WSGIFileWrapper:
         buff, read = self.buffer_size, self.read
         part = read(buff)
         while part:
-            yield part
+            yield part.encode('utf8') if isinstance(part, str) else part  # text file-likes
             part = read(buff)
 
 # Calls close() on the wrapped thing when iteration ends
