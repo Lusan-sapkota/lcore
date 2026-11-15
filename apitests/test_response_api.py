@@ -927,7 +927,6 @@ def test_file_like_body_closed(client):
     assert client(app).get('/x').body == b'filebody' and f.closed
 
 
-@pytest.mark.xfail(strict=True, reason="BUG(minor): generator yielding str then bytes raises AttributeError mid-stream (encoder applied to bytes)")
 def test_generator_yielding_str_and_bytes_mixed(client):
     app = Lcore()
 

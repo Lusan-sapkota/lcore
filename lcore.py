@@ -1357,7 +1357,7 @@ class Lcore:
         elif isinstance(first, bytes):
             new_iter = itertools.chain([first], iout)
         elif isinstance(first, str):
-            encoder = lambda x: x.encode(response.charset, 'surrogateescape')
+            encoder = lambda x: x if isinstance(x, bytes) else x.encode(response.charset, 'surrogateescape')
             new_iter = map(encoder, itertools.chain([first], iout))
         else:
             _try_close(out)
