@@ -3928,6 +3928,10 @@ class SessionMiddleware(Middleware):
 
 
 # Validates request.json / query params against a schema. Supports Optional[type].
+_TRUE = frozenset(('true', '1', 'yes', 'on'))
+_FALSE = frozenset(('false', '0', 'no', 'off', ''))
+
+
 def validate_request(body=None, query=None):
     import dataclasses
     import typing
@@ -3944,24 +3948,36 @@ def validate_request(body=None, query=None):
 
     def _coerce(value, expected_type):
         """Try to coerce *value* to *expected_type*.  Returns (success, result)."""
+        is_num = isinstance(value, (int, float)) and not isinstance(value, bool)
         if expected_type is str:
-            return True, str(value).strip()
+            if isinstance(value, str) or is_num:
+                return True, str(value).strip()
+            return False, value
         if expected_type is int:
-            try:
-                return True, int(value)
-            except (TypeError, ValueError):
-                return False, value
+            if isinstance(value, float):
+                return (True, int(value)) if value.is_integer() else (False, value)
+            if isinstance(value, str) or is_num:
+                try:
+                    return True, int(value)
+                except ValueError:
+                    pass
+            return False, value
         if expected_type is float:
-            try:
-                return True, float(value)
-            except (TypeError, ValueError):
-                return False, value
+            if isinstance(value, str) or is_num:
+                try:
+                    f = float(value)
+                    if f - f == 0: return True, f  # rejects nan and inf
+                except ValueError:
+                    pass
+            return False, value
         if expected_type is bool:
             if isinstance(value, bool):
                 return True, value
-            if isinstance(value, str):
-                return True, value.lower() in ('true', '1', 'yes', 'on')
-            return True, bool(value)
+            if isinstance(value, str) and value.lower() in _TRUE | _FALSE:
+                return True, value.lower() in _TRUE
+            if value in (0, 1) and is_num:
+                return True, bool(value)
+            return False, value
         if callable(expected_type):
             try:
                 result = expected_type(value)
@@ -3978,6 +3994,9 @@ def validate_request(body=None, query=None):
             if name not in data:
                 if not is_opt:
                     errors[name] = '%s is required' % name
+                continue
+            if data[name] is None and is_opt:
+                validated[name] = None
                 continue
             ok, result = _coerce(data[name], inner_type)
             if not ok:
@@ -3996,6 +4015,9 @@ def validate_request(body=None, query=None):
                 if not is_opt and field.default is dataclasses.MISSING \
                    and field.default_factory is dataclasses.MISSING:
                     errors[field.name] = '%s is required' % field.name
+                continue
+            if data[field.name] is None and is_opt:
+                validated[field.name] = None
                 continue
             ok, result = _coerce(data[field.name], inner_type)
             if not ok:
