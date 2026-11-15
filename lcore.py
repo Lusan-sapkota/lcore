@@ -1519,7 +1519,7 @@ class BaseRequest:
                 return None
             try:
                 return json_loads(b)
-            except (ValueError, TypeError) as err:
+            except (ValueError, TypeError, RecursionError) as err:
                 raise HTTPError(400, 'Invalid JSON', exception=err)
         return None
 

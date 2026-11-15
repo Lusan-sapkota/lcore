@@ -292,7 +292,6 @@ def test_json_large_ok_spills_to_tempfile(client):
     assert r.status_code == 200 and len(r.json['v']['a']) == 300000
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: deeply nested JSON raises RecursionError -> 500 instead of 400")
 def test_json_deep_nesting_no_crash(client):
     body = b'[' * 100000 + b']' * 100000
     r = client(make_app()).post('/json', body=body, content_type='application/json')
