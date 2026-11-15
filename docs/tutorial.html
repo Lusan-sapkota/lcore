@@ -200,7 +200,9 @@
 
       <p>You need Python 3.8+ and nothing else. Create a folder, install Lcore and add an <code>app.py</code>:</p>
 
-      <pre><code class="language-bash">uv add lcore   # or: pip install lcore</code></pre>
+      <pre><code class="language-bash">uv add lcore        # uv (recommended)
+pip install lcore     # pip
+curl -O https://raw.githubusercontent.com/Lusan-sapkota/lcore/main/lcore.py   # single file</code></pre>
 
       <pre data-run="app" data-path="/ping" data-presets="[[&quot;GET /ping&quot;, &quot;GET&quot;, &quot;/ping&quot;, &quot;&quot;]]"><code class="language-python">from lcore import Lcore
 

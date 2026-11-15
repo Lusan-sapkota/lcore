@@ -313,7 +313,7 @@ pre code { background: none; border: 0; padding: 0; color: var(--text); font-siz
 .install-note { font-size: 15px; color: var(--text-muted); margin: 0; max-width: 36ch; }
 .install-term { background: var(--bg-code); border: 1px solid var(--border-light); border-radius: var(--radius); padding: 8px 8px 8px 20px; min-width: 0; }
 .install-row { display: flex; align-items: center; gap: 10px; min-height: 48px; }
-.install-row code { background: none; border: 0; padding: 0; color: var(--text); flex: 1; font-size: 16px; overflow-x: auto; white-space: nowrap; }
+.install-row code { background: none; border: 0; padding: 0; color: var(--text); flex: 1; font-size: 15px; white-space: normal; overflow-wrap: anywhere; }
 .install-or { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); border-top: 1px dashed var(--border-light); margin-top: 4px; padding: 8px 0 2px 22px; }
 .prompt { color: var(--accent); user-select: none; -webkit-user-select: none; }
 

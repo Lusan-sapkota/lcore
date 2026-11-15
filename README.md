@@ -29,6 +29,7 @@
 ```bash
 uv add lcore          # uv (recommended)
 pip install lcore     # pip
+curl -O https://raw.githubusercontent.com/Lusan-sapkota/lcore/main/lcore.py   # single file
 ```
 
 ## Quick Start
