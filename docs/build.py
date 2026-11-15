@@ -100,7 +100,7 @@ def sidebar(info, cur=''):
 def md(text):
     """Tiny markdown subset for CHANGELOG.md: headings, flat lists, one table, paragraphs, bold, code, links."""
     def inline(t):
-        t = html.escape(t, quote=False)
+        t = html.escape(t.replace(' — ', ' - '), quote=False)  # no em dashes on the page
         t = re.sub(r'`([^`]+)`', r'<code>\1</code>', t)
         t = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\1</strong>', t)
         return re.sub(r'\[([^\]]+)\]\((https?://[^)\s]+)\)', r'<a href="\2">\1</a>', t)
@@ -120,7 +120,7 @@ def md(text):
             plain = re.sub(r'[\[\]`*]', '', m.group(2))
             if m.group(1) == '##':
                 ver = slug(plain.split('—')[0].replace('.', '-'))
-                out.append(f'<h2 id="v{ver}">{inline(re.sub(r"^\[([^]]+)\]", r"\1", m.group(2)))}</h2>')
+                out.append(f'<h2 id="v{ver}">{inline(re.sub(r" — (\d{4}-\d\d-\d\d)", r" (\1)", re.sub(r"^\[([^]]+)\]", r"\1", m.group(2))))}</h2>')
             else:
                 out.append(f'<h3 id="v{ver}-{slug(plain)}">{inline(m.group(2))}</h3>')
         elif line.startswith('- '):
@@ -143,6 +143,8 @@ def region(src, name, new, fallback=None, where=None):
 
 def main():
     (DOCS / 'assets' / 'pyodide' / 'lcore.py').write_bytes((DOCS.parent / 'lcore.py').read_bytes())  # playground runs the real file
+    cl = DOCS / 'changelog.html'  # regenerate first so the sidebar and search index see the new headings
+    cl.write_text(region(cl.read_text(), 'content', md((DOCS.parent / 'CHANGELOG.md').read_text())))
     info, index = {}, []
     for pg in PAGES:
         src = (DOCS / f'{pg}.html').read_text()
@@ -166,7 +168,6 @@ def main():
                 {'@type': 'ListItem', 'position': 2, 'name': info[pg][0], 'item': f'{SITE}/{pg}.html'}]}) + '</script>'
         s = region(s, 'head', '\n  <meta name="theme-color" content="#23272f">\n  <meta name="color-scheme" content="dark light">\n  ' + THEME_JS + crumbs + '\n  ', where='</head>')
         s = region(s, 'header', HEADER, fallback=r'<header class="site-header">.*?</header>', where='<body')
-        if pg == 'changelog': s = region(s, 'content', md((DOCS.parent / 'CHANGELOG.md').read_text()))
         s = region(s, 'sidebar', sidebar(info, pg), fallback=r'<aside class="sidebar">.*?</aside>')
         if pg == 'index' and '<!--chrome:sidebar-->' not in s:
             s = s.replace('<main class="content"', f'<!--chrome:sidebar-->{sidebar(info, pg)}<!--/chrome:sidebar-->\n  <main class="content"', 1)

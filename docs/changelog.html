@@ -172,11 +172,11 @@
         </div>
         <a href="changelog.html" class="sidebar-link active">Changelog</a>
         <div class="sidebar-subs open" data-page="changelog.html">
-          <a href="changelog.html#v0-0-6" class="sidebar-link sub">[0.0.6] — 2026-11-15</a>
-          <a href="changelog.html#v0-0-5" class="sidebar-link sub">[0.0.5] — 2026-09-22</a>
-          <a href="changelog.html#v0-0-4" class="sidebar-link sub">[0.0.4] — 2026-05-22</a>
-          <a href="changelog.html#v0-0-2" class="sidebar-link sub">[0.0.2] — 2026-02-23</a>
-          <a href="changelog.html#v0-0-1" class="sidebar-link sub">[0.0.1] — 2026-02-23 — Initial Release</a>
+          <a href="changelog.html#v0-0-6" class="sidebar-link sub">0.0.6 (2026-11-15)</a>
+          <a href="changelog.html#v0-0-5" class="sidebar-link sub">0.0.5 (2026-09-22)</a>
+          <a href="changelog.html#v0-0-4" class="sidebar-link sub">0.0.4 (2026-05-22)</a>
+          <a href="changelog.html#v0-0-2" class="sidebar-link sub">0.0.2 (2026-02-23)</a>
+          <a href="changelog.html#v0-0-1" class="sidebar-link sub">0.0.1 (2026-02-23) - Initial Release</a>
         </div>
       </details>
       <details class="sidebar-section" open>
@@ -190,7 +190,7 @@
       <h1>Changelog</h1>
       <p class="page-desc">Every added feature, behavior change, fix and security note, version by version. Generated from <code>CHANGELOG.md</code>.</p>
       <!--chrome:content--><p>All notable changes to Lcore will be documented here.</p>
-<h2 id="v0-0-6">0.0.6 — 2026-11-15</h2>
+<h2 id="v0-0-6">0.0.6 (2026-11-15)</h2>
 <h3 id="v0-0-6-added">Added</h3>
 <ul>
 <li><strong>JSON errors by content negotiation.</strong> Any request with <code>Accept: application/json</code> (listed before <code>text/html</code>) gets <code>{"error": "&lt;message&gt;", "status": N}</code> for <code>HTTPError</code>, 404 and 500 alike; browsers still get the HTML page. <code>error.format = 'json'</code> still forces it, and its body now carries the real message instead of the status text.</li>
@@ -323,7 +323,7 @@
 <ul>
 <li><strong>Docs said malformed <code>request.json</code> returns <code>None</code>.</strong> It raises 400 "Invalid JSON"; docs corrected.</li>
 </ul>
-<h2 id="v0-0-5">0.0.5 — 2026-09-22</h2>
+<h2 id="v0-0-5">0.0.5 (2026-09-22)</h2>
 <h3 id="v0-0-5-added">Added</h3>
 <ul>
 <li><strong>Server-side sessions.</strong> <code>SessionMiddleware</code> stores session state in a backend and puts only a signed session id in the cookie, so a session can be revoked after it is issued. Signed cookies alone cannot be taken back, which ruled out forced logout, sign-out-everywhere after a password reset, and server-side cart invalidation.</li>
@@ -351,7 +351,7 @@
 <li><strong><code>CompressionMiddleware</code> streams large bodies instead of buffering them.</strong> An iterable body was collected in full before compressing, so a 20MB streamed response cost about 40MB of RAM per concurrent request and gave up the benefit of streaming entirely. Bodies over <code>stream_threshold</code> (default 256KB) are now compressed incrementally with <code>zlib.compressobj</code>, holding memory flat: the same 20MB response measured 40.5MB peak before and 0.6MB after. Everything smaller is unchanged, including its <code>Content-Length</code>, and the <code>str</code>/<code>bytes</code> path that ordinary responses take is byte-for-byte what it was. A streamed body drops <code>Content-Length</code>, since the compressed size is not known until it ends. The streamed body's source is now closed even if the wrapping generator is discarded before it is ever iterated (a bare generator's own <code>finally</code> never runs in that case), which previously leaked a file/cursor handle whenever a later middleware discarded the response before the WSGI layer touched it.</li>
 </ul>
 <ul>
-<li><strong><code>TimeoutMiddleware</code> no longer breaks every handler that touches <code>request</code>.</strong> It runs the handler in a thread pool, but <code>request</code>, <code>response</code> and <code>ctx</code> are thread-locals bound in the serving thread, so a pool thread had none of them. Any handler reading <code>request</code> died with <code>RuntimeError: Request context not initialized</code> and returned 500, which is close to every handler that does real work. The worker's response is now seeded with a snapshot of whatever pre-phase middleware (CORS, CSRF, ...) already set, so a handler can read, overwrite or delete it exactly as it would in a single unthreaded response — an early version of this fix merged the worker's response back additively, which meant a handler deleting a pre-phase-set header crashed with <code>KeyError</code> and installing <code>TimeoutMiddleware</code> alone could silently change which of two conflicting header values (e.g. compression's own <code>Vary: Accept-Encoding</code> vs. CORS's <code>Vary: Origin</code>) survived. <code>ctx.state</code> and <code>ctx._lazy</code> are shared dicts, so sessions and dependency-injection scope survive the hop for free, and <code>ctx.user</code>/<code>ctx.route</code>/<code>ctx.request_id</code> (thread-local <code>__slots__</code>, not part of those dicts) are copied back explicitly once the worker finishes. The middleware previously had no tests at all; it now has 18, including the header-delete and raising-handler cases above.</li>
+<li><strong><code>TimeoutMiddleware</code> no longer breaks every handler that touches <code>request</code>.</strong> It runs the handler in a thread pool, but <code>request</code>, <code>response</code> and <code>ctx</code> are thread-locals bound in the serving thread, so a pool thread had none of them. Any handler reading <code>request</code> died with <code>RuntimeError: Request context not initialized</code> and returned 500, which is close to every handler that does real work. The worker's response is now seeded with a snapshot of whatever pre-phase middleware (CORS, CSRF, ...) already set, so a handler can read, overwrite or delete it exactly as it would in a single unthreaded response - an early version of this fix merged the worker's response back additively, which meant a handler deleting a pre-phase-set header crashed with <code>KeyError</code> and installing <code>TimeoutMiddleware</code> alone could silently change which of two conflicting header values (e.g. compression's own <code>Vary: Accept-Encoding</code> vs. CORS's <code>Vary: Origin</code>) survived. <code>ctx.state</code> and <code>ctx._lazy</code> are shared dicts, so sessions and dependency-injection scope survive the hop for free, and <code>ctx.user</code>/<code>ctx.route</code>/<code>ctx.request_id</code> (thread-local <code>__slots__</code>, not part of those dicts) are copied back explicitly once the worker finishes. The middleware previously had no tests at all; it now has 18, including the header-delete and raising-handler cases above.</li>
 </ul>
 <ul>
 <li><strong><code>ProxyFixMiddleware(num_proxies=N)</code> now does something.</strong> The parameter was accepted and stored but never read, so the documented call silently fell back to trusting loopback addresses only. It now enables hop-count trust: the last N <code>X-Forwarded-For</code> entries are trusted regardless of peer IP, matching Werkzeug's <code>ProxyFix</code> model, falling back to <code>REMOTE_ADDR</code> when the chain is shorter than N. <code>remote_addr</code> and <code>urlparts</code> both honour it. The default changed from <code>1</code> to <code>None</code>, so zero-argument behaviour is unchanged.</li>
@@ -375,10 +375,10 @@
 <li><strong><code>MemorySessionBackend(max_sessions=N)</code> is now actually enforced.</strong> It only evicted *expired* sessions when at capacity, so a flood of still-live sessions (e.g. one per anonymous visit) grew the store past <code>max_sessions</code> without bound. It now falls back to evicting the oldest-inserted sessions when nothing has expired.</li>
 </ul>
 <ul>
-<li><strong><code>RedisSessionBackend</code>'s per-user index can no longer expire out from under a live session.</strong> <code>save()</code> unconditionally reset the index key's TTL to whatever <code>ttl</code> that particular save used, so a shorter-lived save (or a plain <code>backend.touch(sid, short_ttl)</code>) after a long-lived one could shrink the whole index's expiry below a co-existing longer-lived session's — <code>list_user()</code>/<code>revoke_user()</code>/<code>revoke_all()</code> would then silently see zero sessions for that user while the session itself was still valid. A small Lua script now extends the index's TTL but never shrinks it.</li>
+<li><strong><code>RedisSessionBackend</code>'s per-user index can no longer expire out from under a live session.</strong> <code>save()</code> unconditionally reset the index key's TTL to whatever <code>ttl</code> that particular save used, so a shorter-lived save (or a plain <code>backend.touch(sid, short_ttl)</code>) after a long-lived one could shrink the whole index's expiry below a co-existing longer-lived session's - <code>list_user()</code>/<code>revoke_user()</code>/<code>revoke_all()</code> would then silently see zero sessions for that user while the session itself was still valid. A small Lua script now extends the index's TTL but never shrinks it.</li>
 </ul>
 <ul>
-<li><strong><code>SQLiteSessionBackend.revoke_user()</code> no longer overcounts.</strong> It deleted and counted every row for a uid with no <code>expires &gt; now</code> filter, unlike <code>list_user()</code>'s equivalent query, so an account page could report "signed out of 4 devices" when <code>list_user()</code> had only ever shown 1 live one — the extra 3 were rows that had expired but not yet been swept.</li>
+<li><strong><code>SQLiteSessionBackend.revoke_user()</code> no longer overcounts.</strong> It deleted and counted every row for a uid with no <code>expires &gt; now</code> filter, unlike <code>list_user()</code>'s equivalent query, so an account page could report "signed out of 4 devices" when <code>list_user()</code> had only ever shown 1 live one - the extra 3 were rows that had expired but not yet been swept.</li>
 </ul>
 <ul>
 <li><strong><code>Session.pop()</code>/<code>setdefault()</code>/<code>clear()</code> no longer mark the session dirty on a no-op.</strong> All three set the dirty flag unconditionally, so the common flash-message idiom <code>request.session.pop('flash', None)</code> cost a backend write and a fresh <code>Set-Cookie</code> on every request that merely checked for one, defeating the "reads are free" design this feature is built on. They're now dirty only when something actually changed.</li>
@@ -390,7 +390,7 @@
 <li><strong><code>TestClient</code>'s <code>wsgi.errors</code> stream no longer crashes on an unhandled exception.</strong> It was a <code>BytesIO</code>, but the framework's own error logging (and WSGI generally) writes <code>str</code> to <code>wsgi.errors</code>; any exception in a handler tested through <code>TestClient</code> raised <code>TypeError: a bytes-like object is required, not 'str'</code> instead of turning into the 500 response the app actually produced. Now a <code>StringIO</code>, matching <code>tests/helpers.py</code>'s existing (correct) setup.</li>
 </ul>
 <ul>
-<li><strong>The <code>async def</code> route warning now actually fires.</strong> <code>Route._make_callback()</code> checked <code>_is_async()</code> on the callback *after* the plugin loop, but <code>JSONPlugin</code> (auto-installed on every app) already wraps every callback in a plain sync function before that point, so the check only ever saw JSONPlugin's wrapper — the warning was dead code except on a route that explicitly did <code>skip=['json']</code>. It now checks the route's own callback before plugins touch it, so every <code>async def</code> route warns as documented, naming the route, the first time it's invoked.</li>
+<li><strong>The <code>async def</code> route warning now actually fires.</strong> <code>Route._make_callback()</code> checked <code>_is_async()</code> on the callback *after* the plugin loop, but <code>JSONPlugin</code> (auto-installed on every app) already wraps every callback in a plain sync function before that point, so the check only ever saw JSONPlugin's wrapper - the warning was dead code except on a route that explicitly did <code>skip=['json']</code>. It now checks the route's own callback before plugins touch it, so every <code>async def</code> route warns as documented, naming the route, the first time it's invoked.</li>
 </ul>
 <h3 id="v0-0-5-internal">Internal</h3>
 <ul>
@@ -400,13 +400,13 @@
 <li><strong>Session backend round trips and lock time reduced.</strong> <code>MemorySessionBackend</code> stores each session's uid alongside its record instead of inside the JSON blob, so dropping or listing a session no longer parses it just to find who owns it. <code>RedisSessionBackend.delete()</code> no longer does a <code>GET</code>+parse purely to locate the per-user index entry to prune (the index already tolerates and lazily prunes dead members on read); it's a single <code>DEL</code>. <code>SQLiteSessionBackend.bump_epoch()</code> is one <code>INSERT ... ON CONFLICT DO UPDATE</code> instead of an <code>UPDATE</code> plus a conditional <code>INSERT</code> plus a re-read, and its periodic cleanup sweep is now bounded (<code>cleanup_batch</code>, default 1000 rows) instead of a single unbounded <code>DELETE</code> over every session that expired since the last sweep, which could turn one unlucky request into a full-table scan holding a write transaction. <code>RedisRateLimitBackend</code> and <code>RedisSessionBackend</code> now share one internal helper for constructing and closing the redis-py client instead of duplicating the import guard and <code>from_url()</code> call.</li>
 </ul>
 <ul>
-<li><strong>Measured <code>TimeoutMiddleware</code>'s per-request cost, and trimmed the avoidable part of it.</strong> It had never been benchmarked: on a trivial handler it costs roughly 30µs/request versus a bare route (~9µs), against a ~7-8µs floor for the <code>ThreadPoolExecutor</code> submit/result round trip alone. The gap was partly a redundant <code>ctx.bind()</code> inside the worker — reallocating <code>state={}</code>/<code>_lazy={}</code> and zeroing <code>route</code>/<code>user</code>/<code>request_id</code> only to overwrite all of it two lines later — which is now a single direct assignment per slot instead. The remaining gap (response snapshot in, response snapshot out) is inherent: <code>request</code>/<code>response</code> are <code>threading.local()</code>-backed singletons, so some copying across the thread boundary is unavoidable without going back to the blank-worker-response design that caused the header-delete crash above. Apply <code>TimeoutMiddleware</code> to specific slow/unpredictable routes via <code>app.use(TimeoutMiddleware(...), routes='/slow/*')</code> rather than globally if this matters for your workload.</li>
+<li><strong>Measured <code>TimeoutMiddleware</code>'s per-request cost, and trimmed the avoidable part of it.</strong> It had never been benchmarked: on a trivial handler it costs roughly 30µs/request versus a bare route (~9µs), against a ~7-8µs floor for the <code>ThreadPoolExecutor</code> submit/result round trip alone. The gap was partly a redundant <code>ctx.bind()</code> inside the worker - reallocating <code>state={}</code>/<code>_lazy={}</code> and zeroing <code>route</code>/<code>user</code>/<code>request_id</code> only to overwrite all of it two lines later - which is now a single direct assignment per slot instead. The remaining gap (response snapshot in, response snapshot out) is inherent: <code>request</code>/<code>response</code> are <code>threading.local()</code>-backed singletons, so some copying across the thread boundary is unavoidable without going back to the blank-worker-response design that caused the header-delete crash above. Apply <code>TimeoutMiddleware</code> to specific slow/unpredictable routes via <code>app.use(TimeoutMiddleware(...), routes='/slow/*')</code> rather than globally if this matters for your workload.</li>
 </ul>
 <h3 id="v0-0-5-changed">Changed</h3>
 <ul>
 <li><strong><code>CSRFMiddleware</code> warns when <code>secret=</code> is omitted.</strong> A random per-process secret means that under multi-worker deployment a token cookie signed by one worker fails verification on another, so legitimate submissions are rejected with 403. <code>SessionMiddleware</code> carries the same warning, where the symptom is users being logged out at random.</li>
 </ul>
-<h2 id="v0-0-4">0.0.4 — 2026-05-22</h2>
+<h2 id="v0-0-4">0.0.4 (2026-05-22)</h2>
 <h3 id="v0-0-4-fixed">Fixed</h3>
 <ul>
 <li><strong>HTTPError.apply() now merges headers</strong> instead of replacing them. Headers set by a handler before raising <code>HTTPError</code> are preserved. This means <code>response.set_header('Content-Type', 'application/json')</code> followed by <code>raise HTTPError(401)</code> now correctly returns JSON instead of HTML.</li>
@@ -462,34 +462,34 @@
 <ul>
 <li><strong><code>.env</code> quote stripping fixed.</strong> Only strips matching quote pairs (<code>"..."</code> or <code>'...'</code>) rather than all leading/trailing quote characters, preventing mangling of values like <code>"it's"</code>.</li>
 </ul>
-<h2 id="v0-0-2">0.0.2 — 2026-02-23</h2>
+<h2 id="v0-0-2">0.0.2 (2026-02-23)</h2>
 <h3 id="v0-0-2-fixed">Fixed</h3>
 <ul>
 <li>PyPI project page logo not rendering (relative path → absolute URL in README)</li>
 </ul>
-<h2 id="v0-0-1">0.0.1 — 2026-02-23 — Initial Release</h2>
+<h2 id="v0-0-1">0.0.1 (2026-02-23) - Initial Release</h2>
 <p>First public release of Lcore. 🎉</p>
 <h3 id="v0-0-1-framework-core">Framework Core</h3>
 <ul>
-<li>Full <strong>WSGI compliance</strong> — works with Gunicorn, uWSGI, Waitress, Gevent, and 21 server adapters</li>
+<li>Full <strong>WSGI compliance</strong> - works with Gunicorn, uWSGI, Waitress, Gevent, and 21 server adapters</li>
 </ul>
 <ul>
 <li><code>server='auto'</code> auto-selects the best available server at startup</li>
 </ul>
 <ul>
-<li>Single-file distribution (<code>lcore.py</code>) — zero external dependencies, pure Python 3.8+ standard library</li>
+<li>Single-file distribution (<code>lcore.py</code>) - zero external dependencies, pure Python 3.8+ standard library</li>
 </ul>
 <ul>
-<li><strong>Route decorator API</strong> — <code>@app.route</code>, <code>@app.get</code>, <code>@app.post</code>, <code>@app.put</code>, <code>@app.delete</code>, <code>@app.patch</code></li>
+<li><strong>Route decorator API</strong> - <code>@app.route</code>, <code>@app.get</code>, <code>@app.post</code>, <code>@app.put</code>, <code>@app.delete</code>, <code>@app.patch</code></li>
 </ul>
 <ul>
-<li><strong>Typed URL parameters</strong> — <code>&lt;name:int&gt;</code>, <code>&lt;name:float&gt;</code>, <code>&lt;name:path&gt;</code>, <code>&lt;name:uuid&gt;</code>, <code>&lt;name:slug&gt;</code></li>
+<li><strong>Typed URL parameters</strong> - <code>&lt;name:int&gt;</code>, <code>&lt;name:float&gt;</code>, <code>&lt;name:path&gt;</code>, <code>&lt;name:uuid&gt;</code>, <code>&lt;name:slug&gt;</code></li>
 </ul>
 <ul>
 <li>Route groups with shared prefix and middleware</li>
 </ul>
 <ul>
-<li><code>async def</code> route handler support (WSGI-constrained — worker thread is blocked; documented caveat)</li>
+<li><code>async def</code> route handler support (WSGI-constrained - worker thread is blocked; documented caveat)</li>
 </ul>
 <h3 id="v0-0-1-request-response">Request / Response</h3>
 <ul>
@@ -499,7 +499,7 @@
 <li><code>request.remote_addr</code> with <code>ProxyFixMiddleware</code> support</li>
 </ul>
 <ul>
-<li>Fluent response builder — <code>response.set_header()</code>, <code>response.set_cookie()</code>, <code>response.set_status()</code></li>
+<li>Fluent response builder - <code>response.set_header()</code>, <code>response.set_cookie()</code>, <code>response.set_status()</code></li>
 </ul>
 <ul>
 <li>Built-in JSON serialization via <code>json</code> (optional <code>ujson</code> drop-in)</li>
@@ -509,51 +509,51 @@
 </ul>
 <h3 id="v0-0-1-middleware-7-built-in">Middleware (7 built-in)</h3>
 <ul>
-<li><code>CORSMiddleware</code> — configurable origins, methods, headers, credentials</li>
+<li><code>CORSMiddleware</code> - configurable origins, methods, headers, credentials</li>
 </ul>
 <ul>
-<li><code>CSRFMiddleware</code> — double-submit cookie pattern</li>
+<li><code>CSRFMiddleware</code> - double-submit cookie pattern</li>
 </ul>
 <ul>
-<li><code>SecurityHeadersMiddleware</code> — HSTS, X-Frame-Options, CSP, X-Content-Type-Options</li>
+<li><code>SecurityHeadersMiddleware</code> - HSTS, X-Frame-Options, CSP, X-Content-Type-Options</li>
 </ul>
 <ul>
-<li><code>CompressionMiddleware</code> — gzip response compression</li>
+<li><code>CompressionMiddleware</code> - gzip response compression</li>
 </ul>
 <ul>
-<li><code>BodyLimitMiddleware</code> — max request body size enforcement</li>
+<li><code>BodyLimitMiddleware</code> - max request body size enforcement</li>
 </ul>
 <ul>
-<li><code>RequestIDMiddleware</code> — unique request ID header injection</li>
+<li><code>RequestIDMiddleware</code> - unique request ID header injection</li>
 </ul>
 <ul>
-<li><code>LoggingMiddleware</code> — structured request/response logging</li>
+<li><code>LoggingMiddleware</code> - structured request/response logging</li>
 </ul>
 <ul>
-<li><code>TimeoutMiddleware</code> — per-request deadline with persistent thread pool</li>
+<li><code>TimeoutMiddleware</code> - per-request deadline with persistent thread pool</li>
 </ul>
 <ul>
-<li><code>ProxyFixMiddleware</code> — trusted reverse proxy IP and scheme fix</li>
+<li><code>ProxyFixMiddleware</code> - trusted reverse proxy IP and scheme fix</li>
 </ul>
 <h3 id="v0-0-1-security">Security</h3>
 <ul>
-<li><code>hash_password</code> / <code>verify_password</code> — PBKDF2-SHA256 with per-password salt</li>
+<li><code>hash_password</code> / <code>verify_password</code> - PBKDF2-SHA256 with per-password salt</li>
 </ul>
 <ul>
 <li>HMAC-SHA256 signed cookies</li>
 </ul>
 <ul>
-<li><code>@rate_limit(n, per=seconds)</code> — in-process token bucket with 64-stripe locking</li>
+<li><code>@rate_limit(n, per=seconds)</code> - in-process token bucket with 64-stripe locking</li>
 </ul>
 <ul>
-<li><code>RedisRateLimitBackend</code> — cross-worker rate limiting; fails open on Redis outage</li>
+<li><code>RedisRateLimitBackend</code> - cross-worker rate limiting; fails open on Redis outage</li>
 </ul>
 <ul>
 <li>Timing-safe string comparison utilities</li>
 </ul>
 <h3 id="v0-0-1-dependency-injection">Dependency Injection</h3>
 <ul>
-<li><code>@app.provide</code> — singleton, scoped, and transient lifetimes</li>
+<li><code>@app.provide</code> - singleton, scoped, and transient lifetimes</li>
 </ul>
 <ul>
 <li>Constructor and parameter injection</li>
@@ -570,7 +570,7 @@
 </ul>
 <h3 id="v0-0-1-request-validation">Request Validation</h3>
 <ul>
-<li><code>@validate_request(body={...}, query={...})</code> — type-checked JSON body and query params</li>
+<li><code>@validate_request(body={...}, query={...})</code> - type-checked JSON body and query params</li>
 </ul>
 <h3 id="v0-0-1-templates-4-engines">Templates (4 engines)</h3>
 <ul>
@@ -585,15 +585,15 @@
 </ul>
 <h3 id="v0-0-1-background-tasks">Background Tasks</h3>
 <ul>
-<li><code>BackgroundTaskPool</code> — fire-and-forget task pool with configurable worker count and graceful shutdown</li>
+<li><code>BackgroundTaskPool</code> - fire-and-forget task pool with configurable worker count and graceful shutdown</li>
 </ul>
 <h3 id="v0-0-1-module-mounting">Module Mounting</h3>
 <ul>
-<li><code>app.mount(prefix, sub_app)</code> — compose sub-applications with isolated routes and middleware</li>
+<li><code>app.mount(prefix, sub_app)</code> - compose sub-applications with isolated routes and middleware</li>
 </ul>
 <h3 id="v0-0-1-testing">Testing</h3>
 <ul>
-<li><code>TestClient</code> — in-process test client, no server required</li>
+<li><code>TestClient</code> - in-process test client, no server required</li>
 </ul>
 <ul>
 <li>449 tests using only <code>unittest</code> from the standard library</li>
