@@ -17,11 +17,8 @@ jobs:
         python: ['3.8', '3.11', '3.13']
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python }}
-      - run: python -m pip install pytest
-      - run: python -m pytest -q
+      - uses: astral-sh/setup-uv@v5  # uv installs any Python, so the matrix does not depend on the runner image
+      - run: uv run --no-project --python ${{ matrix.python }} --with pytest python -m pytest -q
 
   build:
     runs-on: ubuntu-latest
