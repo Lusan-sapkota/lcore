@@ -175,3 +175,28 @@ def test_validate_request_returns_json_fields_and_rejects_empty_body():
     r = c.post('/u', body=b'', content_type='application/json')
     assert r.status_code == 422 and set(r.json['fields']) == {'name', 'age'}
     assert c.post('/u', json={'name': ' x ', 'age': '3'}).json == {'name': 'x', 'age': 3}
+
+
+def test_query_types_json_or_redirects_and_dev_server_guard():
+    import pytest
+    from lcore import Lcore, TestClient, validate_request, request, redirect, run
+    app = Lcore()
+
+    @app.get('/q')
+    @validate_request(query={'n': int})
+    def q(): return 'ok'
+
+    @app.post('/j')
+    def j(): return {'v': request.json_or({'d': 1})}
+
+    @app.get('/go')
+    def go(): redirect('/q?n=1')
+
+    c = TestClient(app)
+    r = c.get('/q', query_string='n=abc')
+    assert r.status_code == 400 and r.json['fields'] == {'n': 'n must be int'}
+    assert c.post('/j', body=b'', content_type='application/json').json == {'v': {'d': 1}}
+    assert c.get('/go').status_code in (302, 303)
+    assert TestClient(app, follow_redirects=True).get('/go').text == 'ok'
+    with pytest.raises(RuntimeError, match='development server'):
+        run(app, host='0.0.0.0')

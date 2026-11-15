@@ -64,7 +64,7 @@ py = sys.version_info
 
 import http.client as httplib
 import _thread as thread
-from urllib.parse import urljoin, SplitResult as UrlSplitResult
+from urllib.parse import urljoin, urlparse, SplitResult as UrlSplitResult
 from urllib.parse import urlencode, quote as urlquote, unquote as urlunquote
 from http.cookies import SimpleCookie, Morsel, CookieError
 from collections import OrderedDict
@@ -1507,6 +1507,11 @@ class BaseRequest:
             except (ValueError, TypeError) as err:
                 raise HTTPError(400, 'Invalid JSON', exception=err)
         return None
+
+    def json_or(self, default=None):
+        """request.json, or *default* when the body is empty / not JSON."""
+        data = self.json
+        return default if data is None else data
 
     def _iter_body(self, read, bufsize):
         hard_limit = self.environ.get('lcore.body_max_size', 0)
@@ -4026,18 +4031,22 @@ def validate_request(body=None, query=None):
                 if isinstance(query, dict):
                     for name, expected_type in query.items():
                         val = request.query.get(name)
+                        is_opt, inner = _is_optional(expected_type)
                         if val is None:
-                            is_opt, _ = _is_optional(expected_type)
                             if not is_opt:
                                 errors[name] = '%s is required' % name
+                        elif not _coerce(val, inner)[0]:
+                            errors[name] = '%s must be %s' % (name, getattr(inner, '__name__', inner))
                 else:
                     for field in dataclasses.fields(query):
                         val = request.query.get(field.name)
-                        is_opt, _ = _is_optional(field.type)
-                        if val is None and not is_opt \
-                           and field.default is dataclasses.MISSING \
-                           and field.default_factory is dataclasses.MISSING:
-                            errors[field.name] = '%s is required' % field.name
+                        is_opt, inner = _is_optional(field.type)
+                        if val is None:
+                            if not is_opt and field.default is dataclasses.MISSING \
+                               and field.default_factory is dataclasses.MISSING:
+                                errors[field.name] = '%s is required' % field.name
+                        elif not _coerce(val, inner)[0]:
+                            errors[field.name] = '%s must be %s' % (field.name, getattr(inner, '__name__', inner))
                 if errors:
                     raise HTTPError(400,
                                     body=json_dumps({
@@ -5182,8 +5191,9 @@ class TestClient:
     """Calls your app directly. No HTTP, no server, no tears."""
     __test__ = False  # not a pytest test class
 
-    def __init__(self, app, cookies=True):
+    def __init__(self, app, cookies=True, follow_redirects=False):
         self.app = app
+        self.follow_redirects = follow_redirects
         # Cookie jar: Set-Cookie responses are replayed on later requests,
         # like a browser. Pass cookies=False to disable.
         self.cookies = {} if cookies else None
@@ -5199,7 +5209,7 @@ class TestClient:
                     self.cookies[name] = m.value
 
     def request(self, method, path, body=b'', headers=None,
-                query_string='', content_type=None, json=None):
+                query_string='', content_type=None, json=None, _hops=0):
         if json is not None:
             body = tob(json_dumps(json))
             content_type = content_type or 'application/json'
@@ -5241,6 +5251,14 @@ class TestClient:
                             list(response_headers[0]))
         if self.cookies is not None:
             self._store_cookies(resp)
+        loc = resp.headers.get('Location')
+        if self.follow_redirects and loc and resp.status_code in (301, 302, 303, 307, 308) and _hops < 10:
+            u = urlparse(loc)  # same-app only; host is ignored
+            keep = resp.status_code in (307, 308)
+            return self.request(method if keep else 'GET', u.path or '/',
+                                body=body if keep else b'', headers=headers,
+                                query_string=u.query, content_type=content_type if keep else None,
+                                _hops=_hops + 1)
         return resp
 
     def get(self, path, **kw):
@@ -5910,7 +5928,8 @@ def run(app=None,
         quiet=False,
         plugins=None,
         debug=None,
-        config=None, **kargs):
+        config=None,
+        dev_server_ok=False, **kargs):
     if NORUN: return
     load_dotenv()
     if reloader and not os.environ.get('LCORE_CHILD'):
@@ -5974,6 +5993,12 @@ def run(app=None,
         if not isinstance(server, ServerAdapter):
             raise ValueError("Unknown or unsupported server: %r" % server)
 
+        if isinstance(server, WSGIRefServer) and not (debug or dev_server_ok) \
+                and server.host not in ('127.0.0.1', 'localhost', '::1'):
+            raise RuntimeError(
+                "Refusing to serve the wsgiref development server on %s. Use "
+                "server='gunicorn' or 'waitress' for production, or pass "
+                "dev_server_ok=True (or debug=True) to override." % server.host)
         server.quiet = server.quiet or quiet
         if not server.quiet:
             _stderr("Lcore v%s server starting up (using %s)..." %
