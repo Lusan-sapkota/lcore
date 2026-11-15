@@ -1216,6 +1216,7 @@ class Lcore:
         environ['PATH_INFO'] = _wsgi_recode(path)
 
         environ['lcore.app'] = self
+        hk = self._hooks  # skip the call when a hook has no listeners (8x per request)
         # Auto-inject trusted proxies from config (simplifies ProxyFix setup)
         trusted = self.config.get('proxy.trusted')
         if trusted:
@@ -1235,8 +1236,8 @@ class Lcore:
 
         try:
             try:
-                self.trigger_hook('on_request_start')
-                self.trigger_hook('before_request')
+                if hk['on_request_start']: self.trigger_hook('on_request_start')
+                if hk['before_request']: self.trigger_hook('before_request')
                 pre_result = self.middleware.execute_pre_routing(ctx)
                 if pre_result is not None:
                     out = pre_result
@@ -1252,9 +1253,9 @@ class Lcore:
                         self.trigger_hook('on_module_request', mount_prefix, ctx)
                         self.trigger_module_hooks(mount_prefix, 'before_request')
 
-                    self.trigger_hook('on_auth_resolved')
+                    if hk['on_auth_resolved']: self.trigger_hook('on_auth_resolved')
 
-                    self.trigger_hook('on_handler_enter')
+                    if hk['on_handler_enter']: self.trigger_hook('on_handler_enter')
 
                     def call_route():
                         return route.call(**args)
@@ -1264,21 +1265,21 @@ class Lcore:
                     else:
                         out = call_route()
 
-                self.trigger_hook('on_handler_exit')
+                if hk['on_handler_exit']: self.trigger_hook('on_handler_exit')
             except HTTPResponse as E:
                 out = E
             finally:
                 if isinstance(out, HTTPResponse):
                     out.apply(response)
-                self.trigger_hook('on_response_build')
+                if hk['on_response_build']: self.trigger_hook('on_response_build')
                 try:
                     if mount_prefix:
                         self.trigger_module_hooks(mount_prefix, 'after_request')
-                    self.trigger_hook('after_request')
+                    if hk['after_request']: self.trigger_hook('after_request')
                 except HTTPResponse as E:
                     out = E
                     out.apply(response)
-                self.trigger_hook('on_response_send')
+                if hk['on_response_send']: self.trigger_hook('on_response_send')
         except (KeyboardInterrupt, SystemExit, MemoryError):
             raise
         except Exception as E:
@@ -1817,11 +1818,21 @@ class BaseRequest:
             raise AttributeError("Attribute not defined: %s" % name)
 
 # Header name normalisation: underscores become hyphens, Title-Case enforced
+_HKEY_CACHE = {}
+
 def _hkey(key):
+    try:
+        return _HKEY_CACHE[key]  # header names repeat on every request
+    except KeyError:
+        pass
+    raw = key
     key = touni(key)
     if '\n' in key or '\r' in key or '\0' in key:
         raise ValueError("Header names must not contain control characters: %r" % key)
-    return key.title().replace('_', '-')
+    key = key.title().replace('_', '-')
+    if len(_HKEY_CACHE) < 512 and isinstance(raw, str):
+        _HKEY_CACHE[raw] = key
+    return key
 
 def _hval(value):
     value = touni(value)
@@ -1975,8 +1986,9 @@ class BaseResponse:
         if self._cookies:
             for c in self._cookies.values():
                 out.append(('Set-Cookie', _hval(c.OutputString())))
-        out = [(k, v.encode('utf8', 'surrogateescape').decode('latin1')) for (k, v) in out]
-        return out
+        # PEP 3333 wants latin-1 str; ascii values (nearly all) need no re-encode
+        return [(k, v if v.isascii() else v.encode('utf8', 'surrogateescape').decode('latin1'))
+                for (k, v) in out]
 
     content_type = HeaderProperty('Content-Type')
     content_length = HeaderProperty('Content-Length', reader=int, default=-1)
@@ -2086,20 +2098,25 @@ Request = BaseRequest
 Response = BaseResponse
 
 # Holds request, response, app, route, user, and whatever else you stuff into it.
+_CTX_SLOTS = frozenset(('request', 'response', 'app', 'route', 'request_id', 'user', 'state', '_lazy'))
+
 class RequestContext:
 
     __slots__ = ('request', 'response', 'app', 'route',
                  'request_id', 'user', 'state', '_lazy')
 
     def __init__(self, req=None, resp=None, app=None):
-        self.request = req
-        self.response = resp
-        self.app = app
-        self.route = None
-        self.request_id = None
-        self.user = None
-        self.state = {}
-        self._lazy = {}
+        # object.__setattr__ skips our Python-level __setattr__ (8 calls/request)
+        # and still honours LocalContext's thread-local descriptors.
+        s = object.__setattr__
+        s(self, 'request', req)
+        s(self, 'response', resp)
+        s(self, 'app', app)
+        s(self, 'route', None)
+        s(self, 'request_id', None)
+        s(self, 'user', None)
+        s(self, 'state', {})
+        s(self, '_lazy', {})
 
     def lazy(self, key, factory):
         self._lazy[key] = factory
@@ -2125,7 +2142,7 @@ class RequestContext:
         raise AttributeError(f'RequestContext has no attribute {name!r}')
 
     def __setattr__(self, name, value):
-        if name in self.__slots__:
+        if name in _CTX_SLOTS:
             object.__setattr__(self, name, value)
         else:
             self.state[name] = value
