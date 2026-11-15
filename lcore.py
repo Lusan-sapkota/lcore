@@ -4063,6 +4063,8 @@ def validate_request(body=None, query=None):
             if value in (0, 1) and is_num:
                 return True, bool(value)
             return False, value
+        if expected_type in (list, dict, tuple, set):  # no 'abc' -> ['a','b','c']
+            return (True, value) if isinstance(value, expected_type) else (False, value)
         if callable(expected_type):
             try:
                 result = expected_type(value)

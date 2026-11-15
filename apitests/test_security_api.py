@@ -572,7 +572,6 @@ def test_v_dataclass_list_field_coercion(client):
     assert r.status_code == 422 or r.json['tags'] == 'abc' or r.json['tags'] == ['a', 'b', 'c']
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: callable-type coercion turns a JSON string into list(chars) / accepts anything the type ctor swallows (lcore.py:3925)")
 def test_v_list_type_rejects_string(client):
     app = Lcore()
     @app.post('/')
