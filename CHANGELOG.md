@@ -23,7 +23,7 @@ All notable changes to Lcore will be documented here.
 - **`Accept` negotiation honours q-weights** when choosing JSON or HTML errors.
 
 ### Fixed
-- **`validate_request` errors were wrapped- **Malformed `Content-Type` parameters** (e.g. `;charset` with no value) returned 500; they are now ignored.
+- **Malformed `Content-Type` parameters** (e.g. `;charset` with no value) returned 500; they are now ignored.
 - **Rate limiter cleanup could raise `RuntimeError`** when other threads inserted buckets at the same moment.
 - **`redirect()` with a line break in the URL** returned 500; it now returns 400.
 - **`BackgroundTaskPool.submit`** rebuilt its whole future list on every call (quadratic under bursts); it now uses a set.
