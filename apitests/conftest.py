@@ -20,12 +20,15 @@ class Live:
     """A running server. `.request(...)` returns (status, headers_dict, body)."""
 
     def __init__(self, app):
-        from wsgiref.simple_server import make_server, WSGIRequestHandler
+        from wsgiref.simple_server import make_server, WSGIRequestHandler, WSGIServer
 
         class Quiet(WSGIRequestHandler):
             def log_message(self, *a): pass
 
-        self.srv = make_server('127.0.0.1', 0, app, handler_class=Quiet)
+        class Server(WSGIServer):
+            request_queue_size = 128  # the default of 5 drops connects when tests fire dozens at once
+
+        self.srv = make_server('127.0.0.1', 0, app, server_class=Server, handler_class=Quiet)
         self.port = self.srv.server_port
         self.thread = threading.Thread(target=self.srv.serve_forever, daemon=True)
         self.thread.start()
