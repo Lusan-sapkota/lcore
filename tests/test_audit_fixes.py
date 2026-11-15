@@ -89,3 +89,18 @@ def test_background_pool_tracks_pending():
     assert p.pending >= 1
     p.shutdown(wait=True)
     assert p.pending == 0
+
+
+def test_cors_vary_and_security_headers_on_404():
+    app = Lcore()
+    app.use(CORSMiddleware(allow_origins=['https://app.x']))
+    app.use(SecurityHeadersMiddleware())
+
+    @app.get('/ok')
+    def ok(): return 'ok'
+
+    c = TestClient(app)
+    r = c.get('/ok', headers={'Origin': 'https://evil.x'})
+    assert 'Access-Control-Allow-Origin' not in r.headers and 'Origin' in r.headers['Vary']
+    r = c.get('/nope')
+    assert r.status_code == 404 and r.headers['X-Content-Type-Options'] == 'nosniff'

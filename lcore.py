@@ -2296,6 +2296,7 @@ class RequestLoggerMiddleware(Middleware):
 class SecurityHeadersMiddleware(Middleware):
     name = 'security_headers'
     order = 5
+    phase = 'pre'  # pre-routing, so unmatched-route 404s get the headers too
 
     DEFAULTS = {
         'X-Content-Type-Options': 'nosniff',
@@ -2428,7 +2429,10 @@ class CORSMiddleware(Middleware):
     def __call__(self, ctx, next_handler):
         origin = ctx.request.get_header('Origin')
         if not self._origin_allowed(origin):
-            return next_handler(ctx)
+            result = next_handler(ctx)
+            if self.allow_origins != '*':  # keep shared caches from mixing origins
+                ctx.response.add_header('Vary', 'Origin')
+            return result
 
         if ctx.request.method == 'OPTIONS':
             ctx.response.status = 204
