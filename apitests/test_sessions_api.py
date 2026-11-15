@@ -8,12 +8,31 @@ from lcore import (Lcore, HTTPError, request, response, SessionMiddleware, Memor
 SECRET = 'test-secret'
 
 
-@pytest.fixture(params=['memory', 'sqlite'])
+def _redis_url():
+    try:
+        import redis
+        redis.Redis(socket_connect_timeout=0.3).ping()
+    except Exception:
+        return None
+    return 'redis://localhost:6379/15'  # db 15: keeps test keys away from real data
+
+
+@pytest.fixture(params=['memory', 'sqlite', 'redis'])
 def backend(request, tmp_path):
     if request.param == 'memory':
         b = MemorySessionBackend(warn=False)
-    else:
+    elif request.param == 'sqlite':
         b = SQLiteSessionBackend(str(tmp_path / 's.db'), cleanup_every=0)
+    else:
+        url = _redis_url()
+        if not url:
+            pytest.skip('no redis server / redis-py')
+        import uuid
+        b = lcore.RedisSessionBackend(url, prefix='t%s:' % uuid.uuid4().hex[:8])
+        yield b
+        for k in b._r.scan_iter(b._prefix + '*'): b._r.delete(k)  # leave nothing behind
+        b.close()
+        return
     yield b
     b.close()
 

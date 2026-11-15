@@ -54,7 +54,7 @@ waitress = ["waitress"]
 gevent = ["gevent"]
 eventlet = ["eventlet"]
 watchdog = ["watchdog"]
-dev = ["pytest", "ujson"]
+dev = ["pytest", "ujson", "redis"]
 
 [tool.setuptools]
 py-modules = ["lcore"]

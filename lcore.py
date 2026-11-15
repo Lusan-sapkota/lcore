@@ -3651,15 +3651,24 @@ class RedisSessionBackend(SessionBackend):
         return json_loads(blob) if blob else None
 
     def save(self, sid, record, ttl):
-        ttl = int(ttl)
+        px = max(1, int(ttl * 1000))  # milliseconds: fractional TTLs work like the other backends
         uid = record.get('uid')
-        self._r.setex(self._skey(sid), ttl, json_dumps(record))
+        skey = self._skey(sid)
+        pipe = self._r.pipeline(transaction=False)  # one round trip: read the old record, write the new
+        pipe.get(skey)
+        pipe.set(skey, json_dumps(record), px=px)
+        old = pipe.execute()[0]
+        if old:  # session moved to another user: drop it from the old user's index
+            try:
+                old_uid = json_loads(old).get('uid')
+            except (ValueError, AttributeError):
+                old_uid = None
+            if old_uid is not None and old_uid != uid:
+                self._r.srem(self._ukey(old_uid), sid)
         if uid is not None:
-            # Not pipelined with the setex above: the index update needs to
-            # read its own current TTL (via the Lua script) before deciding
-            # whether to extend it, so it runs as its own round trip.
-            self._index_script(keys=[self._ukey(uid)],
-                                args=[sid, ttl * 1000])
+            # Own round trip: the Lua script reads the index's current TTL
+            # before deciding whether to extend it.
+            self._index_script(keys=[self._ukey(uid)], args=[sid, px])
 
     def delete(self, sid):
         # No GET-then-SREM here: the per-user index already tolerates dead
