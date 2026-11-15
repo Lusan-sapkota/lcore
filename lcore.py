@@ -1833,6 +1833,7 @@ class BaseRequest:
 
 # Header name normalisation: underscores become hyphens, Title-Case enforced
 _HKEY_CACHE = {}
+_HEADER_TOKEN = re.compile(r"[!#$%&'*+\-.^_`|~0-9A-Za-z]+\Z").match  # RFC 7230 token
 
 def _hkey(key):
     try:
@@ -1841,8 +1842,8 @@ def _hkey(key):
         pass
     raw = key
     key = touni(key)
-    if '\n' in key or '\r' in key or '\0' in key:
-        raise ValueError("Header names must not contain control characters: %r" % key)
+    if not _HEADER_TOKEN(key):
+        raise ValueError("Invalid header name: %r" % key)
     key = key.title().replace('_', '-')
     if len(_HKEY_CACHE) < 512 and isinstance(raw, str):
         _HKEY_CACHE[raw] = key

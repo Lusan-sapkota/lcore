@@ -722,7 +722,7 @@ def test_response_header_crlf_rejected(val):
         r.set_header('X-Test', val)
 
 
-@pytest.mark.parametrize('name', ['X\r\nY', pytest.param('X Y', marks=pytest.mark.xfail(strict=True, reason='BUG: set_header accepts header names with spaces (lcore.py:1954 _hkey)')), pytest.param('X:Y', marks=pytest.mark.xfail(strict=True, reason='BUG: set_header accepts header names containing colon (lcore.py:1954 _hkey)')), pytest.param('', marks=pytest.mark.xfail(strict=True, reason='BUG: set_header accepts empty header name (lcore.py:1954 _hkey)'))])
+@pytest.mark.parametrize('name', ['X\r\nY', 'X Y', 'X:Y', ''])
 def test_response_header_name_validation(name):
     r = lcore.BaseResponse()
     try:
