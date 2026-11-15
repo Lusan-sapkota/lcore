@@ -45,7 +45,7 @@ if __name__ == '__main__':
     _cli_patch(sys.argv)
 
 # stdlib imports that's it, no pip install required
-import abc, asyncio, atexit, base64, calendar, concurrent.futures, email.utils, \
+import abc, asyncio, atexit, base64, errno, calendar, concurrent.futures, email.utils, \
     functools, gzip, hmac, itertools, logging, mimetypes, os, re, tempfile, \
     threading, time, uuid, warnings, weakref, hashlib, zlib
 
@@ -5976,6 +5976,9 @@ def run(app=None,
             _stderr("Lcore v%s server starting up (using %s)..." %
                     (__version__, repr(server)))
             _stderr("Listening on %s" % server._listen_url)
+            if isinstance(server, WSGIRefServer):
+                _stderr("Warning: wsgiref is a development server. In production use "
+                        "server='gunicorn' or 'waitress'.")
             _stderr("Hit Ctrl-C to quit.\n")
 
         if reloader:
@@ -5989,6 +5992,10 @@ def run(app=None,
             server.run(app)
     except KeyboardInterrupt:
         pass
+    except OSError as E:
+        if E.errno != errno.EADDRINUSE: raise
+        _stderr("Error: port %s is already in use." % port)
+        sys.exit(1)
     except (SystemExit, MemoryError):
         raise
     except Exception:
