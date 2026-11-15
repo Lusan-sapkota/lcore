@@ -25,3 +25,14 @@ def test_validate_rejects_junk_and_accepts_optional_null():
     assert _post({'n': bool}, {'n': 'false'}).json == {'n': False}
     assert _post({'n': int}, {'n': 3.0}).json == {'n': 3}
     assert _post({'n': Optional[int]}, {'n': None}).json == {'n': None}
+
+
+def test_malformed_content_type_is_not_a_500():
+    app = Lcore()
+
+    @app.post('/p')
+    def p(): return dict(request.forms)
+
+    c = TestClient(app)
+    assert c.post('/p', body=b'a=1', content_type='application/x-www-form-urlencoded;charset').json == {'a': '1'}
+    assert c.post('/p', body=b'a=1', content_type='multipart/form-data;boundary').status_code == 400

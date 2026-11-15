@@ -5026,6 +5026,7 @@ def _parse_http_header(h):
             parts = value.split(';')
             values.append((parts[0].strip(), {}))
             for attr in parts[1:]:
+                if '=' not in attr: continue
                 name, value = attr.split('=', 1)
                 values[-1][1][name.strip().lower()] = value.strip()
     else:
