@@ -147,6 +147,13 @@ document.addEventListener('DOMContentLoaded', function () {
     wrap.appendChild(pre);
   });
 
+  // Runnable code blocks load the playground on demand (tutorial only)
+  if ($('pre[data-run]')) {
+    var pgScript = document.createElement('script');
+    pgScript.src = 'assets/playground.js';
+    document.body.appendChild(pgScript);
+  }
+
   // Standalone copy buttons (install commands)
   $$('[data-copy]').forEach(function (b) {
     b.addEventListener('click', function () {
@@ -276,6 +283,6 @@ document.addEventListener('DOMContentLoaded', function () {
   dlg.addEventListener('click', function (e) { if (e.target === dlg) dlg.close(); });
   document.addEventListener('keydown', function (e) {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); dlg.open ? dlg.close() : open(); }
-    else if (e.key === '/' && !/input|textarea|select/i.test(document.activeElement.tagName)) { e.preventDefault(); open(); }
+    else if (e.key === '/' && !/input|textarea|select/i.test(document.activeElement.tagName) && !document.activeElement.isContentEditable) { e.preventDefault(); open(); }
   });
 });

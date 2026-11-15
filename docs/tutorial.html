@@ -189,7 +189,7 @@
 
       <pre><code class="language-bash">uv add lcore   # or: pip install lcore</code></pre>
 
-      <pre><code>from lcore import Lcore
+      <pre data-run="app" data-path="/ping" data-presets="[[&quot;GET /ping&quot;, &quot;GET&quot;, &quot;/ping&quot;, &quot;&quot;]]"><code class="language-python">from lcore import Lcore
 
 app = Lcore()
 
@@ -202,13 +202,13 @@ def ping():
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=8080)</code></pre>
 
-      <p>Run <code>python app.py</code> and open <code>http://127.0.0.1:8080/ping</code>. Returning a <code>dict</code> or <code>list</code> sends JSON automatically. See <a href="getting-started.html#running">Running Your App</a> for servers and hot reload.</p>
+      <p>Press <strong>Run</strong>, then <strong>Send</strong>: the code runs in your browser against the real <code>lcore.py</code>, no server needed. You can edit it first. On your machine, run <code>python app.py</code> and open <code>http://127.0.0.1:8080/ping</code>. Returning a <code>dict</code> or <code>list</code> sends JSON automatically. See <a href="getting-started.html#running">Running Your App</a> for servers and hot reload.</p>
 
       <h2 id="tutorial-routes">Routes and URL parameters</h2>
 
       <p>Replace <code>app.py</code> with a notes store kept in a dict. <code>&lt;id:int&gt;</code> only matches digits and passes an <code>int</code> to your handler; <code>abort()</code> raises an HTTP error that Lcore turns into a response. Setting <code>response.status</code> changes the status code.</p>
 
-      <pre><code>from lcore import Lcore, request, response, abort
+      <pre data-run="app" data-path="/notes" data-presets="[[&quot;Create a note&quot;, &quot;POST&quot;, &quot;/notes&quot;, &quot;{\&quot;title\&quot;: \&quot;Hello\&quot;, \&quot;body\&quot;: \&quot;First note\&quot;}&quot;], [&quot;List notes&quot;, &quot;GET&quot;, &quot;/notes&quot;, &quot;&quot;], [&quot;Get note 1&quot;, &quot;GET&quot;, &quot;/notes/1&quot;, &quot;&quot;], [&quot;Missing note&quot;, &quot;GET&quot;, &quot;/notes/99&quot;, &quot;&quot;]]"><code class="language-python">from lcore import Lcore, request, response, abort
 
 app = Lcore()
 
@@ -344,9 +344,13 @@ def not_found(err):
 
       <h2 id="tutorial-full">The finished app</h2>
 
-      <p>Put it all together. This is the exact file the tests below run against:</p>
+      <p>Put it all together. This is the exact file the tests below run against. Press <strong>Run</strong>, then try the buttons in order: create a note, delete it (401), log in, delete it again (204).</p>
 
-      <pre><code>from lcore import (Lcore, request, response, abort, validate_request, rate_limit,
+      <div class="info-box note">
+        <strong>Browser playground note.</strong> Pyodide has no OpenSSL, so in the browser <code>hash_password</code> uses a pure-Python PBKDF2 with a lower iteration count. On a real server Lcore uses the standard 600,000 iterations.
+      </div>
+
+      <pre data-run="app" data-path="/api/v1/notes" data-presets="[[&quot;Create a note&quot;, &quot;POST&quot;, &quot;/api/v1/notes&quot;, &quot;{\&quot;title\&quot;: \&quot;Hello\&quot;, \&quot;body\&quot;: \&quot;First note\&quot;}&quot;], [&quot;Invalid body&quot;, &quot;POST&quot;, &quot;/api/v1/notes&quot;, &quot;{\&quot;title\&quot;: \&quot;No body\&quot;}&quot;], [&quot;List notes&quot;, &quot;GET&quot;, &quot;/api/v1/notes&quot;, &quot;&quot;], [&quot;Delete note 1&quot;, &quot;DELETE&quot;, &quot;/api/v1/notes/1&quot;, &quot;&quot;], [&quot;Log in&quot;, &quot;POST&quot;, &quot;/api/v1/login&quot;, &quot;{\&quot;user\&quot;: \&quot;alice\&quot;, \&quot;password\&quot;: \&quot;wonderland\&quot;}&quot;]]" data-final><code class="language-python">from lcore import (Lcore, request, response, abort, validate_request, rate_limit,
                    RequestIDMiddleware, SecurityHeadersMiddleware, CORSMiddleware,
                    SessionMiddleware, MemorySessionBackend, hash_password, verify_password)
 
@@ -413,7 +417,7 @@ with app.group('/api/v1') as api:
 
       <p><code>TestClient</code> calls your WSGI app directly, keeps cookies between calls (so the login carries over) and needs no network. Save as <code>test_notes.py</code> next to <code>app.py</code> and run <code>pytest</code>:</p>
 
-      <pre><code>from lcore import TestClient
+      <pre data-run="test"><code class="language-python">from lcore import TestClient
 from app import app
 
 

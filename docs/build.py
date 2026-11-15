@@ -108,6 +108,7 @@ def region(src, name, new, fallback=None, where=None):
 
 
 def main():
+    (DOCS / 'assets' / 'pyodide' / 'lcore.py').write_bytes((DOCS.parent / 'lcore.py').read_bytes())  # playground runs the real file
     info, index = {}, []
     for pg in PAGES:
         src = (DOCS / f'{pg}.html').read_text()
