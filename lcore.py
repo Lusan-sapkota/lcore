@@ -3119,6 +3119,9 @@ def rate_limit(limit, per=60, max_buckets=10000, backend=None, single_process=Fa
                         for k, _ in oldest[:len(buckets) - max_buckets]:
                             buckets.pop(k, None)
                 if addr not in buckets:
+                    while len(buckets) >= max_buckets:  # oldest-inserted first, O(1)
+                        try: buckets.pop(next(iter(buckets)), None)
+                        except (StopIteration, RuntimeError): break
                     buckets[addr] = [now, limit]
                 tokens_info = buckets[addr]
                 elapsed = now - tokens_info[0]

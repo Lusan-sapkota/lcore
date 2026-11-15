@@ -143,7 +143,6 @@ def _buckets(deco_wrapper):
     raise AssertionError('no bucket dict')
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: max_buckets only enforced during the once-per-window cleanup, so a long window lets buckets grow unbounded (lcore.py:3043-3053)")
 def test_rl_max_buckets_bounded_within_window(client):
     app = Lcore(); app.use(ProxyFixMiddleware(num_proxies=1))
     @rate_limit(5, 3600, max_buckets=10, single_process=True)
