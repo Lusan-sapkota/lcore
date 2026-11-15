@@ -305,15 +305,16 @@ pre code { background: none; border: 0; padding: 0; color: var(--text); font-siz
 .hero-meta li { margin: 0; padding: 0 14px; }
 .hero-meta li + li { border-left: 1px solid var(--border); }
 .install-box {
-  max-width: 1040px; margin: 24px auto 56px; padding: 28px 32px; background: var(--bg-alt);
+  max-width: 1040px; margin: 24px auto 56px; padding: 0; background: var(--bg-alt);
   border: 1px solid var(--border-light); border-radius: 16px;
-  display: grid; grid-template-columns: 1fr minmax(0, 1.1fr); gap: 32px; align-items: center;
+  display: grid; grid-template-columns: 1fr minmax(0, 1.1fr); gap: 0; align-items: stretch;
 }
 .install-box { position: relative; overflow: hidden; isolation: isolate; background: radial-gradient(ellipse at 8% 60%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 60%), var(--bg-alt); }
 .install-box::after { content: ''; position: absolute; left: -36px; bottom: -48px; width: 230px; height: 230px; z-index: -1; background: url(../lcore-256.png) center / contain no-repeat; opacity: .09; }
 .install-box h2 { font-size: 28px; margin: 0 0 8px; border: 0; padding: 0; }
+.install-text { padding: 28px 32px; align-self: center; }
 .install-note { font-size: 15px; color: var(--text-muted); margin: 0; max-width: 36ch; }
-.install-term { background: var(--bg-code); border: 1px solid var(--border-light); border-radius: var(--radius); padding: 8px 8px 8px 20px; min-width: 0; }
+.install-term { background: var(--bg-code); border-left: 1px solid var(--border-light); padding: 20px 20px 20px 28px; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
 .install-row { display: flex; align-items: center; gap: 10px; min-height: 48px; }
 .install-row code { background: none; border: 0; padding: 0; color: var(--text); flex: 1; font-size: 15px; white-space: normal; overflow-wrap: anywhere; }
 .install-or { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); border-top: 1px dashed var(--border-light); margin-top: 4px; padding: 8px 0 2px 22px; }
@@ -457,7 +458,9 @@ pre.editing code::after { content: ' '; }
   .hero { padding: 48px 0 36px; }
   .hero-logo { width: 96px; height: 96px; }
   .features { padding: 48px 0; }
-  .install-box { grid-template-columns: 1fr; padding: 22px 18px; gap: 20px; }
+  .install-box { grid-template-columns: 1fr; }
+  .install-text { padding: 22px 18px; }
+  .install-term { border-left: 0; border-top: 1px solid var(--border-light); padding: 14px 18px; }
   .header-side { flex: 0 0 auto; }
   .search-btn { flex: 1 1 0; max-width: none; }
   .search-btn kbd { display: none; }
