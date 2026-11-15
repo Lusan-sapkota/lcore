@@ -694,7 +694,6 @@ def test_concurrent_updates_same_session_no_corruption(backend):
     assert isinstance(data, dict) and len(data) >= 1  # last-writer-wins is fine; must stay valid json
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: session writes are whole-record last-writer-wins: concurrent requests on one session silently lose each other's keys (lcore.py:3893 save of full record)")
 def test_concurrent_updates_do_not_lose_keys(backend):
     app = make_app(backend)
     @app.get('/slow')
@@ -909,3 +908,61 @@ def test_redis_backend_if_available():
     rec = lcore._blank_session_record(); rec['uid'] = 'rtest'
     b.save('rs1', rec, 5)
     assert b.load('rs1') is not None and b.revoke_user('rtest') == 1
+
+
+# ---------------------------------------------------------------- atomic merge on save
+def _race_app(backend):
+    app = Lcore()
+    app.use(SessionMiddleware(backend=backend, secret=SECRET))
+
+    @app.get('/init')
+    def init(): request.session['a'] = 1; return request.session.sid
+
+    @app.get('/revoke_then_set')
+    def rts():
+        request.session['b'] = 2
+        backend.delete(request.session.sid)  # another request revokes it mid-flight
+        return 'ok'
+
+    @app.get('/other_writer')
+    def other():
+        sid = request.session.sid
+        rec = backend.load(sid); rec['data']['c'] = 3; backend.save(sid, rec, 100)  # concurrent writer
+        request.session['d'] = 4
+        return 'ok'
+
+    @app.get('/drop_a')
+    def drop_a(): del request.session['a']; return 'ok'
+
+    return app
+
+
+def test_write_does_not_resurrect_a_revoked_session(backend):
+    c = TestClient(_race_app(backend))
+    sid = c.get('/init').text
+    c.get('/revoke_then_set')
+    assert backend.load(sid) is None
+
+
+def test_concurrent_write_by_another_request_is_kept(backend):
+    c = TestClient(_race_app(backend))
+    sid = c.get('/init').text
+    c.get('/other_writer')
+    assert backend.load(sid)['data'] == {'a': 1, 'c': 3, 'd': 4}
+
+
+def test_deleting_a_key_leaves_other_keys_alone(backend):
+    c = TestClient(_race_app(backend))
+    sid = c.get('/init').text
+    rec = backend.load(sid); rec['data']['z'] = 9; backend.save(sid, rec, 100)
+    c.get('/drop_a')
+    assert backend.load(sid)['data'] == {'z': 9}
+
+
+def test_default_abc_merge_works_for_custom_backends():
+    b = MemorySessionBackend(warn=False)
+    rec = lcore._blank_session_record(); rec['data'] = {'x': 1}
+    b.save('s', rec, 100)
+    out = SessionBackend.merge(b, 's', [('s', 'y', 2), ('d', 'x')], 123.0, 100)
+    assert out['data'] == {'y': 2} and b.load('s')['seen'] == 123.0
+    assert SessionBackend.merge(b, 'missing', [], 1.0, 100) is None

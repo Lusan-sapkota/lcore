@@ -3213,6 +3213,14 @@ def _blank_session_record():
             'created': now, 'seen': now, 'ip': None, 'ua': None}
 
 
+def _apply_session_ops(data, ops):
+    """Replay Session change ops: ('s', key, value), ('d', key), ('c',)."""
+    for op in ops:
+        if op[0] == 's': data[op[1]] = op[2]
+        elif op[0] == 'd': data.pop(op[1], None)
+        else: data.clear()
+
+
 class SessionBackend(abc.ABC):
     """ABC for session stores. Subclass for Postgres, DynamoDB, Memcached.
 
@@ -3327,6 +3335,22 @@ class SessionBackend(abc.ABC):
         self.save(sid, record, ttl)
         return True
 
+    def merge(self, sid, ops, seen, ttl):
+        """Apply a request's key changes (see _apply_session_ops) to the *stored*
+        record, so concurrent requests on one session don't overwrite each
+        other's keys. Returns the merged record, or None if the session no
+        longer exists (revoked or expired: it must not be resurrected).
+
+        This default is load-apply-save and only narrows the race; the
+        shipped backends override it with an atomic version."""
+        record = self.load(sid)
+        if record is None:
+            return None
+        _apply_session_ops(record['data'], ops)
+        record['seen'] = seen
+        self.save(sid, record, ttl)
+        return record
+
     def unindex(self, sid, user_key):
         """Remove sid from user_key's per-user index without deleting the
         session itself. Called by Session.bind_user(regenerate=False) when a
@@ -3395,6 +3419,10 @@ class MemorySessionBackend(SessionBackend):
             self._store[sid] = (time.time() + ttl, uid_key, blob)
             if uid_key is not None:
                 self._index.setdefault(uid_key, set()).add(sid)
+
+    def merge(self, sid, ops, seen, ttl):
+        with self._lock:  # RLock: load and save re-enter it, so the whole merge is atomic
+            return SessionBackend.merge(self, sid, ops, seen, ttl)
 
     def delete(self, sid):
         with self._lock:
@@ -3542,6 +3570,26 @@ class SQLiteSessionBackend(SessionBackend):
                  time.time() + ttl, json_dumps(record)))
         self._maybe_cleanup()
 
+    def merge(self, sid, ops, seen, ttl):
+        conn = self._conn
+        conn.execute('BEGIN IMMEDIATE')  # take the write lock before reading: no lost updates
+        try:
+            row = conn.execute('SELECT record, expires FROM lcore_sessions WHERE sid = ?',
+                               (sid,)).fetchone()
+            if row is None or row[1] <= time.time():
+                conn.execute('ROLLBACK')
+                return None
+            record = json_loads(row[0])
+            _apply_session_ops(record['data'], ops)
+            record['seen'] = seen
+            conn.execute('UPDATE lcore_sessions SET expires = ?, record = ? WHERE sid = ?',
+                         (time.time() + ttl, json_dumps(record), sid))
+            conn.execute('COMMIT')
+            return record
+        except BaseException:
+            if conn.in_transaction: conn.execute('ROLLBACK')
+            raise
+
     def delete(self, sid):
         with self._conn as conn:
             cur = conn.execute('DELETE FROM lcore_sessions WHERE sid = ?', (sid,))
@@ -3670,6 +3718,38 @@ class RedisSessionBackend(SessionBackend):
             # before deciding whether to extend it.
             self._index_script(keys=[self._ukey(uid)], args=[sid, px])
 
+    def merge(self, sid, ops, seen, ttl):
+        from redis.exceptions import WatchError
+        skey, px = self._skey(sid), max(1, int(ttl * 1000))
+        with self._r.pipeline() as pipe:
+            for _ in range(20):  # optimistic lock: retry if another request wrote meanwhile
+                try:
+                    pipe.watch(skey)
+                    blob = pipe.get(skey)
+                    if not blob:
+                        pipe.unwatch()
+                        return None
+                    record = json_loads(blob)
+                    _apply_session_ops(record['data'], ops)
+                    record['seen'] = seen
+                    pipe.multi()
+                    pipe.set(skey, json_dumps(record), px=px)
+                    pipe.execute()
+                    break
+                except WatchError:
+                    continue
+            else:
+                record = self.load(sid)  # heavy contention: fall back to a plain write
+                if record is None: return None
+                _apply_session_ops(record['data'], ops)
+                record['seen'] = seen
+                self.save(sid, record, ttl)
+                return record
+        uid = record.get('uid')
+        if uid is not None:
+            self._index_script(keys=[self._ukey(uid)], args=[sid, px])
+        return record
+
     def delete(self, sid):
         # No GET-then-SREM here: the per-user index already tolerates dead
         # members (list_user/revoke_user prune anything whose session key is
@@ -3728,7 +3808,7 @@ class Session:
     sets no cookie.
     """
 
-    __slots__ = ('_backend', '_sid', '_record', '_new', '_dirty', '_destroyed')
+    __slots__ = ('_backend', '_sid', '_record', '_new', '_dirty', '_destroyed', '_ops', '_full')
 
     def __init__(self, backend, sid, record, is_new=False):
         self._backend = backend
@@ -3737,6 +3817,8 @@ class Session:
         self._new = is_new
         self._dirty = False
         self._destroyed = False
+        self._ops = []        # key changes this request, merged into the stored record on save
+        self._full = is_new   # True: whole record must be written (new sid, user change)
 
     @property
     def sid(self):
@@ -3776,10 +3858,12 @@ class Session:
 
     def __setitem__(self, key, value):
         self._record['data'][key] = value
+        self._ops.append(('s', key, value))
         self._dirty = True
 
     def __delitem__(self, key):
         del self._record['data'][key]
+        self._ops.append(('d', key))
         self._dirty = True
 
     def __contains__(self, key):
@@ -3816,22 +3900,27 @@ class Session:
         # checks, defeating "reads are free".
         data = self._record['data']
         if key in data:
+            self._ops.append(('d', key))
             self._dirty = True
         return data.pop(key, *default)
 
     def setdefault(self, key, default=None):
         data = self._record['data']
         if key not in data:
+            self._ops.append(('s', key, default))
             self._dirty = True
         return data.setdefault(key, default)
 
     def update(self, *args, **kwargs):
-        self._record['data'].update(*args, **kwargs)
+        changes = dict(*args, **kwargs)
+        self._record['data'].update(changes)
+        self._ops.extend(('s', k, v) for k, v in changes.items())
         self._dirty = True
 
     def clear(self):
         """Empty the session data but keep the session id."""
         if self._record['data']:
+            self._ops.append(('c',))
             self._dirty = True
         self._record['data'].clear()
 
@@ -3844,7 +3933,7 @@ class Session:
         """
         old_sid = self._sid
         self._sid = _new_sid()
-        self._dirty = True
+        self._dirty = self._full = True
         if old_sid:
             self._backend.delete(old_sid)
         return self._sid
@@ -3866,7 +3955,7 @@ class Session:
                 self._backend.unindex(self._sid, old_uid)
         self._record['uid'] = new_uid
         self._record['epoch'] = self._backend.get_epoch(user_id)
-        self._dirty = True
+        self._dirty = self._full = True
 
     def destroy(self):
         """Delete the session server-side and clear the cookie. A real logout:
@@ -4047,7 +4136,10 @@ class SessionMiddleware(Middleware):
         if session._dirty:
             session._record['seen'] = now
             try:
-                self.backend.save(session._sid, session._record, self.ttl)
+                if session._full:
+                    self.backend.save(session._sid, session._record, self.ttl)
+                elif self.backend.merge(session._sid, session._ops, now, self.ttl) is None:
+                    return  # revoked or expired meanwhile: do not resurrect it
             except Exception as exc:
                 # Raised from a finally block on purpose. If the write failed
                 # there is nothing to set a cookie for, and a login that
@@ -4059,7 +4151,7 @@ class SessionMiddleware(Middleware):
             if now - (session._record.get('seen') or 0) >= self.refresh_every:
                 session._record['seen'] = now
                 try:
-                    self.backend.save(session._sid, session._record, self.ttl)
+                    self.backend.merge(session._sid, [], now, self.ttl)  # atomic, no stale overwrite
                 except Exception as exc:
                     # A failed idle refresh is not worth failing the request:
                     # the session is still valid until its existing TTL runs out.
