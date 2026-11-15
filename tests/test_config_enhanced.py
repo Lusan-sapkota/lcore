@@ -324,13 +324,19 @@ class TestValidateConfig(unittest.TestCase):
                           msg='Expected True for %r' % truthy)
 
     def test_type_mismatch_auto_converts_string_to_bool_false(self):
-        """String values not in ('true','1','yes') convert to bool False."""
-        for falsy in ('false', '0', 'no', 'anything_else'):
+        """Known false strings convert to False; unknown strings are rejected."""
+        for falsy in ('false', '0', 'no', 'off'):
             config = ConfigDict()
             config['debug'] = falsy
             config.validate_config(AppConfig)
             self.assertIs(config['debug'], False,
                           msg='Expected False for %r' % falsy)
+
+    def test_unknown_bool_string_is_a_validation_error(self):
+        config = ConfigDict()
+        config['debug'] = 'anything_else'
+        with self.assertRaises(ValueError):
+            config.validate_config(AppConfig)
 
     def test_type_mismatch_auto_converts_string_to_float(self):
         """String values are auto-converted to float when schema expects it."""

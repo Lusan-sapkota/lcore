@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Changelog - Lcore Documentation</title>
+  <meta name="description" content="Lcore release notes: every added feature, behavior change, fix and security note, version by version.">
+  <meta name="keywords" content="Python,WSGI,microservice,framework,web,API,REST,Lcore,changelog,release notes">
+  <meta name="author" content="Lusan Sapkota">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://lcore.lusansapkota.com.np/changelog.html">
+  <meta property="og:title" content="Changelog - Lcore Documentation">
+  <meta property="og:description" content="Lcore release notes: every added feature, behavior change, fix and security note, version by version.">
+  <meta property="og:image" content="https://lcore.lusansapkota.com.np/og-image.png">
+  <meta property="og:url" content="https://lcore.lusansapkota.com.np/changelog.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Lcore Framework">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Changelog - Lcore Documentation">
+  <meta name="twitter:description" content="Lcore release notes: every added feature, behavior change, fix and security note, version by version.">
+  <meta name="twitter:image" content="https://lcore.lusansapkota.com.np/og-image.png">
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="icon" type="image/png" sizes="64x64" href="favicon.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<!--chrome:head-->
+  <meta name="theme-color" content="#23272f">
+  <meta name="color-scheme" content="dark light">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Lcore: fast, single-file Python WSGI framework">
+  <meta property="og:locale" content="en_US">
+  <meta name="twitter:image:alt" content="Lcore: fast, single-file Python WSGI framework">
+  <script>(function(){var t;try{t=localStorage.getItem('lcore-theme')}catch(e){}if(t!=='light'&&t!=='dark')t=matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';document.documentElement.dataset.theme=t})()</script>
+  <script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Lcore", "item": "https://lcore.lusansapkota.com.np/"}, {"@type": "ListItem", "position": 2, "name": "Changelog", "item": "https://lcore.lusansapkota.com.np/changelog.html"}]}, {"@type": "TechArticle", "headline": "Changelog", "description": "Lcore release notes: every added feature, behavior change, fix and security note, version by version.", "url": "https://lcore.lusansapkota.com.np/changelog.html", "inLanguage": "en", "dateModified": "2026-11-15", "image": "https://lcore.lusansapkota.com.np/og-image.png", "author": {"@type": "Person", "name": "Lusan Sapkota", "url": "https://lusansapkota.com.np"}, "publisher": {"@type": "Person", "name": "Lusan Sapkota"}}]}</script>
+  <!--/chrome:head--></head>
+<body>
+  <!--chrome:header--><a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-side">
+        <button class="icon-btn menu-toggle" type="button" aria-label="Menu" aria-expanded="false" aria-controls="sidebar"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+        <a href="index.html" class="logo"><img src="lcore-256.png" alt="" class="logo-icon" width="30" height="30">Lcore</a>
+        <span class="version-badge">v0.0.6</span>
+      </div>
+      <button class="search-btn" type="button" aria-label="Search docs"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Search</span><kbd>Ctrl K</kbd></button>
+      <div class="header-side header-end">
+        <nav class="header-nav" aria-label="Primary">
+          <a href="getting-started.html">Guide</a>
+          <a href="middleware.html">Middleware</a>
+          <a href="api-reference.html">API</a>
+          <a href="changelog.html">Changelog</a>
+        </nav>
+        <div class="header-right">
+          <button class="icon-btn theme-toggle" type="button" aria-label="Toggle light/dark theme"><svg class="moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><svg class="sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
+          <a href="https://github.com/Lusan-sapkota/lcore" class="github-link" aria-label="GitHub"><svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span class="gh-label">GitHub</span></a>
+        </div>
+      </div>
+    </div>
+  </header><!--/chrome:header-->
+
+  <div class="doc-layout">
+    <!--chrome:sidebar--><aside class="sidebar" id="sidebar" aria-label="Documentation">
+      <nav aria-label="Docs">
+      <details class="sidebar-section" open>
+        <summary class="sidebar-title">Getting Started</summary>
+        <a href="getting-started.html" class="sidebar-link">Getting Started</a>
+        <div class="sidebar-subs" data-page="getting-started.html">
+          <a href="getting-started.html#installation" class="sidebar-link sub">Installation</a>
+          <a href="getting-started.html#first-app" class="sidebar-link sub">Your First App</a>
+          <a href="getting-started.html#concepts" class="sidebar-link sub">Core Concepts</a>
+          <a href="getting-started.html#configuration" class="sidebar-link sub">Configuration</a>
+          <a href="getting-started.html#running" class="sidebar-link sub">Running Your App</a>
+          <a href="getting-started.html#cli" class="sidebar-link sub">Command-Line Interface</a>
+          <a href="getting-started.html#project-structure" class="sidebar-link sub">Project Structure</a>
+        </div>
+        <a href="tutorial.html" class="sidebar-link">Tutorial: Build a Notes API</a>
+        <div class="sidebar-subs" data-page="tutorial.html">
+          <a href="tutorial.html#tutorial-setup" class="sidebar-link sub">Set up</a>
+          <a href="tutorial.html#tutorial-routes" class="sidebar-link sub">Routes and URL parameters</a>
+          <a href="tutorial.html#tutorial-validation" class="sidebar-link sub">Validate input</a>
+          <a href="tutorial.html#tutorial-groups" class="sidebar-link sub">Group routes under /api/v1</a>
+          <a href="tutorial.html#tutorial-middleware" class="sidebar-link sub">Add middleware</a>
+          <a href="tutorial.html#tutorial-auth" class="sidebar-link sub">Log in, and protect deleting</a>
+          <a href="tutorial.html#tutorial-errors" class="sidebar-link sub">Custom error responses</a>
+          <a href="tutorial.html#tutorial-full" class="sidebar-link sub">The finished app</a>
+          <a href="tutorial.html#tutorial-testing" class="sidebar-link sub">Test it without a server</a>
+          <a href="tutorial.html#tutorial-deploy" class="sidebar-link sub">Run it for real</a>
+        </div>
+      </details>
+      <details class="sidebar-section" open>
+        <summary class="sidebar-title">Core</summary>
+        <a href="routing.html" class="sidebar-link">Routing</a>
+        <div class="sidebar-subs" data-page="routing.html">
+          <a href="routing.html#basic-routing" class="sidebar-link sub">Basic Routing</a>
+          <a href="routing.html#http-methods" class="sidebar-link sub">HTTP Methods</a>
+          <a href="routing.html#dynamic-routes" class="sidebar-link sub">Dynamic Routes</a>
+          <a href="routing.html#async-routes" class="sidebar-link sub">Async Routes</a>
+          <a href="routing.html#route-filters" class="sidebar-link sub">Route Filters</a>
+          <a href="routing.html#route-groups" class="sidebar-link sub">Route Groups</a>
+          <a href="routing.html#error-routes" class="sidebar-link sub">Error Routes</a>
+          <a href="routing.html#url-building" class="sidebar-link sub">URL Building</a>
+          <a href="routing.html#route-inspection" class="sidebar-link sub">Route Inspection</a>
+        </div>
+        <a href="request-response.html" class="sidebar-link">Request &amp; Response</a>
+        <div class="sidebar-subs" data-page="request-response.html">
+          <a href="request-response.html#request-object" class="sidebar-link sub">The Request Object</a>
+          <a href="request-response.html#query-params" class="sidebar-link sub">Query Parameters</a>
+          <a href="request-response.html#form-data" class="sidebar-link sub">Form Data</a>
+          <a href="request-response.html#json-body" class="sidebar-link sub">JSON Body</a>
+          <a href="request-response.html#file-uploads" class="sidebar-link sub">File Uploads</a>
+          <a href="request-response.html#cookies" class="sidebar-link sub">Cookies</a>
+          <a href="request-response.html#headers" class="sidebar-link sub">Headers</a>
+          <a href="request-response.html#response-object" class="sidebar-link sub">The Response Object</a>
+          <a href="request-response.html#static-files" class="sidebar-link sub">Static Files</a>
+          <a href="request-response.html#redirects" class="sidebar-link sub">Redirects</a>
+        </div>
+        <a href="middleware.html" class="sidebar-link">Middleware &amp; Hooks</a>
+        <div class="sidebar-subs" data-page="middleware.html">
+          <a href="middleware.html#overview" class="sidebar-link sub">Overview</a>
+          <a href="middleware.html#built-in" class="sidebar-link sub">Built-in Middleware</a>
+          <a href="middleware.html#sessions" class="sidebar-link sub">Sessions</a>
+          <a href="middleware.html#custom" class="sidebar-link sub">Custom Middleware</a>
+          <a href="middleware.html#middleware-hooks" class="sidebar-link sub">Middleware Hooks</a>
+          <a href="middleware.html#hooks" class="sidebar-link sub">Lifecycle Hooks</a>
+          <a href="middleware.html#pipeline" class="sidebar-link sub">Middleware Pipeline</a>
+        </div>
+        <a href="plugins.html" class="sidebar-link">Plugins</a>
+        <div class="sidebar-subs" data-page="plugins.html">
+          <a href="plugins.html#overview" class="sidebar-link sub">Overview</a>
+          <a href="plugins.html#built-in" class="sidebar-link sub">Built-in Plugins</a>
+          <a href="plugins.html#writing-plugins" class="sidebar-link sub">Writing Plugins</a>
+          <a href="plugins.html#plugin-api" class="sidebar-link sub">Plugin API</a>
+          <a href="plugins.html#skip-plugins" class="sidebar-link sub">Skipping Plugins</a>
+        </div>
+      </details>
+      <details class="sidebar-section" open>
+        <summary class="sidebar-title">Advanced</summary>
+        <a href="advanced.html" class="sidebar-link">Advanced Features</a>
+        <div class="sidebar-subs" data-page="advanced.html">
+          <a href="advanced.html#dependency-injection" class="sidebar-link sub">Dependency Injection</a>
+          <a href="advanced.html#mounting" class="sidebar-link sub">Module Mounting</a>
+          <a href="advanced.html#templates" class="sidebar-link sub">Templates</a>
+          <a href="advanced.html#request-context" class="sidebar-link sub">Request Context</a>
+          <a href="advanced.html#api-docs" class="sidebar-link sub">Built-in API Documentation</a>
+          <a href="advanced.html#security" class="sidebar-link sub">Security</a>
+          <a href="advanced.html#testing" class="sidebar-link sub">Testing</a>
+          <a href="advanced.html#background-tasks" class="sidebar-link sub">Background Tasks</a>
+          <a href="advanced.html#production" class="sidebar-link sub">Production Deployment</a>
+          <a href="advanced.html#request-timeouts" class="sidebar-link sub">Request Timeouts</a>
+          <a href="advanced.html#hot-reload" class="sidebar-link sub">Hot Reload</a>
+          <a href="advanced.html#server-adapters" class="sidebar-link sub">Server Adapters</a>
+        </div>
+      </details>
+      <details class="sidebar-section" open>
+        <summary class="sidebar-title">Reference</summary>
+        <a href="api-reference.html" class="sidebar-link">API Reference</a>
+        <div class="sidebar-subs" data-page="api-reference.html">
+          <a href="api-reference.html#lcore-class" class="sidebar-link sub">Lcore</a>
+          <a href="api-reference.html#request-class" class="sidebar-link sub">BaseRequest</a>
+          <a href="api-reference.html#response-class" class="sidebar-link sub">BaseResponse</a>
+          <a href="api-reference.html#request-context" class="sidebar-link sub">RequestContext</a>
+          <a href="api-reference.html#router-class" class="sidebar-link sub">Router</a>
+          <a href="api-reference.html#route-class" class="sidebar-link sub">Route</a>
+          <a href="api-reference.html#config-class" class="sidebar-link sub">ConfigDict</a>
+          <a href="api-reference.html#middleware-classes" class="sidebar-link sub">Middleware Classes</a>
+          <a href="api-reference.html#session-backends" class="sidebar-link sub">Session Backends</a>
+          <a href="api-reference.html#dependency-container" class="sidebar-link sub">DependencyContainer</a>
+          <a href="api-reference.html#exceptions" class="sidebar-link sub">Exceptions</a>
+          <a href="api-reference.html#data-structures" class="sidebar-link sub">Data Structures</a>
+          <a href="api-reference.html#utilities" class="sidebar-link sub">Utility Functions</a>
+          <a href="api-reference.html#security-utilities" class="sidebar-link sub">Security Utilities</a>
+          <a href="api-reference.html#test-client" class="sidebar-link sub">Test Client</a>
+          <a href="api-reference.html#background-task-pool" class="sidebar-link sub">BackgroundTaskPool</a>
+          <a href="api-reference.html#decorators" class="sidebar-link sub">Decorators</a>
+          <a href="api-reference.html#rate-limit-backends" class="sidebar-link sub">Rate Limit Backends</a>
+          <a href="api-reference.html#template-classes" class="sidebar-link sub">Template Classes</a>
+          <a href="api-reference.html#server-adapters" class="sidebar-link sub">Server Adapters</a>
+        </div>
+        <a href="changelog.html" class="sidebar-link active">Changelog</a>
+        <div class="sidebar-subs open" data-page="changelog.html">
+          <a href="changelog.html#v0-0-6" class="sidebar-link sub">0.0.6 (2026-11-15)</a>
+          <a href="changelog.html#v0-0-5" class="sidebar-link sub">0.0.5 (2026-09-22)</a>
+          <a href="changelog.html#v0-0-4" class="sidebar-link sub">0.0.4 (2026-05-22)</a>
+          <a href="changelog.html#v0-0-2" class="sidebar-link sub">0.0.2 (2026-02-23)</a>
+          <a href="changelog.html#v0-0-1" class="sidebar-link sub">0.0.1 (2026-02-23) - Initial Release</a>
+        </div>
+      </details>
+      <details class="sidebar-section" open>
+        <summary class="sidebar-title">Project</summary>
+        <a href="https://github.com/Lusan-sapkota/lcore" class="sidebar-link">GitHub</a>
+      </details>
+      </nav>
+    </aside><!--/chrome:sidebar-->
+
+    <main class="content" id="main">
+      <h1>Changelog</h1>
+      <p class="page-desc">Every added feature, behavior change, fix and security note, version by version. Generated from <code>CHANGELOG.md</code>.</p>
+      <!--chrome:content--><p>All notable changes to Lcore will be documented here.</p>
+<h2 id="v0-0-6">0.0.6 (2026-11-15)</h2>
+<h3 id="v0-0-6-added">Added</h3>
+<ul>
+<li><strong>JSON errors by content negotiation.</strong> Any request with <code>Accept: application/json</code> (listed before <code>text/html</code>) gets <code>{"error": "&lt;message&gt;", "status": N}</code> for <code>HTTPError</code>, 404 and 500 alike; browsers still get the HTML page. <code>error.format = 'json'</code> still forces it, and its body now carries the real message instead of the status text.</li>
+</ul>
+<ul>
+<li><strong><code>TestClient</code> cookie jar.</strong> <code>Set-Cookie</code> is replayed on later requests (<code>client.cookies</code>; <code>TestClient(app, cookies=False)</code> disables it). <code>TestResponse.get_all(name)</code> returns repeated headers such as <code>Set-Cookie</code>.</li>
+</ul>
+<ul>
+<li><strong><code>rate_limit(single_process=True)</code></strong> silences the in-process warning for single-worker apps.</li>
+</ul>
+<ul>
+<li><strong><code>request.json_or(default)</code></strong>, <strong><code>TestClient(follow_redirects=True)</code></strong>, and type checking of <code>validate_request(query=...)</code> values (400 with a <code>fields</code> map).</li>
+</ul>
+<ul>
+<li><strong><code>run()</code> refuses the <code>wsgiref</code> development server on a non-loopback host</strong> unless <code>debug=True</code> or <code>dev_server_ok=True</code>. Breaking for anyone running <code>app.run(host='0.0.0.0')</code> without a real server.</li>
+</ul>
+<ul>
+<li><strong>Port-in-use message</strong> instead of a raw <code>OSError</code>, and a warning when the <code>wsgiref</code> development server is used.</li>
+</ul>
+<h3 id="v0-0-6-changed-behavior">Changed (behavior)</h3>
+<ul>
+<li><strong>Request bodies are capped at 10 MB by default</strong> (<code>config['request.max_body']</code>, <code>0</code> = unlimited). Larger uploads now get 413 unless you raise it. <code>BodyLimitMiddleware</code> still overrides per app.</li>
+</ul>
+<ul>
+<li><strong><code>SecurityHeadersMiddleware</code> now runs before routing</strong>, so unmatched-route 404s get the headers. A handler's own header of the same name now wins, and <code>skip=['security_headers']</code> no longer applies.</li>
+</ul>
+<ul>
+<li><strong><code>X-XSS-Protection</code> default is <code>0</code></strong> (the legacy filter caused holes). <strong><code>CSRFMiddleware(secure=None)</code></strong> now sets <code>Secure</code> automatically on HTTPS requests.</li>
+</ul>
+<ul>
+<li><strong><code>validate_request</code> is stricter:</strong> <code>null</code>, dicts and lists no longer pass as <code>str</code>; <code>nan</code>/<code>inf</code>, fractional ints and non-boolean junk for <code>bool</code> are rejected; <code>Optional[...]</code> accepts an explicit <code>null</code>.</li>
+</ul>
+<ul>
+<li><strong>Static files:</strong> ETags are quoted, weak (<code>W/</code>) and listed <code>If-None-Match</code> values match, and 416 sends <code>Content-Range: bytes */size</code>.</li>
+</ul>
+<ul>
+<li><strong><code>Accept</code> negotiation honours q-weights</strong> when choosing JSON or HTML errors.</li>
+</ul>
+<ul>
+<li><strong>JSON responses honour <code>json.enable</code>, <code>json.dump_func</code>, <code>json.ascii</code>, <code>json.indent</code>.</strong> Defaults changed to match the docs: non-ASCII is emitted as UTF-8 (was <code>\uXXXX</code>), no indentation. A returned <code>list</code> of non-strings is now serialised as JSON, as documented; error handlers may return a <code>dict</code>; a <code>dict</code> that reaches the response layer without the JSON plugin is a 500, not a key-by-key body.</li>
+</ul>
+<ul>
+<li><strong>Config bool strings are strict:</strong> <code>validate_config</code> accepts true/1/yes/on and false/0/no/off; anything else is an error. Field <code>max_body</code> now matches a literal <code>max_body</code> key before <code>max.body</code>.</li>
+</ul>
+<ul>
+<li><strong>Post-routing middleware (request id, logging, compression) now also wraps 404 and 405 responses.</strong></li>
+</ul>
+<ul>
+<li><strong><code>CompressionMiddleware</code></strong> parses <code>Accept-Encoding</code> properly (<code>q=0</code>, case, <code>x-gzip...</code> lookalikes), merges <code>Vary</code>, adds <code>Vary</code> for every compressible response, compresses <code>image/svg+xml</code>, and no longer turns error responses into empty 200s.</li>
+</ul>
+<ul>
+<li><strong><code>verify_password</code> only accepts <code>sha256</code>/<code>sha512</code> and at most 10,000,000 iterations</strong> from a stored hash.</li>
+</ul>
+<ul>
+<li><strong><code>rate_limit(backend=...)</code> takes any object with <code>consume()</code></strong>, and <code>max_buckets</code> is enforced on every insert.</li>
+</ul>
+<ul>
+<li><strong><code>Router.build</code>/<code>get_url</code> percent-encode path values.</strong></li>
+</ul>
+<ul>
+<li><strong><code>run()</code> raises <code>ValueError</code> for an unknown server name</strong>; <code>on_shutdown</code> hooks run once; <code>trigger_hook</code> returns the list of results.</li>
+</ul>
+<ul>
+<li><strong>A text field larger than the in-memory limit in a multipart POST is rejected (400)</strong> instead of silently disappearing from <code>request.forms</code>.</li>
+</ul>
+<ul>
+<li><strong>Signed cookies keep the type of their value</strong> (dict, int...) instead of its <code>str()</code>.</li>
+</ul>
+<ul>
+<li><strong>Faster than 0.0.5 on every path</strong> (per-request latency, same machine, interleaved A/B): plaintext -39%, JSON -20%, two middleware layers -41%, POST JSON -27%, error pages -18% to -29%. From a cheaper context setup, cached header names, skipped hook calls, a <code>str</code>/<code>bytes</code> fast path, a single-pass header list, a precomputed middleware chain, a template-free default error page, and one-call small request bodies. Benchmark table in the README and docs updated.</li>
+</ul>
+<h3 id="v0-0-6-fixed">Fixed</h3>
+<ul>
+<li><strong>Invalid UTF-8 in a request path crashed the error page</strong> (and the last-resort 500 handler). Now a clean 404.</li>
+</ul>
+<ul>
+<li><strong>Chunked request bodies failed</strong> when the bytes arrived in one read; they now parse, and over-limit chunked bodies return 413.</li>
+</ul>
+<ul>
+<li><strong><code>request.max_body = 0</code> ("unlimited") broke every multipart upload.</strong></li>
+</ul>
+<ul>
+<li><strong>Malformed multipart parts</strong> (bad part <code>Content-Length</code>, unknown charset, invalid UTF-8) and <strong>deeply nested JSON</strong> returned 500; they return 400.</li>
+</ul>
+<ul>
+<li><strong><code>static_file</code>:</strong> NUL in a name returned 500; an unknown <code>Range</code> unit returned 416; <code>If-Modified-Since</code> was honoured despite a non-matching <code>If-None-Match</code>.</li>
+</ul>
+<ul>
+<li><strong>Bad template lookups raised <code>None</code></strong> (a <code>TypeError</code>) instead of <code>TemplateError</code>.</li>
+</ul>
+<ul>
+<li><strong><code>set_cookie</code></strong> accepted <code>;</code> in <code>path</code>/<code>domain</code> and garbage <code>max_age</code>/<code>expires</code>. <strong><code>set_header</code></strong> accepted invalid header names. <strong>Generators mixing <code>str</code> and <code>bytes</code></strong> crashed mid-stream. <strong>Text file-likes</strong> (<code>StringIO</code>) returned an invalid body.</li>
+</ul>
+<ul>
+<li><strong><code>RequestIDMiddleware</code></strong> echoed any <code>X-Request-ID</code>; only <code>[A-Za-z0-9._-]{1,128}</code> is accepted now. <strong><code>RequestLoggerMiddleware</code></strong> logged 200 for error responses and uncaught exceptions. <strong><code>auth_basic</code></strong> did not escape its realm. <strong><code>remote_addr</code></strong> could return <code>''</code> for empty <code>X-Forwarded-For</code> entries.</li>
+</ul>
+<ul>
+<li><strong><code>validate_request</code></strong> accepted <code>'abc'</code> for <code>list</code>; <code>query=</code> values are now coerced like <code>body=</code>.</li>
+</ul>
+<ul>
+<li><strong><code>_run_async</code></strong> hid a coroutine's own <code>RuntimeError</code>. <strong><code>load()</code></strong> allowed dunder attributes. <strong>The CLI</strong> printed raw tracebacks for a bad app target or port.</li>
+</ul>
+<ul>
+<li><strong>Concurrent writes to one session lost each other's keys</strong> (the whole record was overwritten on save). Changes are now merged key by key against the stored record, atomically in <code>MemorySessionBackend</code> (lock), <code>SQLiteSessionBackend</code> (<code>BEGIN IMMEDIATE</code>) and <code>RedisSessionBackend</code> (<code>WATCH</code>/<code>MULTI</code>); a session revoked meanwhile is no longer resurrected by a late write. New optional <code>SessionBackend.merge()</code> with a default for custom backends. Same-key races are still last-writer-wins.</li>
+</ul>
+<ul>
+<li><strong><code>RedisSessionBackend</code></strong> truncated fractional TTLs to 0 (Redis rejects it) and left a session in the old user's index when it was re-saved under another user. The session tests now run against a live Redis too.</li>
+</ul>
+<ul>
+<li><strong>Malformed <code>Content-Type</code> parameters</strong> (e.g. <code>;charset</code> with no value) returned 500; they are now ignored.</li>
+</ul>
+<ul>
+<li><strong>Rate limiter cleanup could raise <code>RuntimeError</code></strong> when other threads inserted buckets at the same moment.</li>
+</ul>
+<ul>
+<li><strong><code>redirect()</code> with a line break in the URL</strong> returned 500; it now returns 400.</li>
+</ul>
+<ul>
+<li><strong><code>BackgroundTaskPool.submit</code></strong> rebuilt its whole future list on every call (quadratic under bursts); it now uses a set.</li>
+</ul>
+<ul>
+<li><strong>CORS</strong> adds <code>Vary: Origin</code> for rejected origins when <code>allow_origins</code> is a list.</li>
+</ul>
+<ul>
+<li><strong><code>validate_request</code> errors were wrapped in the HTML error page</strong>, so clients had to scrape a <code>&lt;pre&gt;</code> tag. The JSON body is now returned as is.</li>
+</ul>
+<ul>
+<li><strong><code>validate_request</code> skipped validation for an empty body</strong>, letting required fields through. It now returns 422.</li>
+</ul>
+<ul>
+<li><strong>Docs said malformed <code>request.json</code> returns <code>None</code>.</strong> It raises 400 "Invalid JSON"; docs corrected.</li>
+</ul>
+<h2 id="v0-0-5">0.0.5 (2026-09-22)</h2>
+<h3 id="v0-0-5-added">Added</h3>
+<ul>
+<li><strong>Server-side sessions.</strong> <code>SessionMiddleware</code> stores session state in a backend and puts only a signed session id in the cookie, so a session can be revoked after it is issued. Signed cookies alone cannot be taken back, which ruled out forced logout, sign-out-everywhere after a password reset, and server-side cart invalidation.</li>
+</ul>
+<ul>
+<li><strong>Three session backends.</strong> <code>MemorySessionBackend</code> for development (warns that it is per-process), <code>SQLiteSessionBackend</code> for single-server production (stdlib only, and WAL journalling plus a busy timeout make it safe across worker processes, so the zero-dependency promise holds), and <code>RedisSessionBackend</code> for multi-server deployments. <code>SessionBackend</code> is a documented ABC with seven methods for custom stores.</li>
+</ul>
+<ul>
+<li><strong>Two independent revocation mechanisms</strong>, implemented by every backend. A per-user index of live session ids powers <code>list_sessions()</code> for an active-devices page and <code>revoke_other_sessions()</code>. A per-user epoch counter, stamped into a session when it is bound to a user, invalidates every session issued before a <code>bump_epoch()</code> without walking the index. <code>revoke_all()</code> does both, and is what a password reset should call.</li>
+</ul>
+<ul>
+<li><strong>Session fixation protection.</strong> <code>session.bind_user()</code> regenerates the session id by default, so an id planted before login does not survive it.</li>
+</ul>
+<ul>
+<li><strong>Per-process epoch caching.</strong> Checking the revocation epoch on every authenticated request meant a second backend round trip on top of loading the session. Backends now cache it for <code>epoch_cache_ttl</code> seconds (default 5), which removes that read almost entirely: ten authenticated requests cost one lookup instead of ten. A bump in the same process drops the cached entry immediately, so local revocation stays instant; only another worker's bump waits out the TTL, and <code>revoke_all()</code> deletes those sessions through the index anyway. Set <code>epoch_cache_ttl = 0</code> to read through.</li>
+</ul>
+<ul>
+<li><strong><code>SessionMiddleware(on_backend_error=...)</code>.</strong> Sessions cannot fail open the way rate limiting does, since ignoring the store means ignoring revocation. The default <code>'unavailable'</code> raises 503, so a login that could not be stored never sets a cookie or reports success. <code>'anonymous'</code> keeps the site up with users signed out, and <code>'raise'</code> defers to your own error handler. A failed idle-TTL refresh is logged and ignored, because the session is valid until its existing TTL expires.</li>
+</ul>
+<ul>
+<li><strong><code>__all__</code>.</strong> <code>from lcore import *</code> previously exported 214 names including 28 stdlib modules, shadowing the caller's <code>os</code>, <code>re</code>, <code>time</code>, <code>sys</code> and <code>hashlib</code>. It now exports 163 names, grouped by area, including the module-level routing shortcuts (<code>get</code>, <code>post</code>, <code>route</code>, <code>mount</code>, <code>hook</code>, <code>use</code>, ...), the <code>Request</code>/<code>Response</code> aliases, the template shortcuts (<code>jinja2_template</code>, <code>jinja2_view</code>, <code>mako_template</code>, ...), <code>ext</code>, <code>json_dumps</code>/<code>json_loads</code> and <code>server_names</code>, so <code>from lcore import *</code> still works for the classic single-file style. The guard that checks <code>__all__</code> against every public definition (<code>tests/test_api_surface.py</code>) now also walks module-level assignments, not just <code>def</code>/<code>class</code>, since the template shortcuts are <code>functools.partial(...)</code> assignments and the first cut of the guard couldn't see those.</li>
+</ul>
+<h3 id="v0-0-5-fixed">Fixed</h3>
+<ul>
+<li><strong><code>CompressionMiddleware</code> streams large bodies instead of buffering them.</strong> An iterable body was collected in full before compressing, so a 20MB streamed response cost about 40MB of RAM per concurrent request and gave up the benefit of streaming entirely. Bodies over <code>stream_threshold</code> (default 256KB) are now compressed incrementally with <code>zlib.compressobj</code>, holding memory flat: the same 20MB response measured 40.5MB peak before and 0.6MB after. Everything smaller is unchanged, including its <code>Content-Length</code>, and the <code>str</code>/<code>bytes</code> path that ordinary responses take is byte-for-byte what it was. A streamed body drops <code>Content-Length</code>, since the compressed size is not known until it ends. The streamed body's source is now closed even if the wrapping generator is discarded before it is ever iterated (a bare generator's own <code>finally</code> never runs in that case), which previously leaked a file/cursor handle whenever a later middleware discarded the response before the WSGI layer touched it.</li>
+</ul>
+<ul>
+<li><strong><code>TimeoutMiddleware</code> no longer breaks every handler that touches <code>request</code>.</strong> It runs the handler in a thread pool, but <code>request</code>, <code>response</code> and <code>ctx</code> are thread-locals bound in the serving thread, so a pool thread had none of them. Any handler reading <code>request</code> died with <code>RuntimeError: Request context not initialized</code> and returned 500, which is close to every handler that does real work. The worker's response is now seeded with a snapshot of whatever pre-phase middleware (CORS, CSRF, ...) already set, so a handler can read, overwrite or delete it exactly as it would in a single unthreaded response - an early version of this fix merged the worker's response back additively, which meant a handler deleting a pre-phase-set header crashed with <code>KeyError</code> and installing <code>TimeoutMiddleware</code> alone could silently change which of two conflicting header values (e.g. compression's own <code>Vary: Accept-Encoding</code> vs. CORS's <code>Vary: Origin</code>) survived. <code>ctx.state</code> and <code>ctx._lazy</code> are shared dicts, so sessions and dependency-injection scope survive the hop for free, and <code>ctx.user</code>/<code>ctx.route</code>/<code>ctx.request_id</code> (thread-local <code>__slots__</code>, not part of those dicts) are copied back explicitly once the worker finishes. The middleware previously had no tests at all; it now has 18, including the header-delete and raising-handler cases above.</li>
+</ul>
+<ul>
+<li><strong><code>ProxyFixMiddleware(num_proxies=N)</code> now does something.</strong> The parameter was accepted and stored but never read, so the documented call silently fell back to trusting loopback addresses only. It now enables hop-count trust: the last N <code>X-Forwarded-For</code> entries are trusted regardless of peer IP, matching Werkzeug's <code>ProxyFix</code> model, falling back to <code>REMOTE_ADDR</code> when the chain is shorter than N. <code>remote_addr</code> and <code>urlparts</code> both honour it. The default changed from <code>1</code> to <code>None</code>, so zero-argument behaviour is unchanged.</li>
+</ul>
+<ul>
+<li><strong><code>set_cookie()</code> no longer emits attributes that have no value.</strong> Passing <code>domain=None</code> rendered the literal string <code>Domain=None</code> into the <code>Set-Cookie</code> header, which browsers reject. Attributes whose value is <code>None</code> are now omitted, except <code>samesite</code>, where <code>None</code> is a meaningful explicit value (<code>SameSite=None</code>, the cross-site opt-in) rather than "omit this attribute". <code>delete_cookie()</code> is unaffected: its <code>expires=0</code> and <code>max_age=-1</code> are still emitted.</li>
+</ul>
+<ul>
+<li><strong><code>load()</code> no longer accepts a <code></strong>namespace</code> it ignores.** The parameter was the globals dict for an <code>eval()</code> that has since been replaced by a safe <code>getattr</code> chain, so it could not affect the result. Passing one now raises <code>TypeError</code> instead of being silently discarded.</li>
+</ul>
+<ul>
+<li><strong>A freshly bound-in session is no longer deleted by another worker's stale epoch cache.</strong> <code>SessionMiddleware</code> compared a session's stamped epoch to the cached epoch with <code>!=</code> instead of <code>&lt;</code>. Epochs only increase, so a session stamped moments after <code>revoke_all()</code> on one worker could be stamped with epoch 1 while a second worker's 5-second epoch cache still held 0; <code>1 != 0</code> rejected the brand-new, fully valid session and <code>_open()</code> deleted it, repeating on every request from that worker for up to <code>epoch_cache_ttl</code> seconds. Now <code>&lt;</code>, which only rejects sessions stamped *before* the current epoch.</li>
+</ul>
+<ul>
+<li><strong>A concurrent revoke could no longer be undone by its own cache.</strong> <code>cached_epoch()</code> is deliberately unlocked, but a thread already blocked in a backend read for the old epoch could still write it into the cache *after* a same-process <code>bump_epoch()</code>/<code>_forget_epoch()</code> had already run and found nothing to invalidate, silently reviving a just-revoked epoch for up to <code>epoch_cache_ttl</code> seconds in the very process that performed the revoke. A generation counter, bumped alongside the cache invalidation, now detects that race and skips caching the possibly-stale read.</li>
+</ul>
+<ul>
+<li><strong><code>Session.bind_user(regenerate=False)</code> no longer leaves a session cross-linked to the wrong user.</strong> Rebinding an existing sid to a different user without regenerating it left the old user's index still pointing at a session that now belonged to someone else, so <code>list_sessions()</code> could show another user's device and <code>revoke_all()</code>/<code>revoke_other_sessions()</code> could revoke another user's live session. <code>bind_user()</code> now unindexes the sid from its previous user before rebinding it; <code>MemorySessionBackend</code> and <code>RedisSessionBackend</code> implement the new <code>unindex()</code> hook, <code>SQLiteSessionBackend</code> needs no override since its <code>uid</code> column is the source of truth.</li>
+</ul>
+<ul>
+<li><strong><code>MemorySessionBackend(max_sessions=N)</code> is now actually enforced.</strong> It only evicted *expired* sessions when at capacity, so a flood of still-live sessions (e.g. one per anonymous visit) grew the store past <code>max_sessions</code> without bound. It now falls back to evicting the oldest-inserted sessions when nothing has expired.</li>
+</ul>
+<ul>
+<li><strong><code>RedisSessionBackend</code>'s per-user index can no longer expire out from under a live session.</strong> <code>save()</code> unconditionally reset the index key's TTL to whatever <code>ttl</code> that particular save used, so a shorter-lived save (or a plain <code>backend.touch(sid, short_ttl)</code>) after a long-lived one could shrink the whole index's expiry below a co-existing longer-lived session's - <code>list_user()</code>/<code>revoke_user()</code>/<code>revoke_all()</code> would then silently see zero sessions for that user while the session itself was still valid. A small Lua script now extends the index's TTL but never shrinks it.</li>
+</ul>
+<ul>
+<li><strong><code>SQLiteSessionBackend.revoke_user()</code> no longer overcounts.</strong> It deleted and counted every row for a uid with no <code>expires &gt; now</code> filter, unlike <code>list_user()</code>'s equivalent query, so an account page could report "signed out of 4 devices" when <code>list_user()</code> had only ever shown 1 live one - the extra 3 were rows that had expired but not yet been swept.</li>
+</ul>
+<ul>
+<li><strong><code>Session.pop()</code>/<code>setdefault()</code>/<code>clear()</code> no longer mark the session dirty on a no-op.</strong> All three set the dirty flag unconditionally, so the common flash-message idiom <code>request.session.pop('flash', None)</code> cost a backend write and a fresh <code>Set-Cookie</code> on every request that merely checked for one, defeating the "reads are free" design this feature is built on. They're now dirty only when something actually changed.</li>
+</ul>
+<ul>
+<li><strong>A dependency named <code>'session'</code> no longer silently collides with <code>SessionMiddleware</code>.</strong> Both <code>app.inject('session', ...)</code> and <code>SessionMiddleware</code> publish through <code>ctx.session</code>; depending on the dependency's lifetime, one would silently shadow the other with no error. <code>SessionMiddleware</code> now raises a clear <code>RuntimeError</code> if a <code>'session'</code> dependency is already registered. Separately, <code>DependencyContainer.register()</code> rejects any name that resolves through a <code>RequestContext</code>/<code>LocalContext</code> attribute or method (<code>user</code>, <code>route</code>, <code>request_id</code>, <code>lazy</code>, ...), since those are found before <code>ctx.__getattr__</code> ever runs and a same-named dependency was silently unreachable via <code>ctx.&lt;name&gt;</code>.</li>
+</ul>
+<ul>
+<li><strong><code>TestClient</code>'s <code>wsgi.errors</code> stream no longer crashes on an unhandled exception.</strong> It was a <code>BytesIO</code>, but the framework's own error logging (and WSGI generally) writes <code>str</code> to <code>wsgi.errors</code>; any exception in a handler tested through <code>TestClient</code> raised <code>TypeError: a bytes-like object is required, not 'str'</code> instead of turning into the 500 response the app actually produced. Now a <code>StringIO</code>, matching <code>tests/helpers.py</code>'s existing (correct) setup.</li>
+</ul>
+<ul>
+<li><strong>The <code>async def</code> route warning now actually fires.</strong> <code>Route._make_callback()</code> checked <code>_is_async()</code> on the callback *after* the plugin loop, but <code>JSONPlugin</code> (auto-installed on every app) already wraps every callback in a plain sync function before that point, so the check only ever saw JSONPlugin's wrapper - the warning was dead code except on a route that explicitly did <code>skip=['json']</code>. It now checks the route's own callback before plugins touch it, so every <code>async def</code> route warns as documented, naming the route, the first time it's invoked.</li>
+</ul>
+<h3 id="v0-0-5-internal">Internal</h3>
+<ul>
+<li><strong>Added an API surface guard</strong> (<code>tests/test_api_surface.py</code>). Three shipped bugs shared one shape: a parameter accepted but never read. None of them raised, none failed a test, and all were invisible with default arguments. The suite now walks lcore's AST and fails if any public parameter is ignored, or stored on <code>self</code> and never consulted, with an allowlist for contract signatures such as the WSGI and importlib protocols. Cookie attributes and the CSRF and session cookie options are now exercised at non-default values.</li>
+</ul>
+<ul>
+<li><strong>Session backend round trips and lock time reduced.</strong> <code>MemorySessionBackend</code> stores each session's uid alongside its record instead of inside the JSON blob, so dropping or listing a session no longer parses it just to find who owns it. <code>RedisSessionBackend.delete()</code> no longer does a <code>GET</code>+parse purely to locate the per-user index entry to prune (the index already tolerates and lazily prunes dead members on read); it's a single <code>DEL</code>. <code>SQLiteSessionBackend.bump_epoch()</code> is one <code>INSERT ... ON CONFLICT DO UPDATE</code> instead of an <code>UPDATE</code> plus a conditional <code>INSERT</code> plus a re-read, and its periodic cleanup sweep is now bounded (<code>cleanup_batch</code>, default 1000 rows) instead of a single unbounded <code>DELETE</code> over every session that expired since the last sweep, which could turn one unlucky request into a full-table scan holding a write transaction. <code>RedisRateLimitBackend</code> and <code>RedisSessionBackend</code> now share one internal helper for constructing and closing the redis-py client instead of duplicating the import guard and <code>from_url()</code> call.</li>
+</ul>
+<ul>
+<li><strong>Measured <code>TimeoutMiddleware</code>'s per-request cost, and trimmed the avoidable part of it.</strong> It had never been benchmarked: on a trivial handler it costs roughly 30µs/request versus a bare route (~9µs), against a ~7-8µs floor for the <code>ThreadPoolExecutor</code> submit/result round trip alone. The gap was partly a redundant <code>ctx.bind()</code> inside the worker - reallocating <code>state={}</code>/<code>_lazy={}</code> and zeroing <code>route</code>/<code>user</code>/<code>request_id</code> only to overwrite all of it two lines later - which is now a single direct assignment per slot instead. The remaining gap (response snapshot in, response snapshot out) is inherent: <code>request</code>/<code>response</code> are <code>threading.local()</code>-backed singletons, so some copying across the thread boundary is unavoidable without going back to the blank-worker-response design that caused the header-delete crash above. Apply <code>TimeoutMiddleware</code> to specific slow/unpredictable routes via <code>app.use(TimeoutMiddleware(...), routes='/slow/*')</code> rather than globally if this matters for your workload.</li>
+</ul>
+<h3 id="v0-0-5-changed">Changed</h3>
+<ul>
+<li><strong><code>CSRFMiddleware</code> warns when <code>secret=</code> is omitted.</strong> A random per-process secret means that under multi-worker deployment a token cookie signed by one worker fails verification on another, so legitimate submissions are rejected with 403. <code>SessionMiddleware</code> carries the same warning, where the symptom is users being logged out at random.</li>
+</ul>
+<h2 id="v0-0-4">0.0.4 (2026-05-22)</h2>
+<h3 id="v0-0-4-fixed">Fixed</h3>
+<ul>
+<li><strong>HTTPError.apply() now merges headers</strong> instead of replacing them. Headers set by a handler before raising <code>HTTPError</code> are preserved. This means <code>response.set_header('Content-Type', 'application/json')</code> followed by <code>raise HTTPError(401)</code> now correctly returns JSON instead of HTML.</li>
+</ul>
+<ul>
+<li><strong><code>request.json</code> and URL-encoded POST body no longer have a silent 100KB limit.</strong> They now use <code>self.body.read()</code> which respects <code>BodyLimitMiddleware</code> and spills to disk for large payloads. Previously, a JSON body &gt;100KB was rejected with 413 even when <code>BodyLimitMiddleware</code> allowed it.</li>
+</ul>
+<ul>
+<li><strong>Multipart <code>disk_limit</code> now respects <code>BodyLimitMiddleware</code>.</strong> The multipart parser's disk limit is set from the body max size in environ (default 1GB), so configuring <code>BodyLimitMiddleware(max_size=50*1024*1024)</code> also limits multipart uploads.</li>
+</ul>
+<ul>
+<li><strong><code>skip</code> parameter now works for middleware</strong>, not just plugins. <code>app.post('/login', skip=['csrf'])</code> correctly exempts the route from <code>CSRFMiddleware</code>.</li>
+</ul>
+<h3 id="v0-0-4-added">Added</h3>
+<ul>
+<li><strong>Pre-routing middleware phase.</strong> Middleware classes can now set <code>phase = 'pre'</code> to run *before* route matching. This fixes CORS preflight (<code>OPTIONS</code> requests no longer get 405), CSRF cookie setting, and body limit enforcement all running before the router. <code>CORSMiddleware</code>, <code>CSRFMiddleware</code>, <code>BodyLimitMiddleware</code>, and <code>ProxyFixMiddleware</code> default to <code>phase = 'pre'</code>.</li>
+</ul>
+<ul>
+<li><strong><code>error.format</code> config key.</strong> Set <code>app.config['error.format'] = 'json'</code> to make all error responses return JSON instead of HTML. No more per-status-code error handlers needed for JSON APIs.</li>
+</ul>
+<ul>
+<li><strong><code>HTTPError</code> now accepts <code>content_type</code> parameter.</strong> <code>raise HTTPError(401, body=json_dumps({"error": "Unauthorized"}), content_type='application/json')</code> sets the correct Content-Type in one line.</li>
+</ul>
+<ul>
+<li><strong><code>load_dotenv()</code> function.</strong> Loads <code>.env</code> files into <code>os.environ</code> with zero dependencies. Called automatically by <code>app.run()</code>. Also available as <code>from lcore import load_dotenv</code>.</li>
+</ul>
+<ul>
+<li><strong><code>app.config['proxy.trusted']</code> config key.</strong> Set it to a list of trusted proxy IPs (or comma-separated string) to auto-enable proxy header trust without needing <code>ProxyFixMiddleware</code>. <code>request.remote_addr</code> and <code>request.urlparts</code> will trust <code>X-Forwarded-*</code> headers from these IPs.</li>
+</ul>
+<h3 id="v0-0-4-changed">Changed</h3>
+<ul>
+<li><strong><code>validate_request</code> decorator improved.</strong> Now supports <code>Optional[type]</code> for optional fields, auto-coerces types (e.g. string to int), strips whitespace from strings, and returns structured JSON errors with <code>{"error": "Validation failed", "fields": {...}}</code> format.</li>
+</ul>
+<ul>
+<li><strong><code>set_cookie</code> now defaults to <code>samesite='Lax'</code> and <code>httponly=True</code>.</strong> Secure by default; override with explicit keyword arguments when you need JS-readable cookies (e.g. CSRF tokens).</li>
+</ul>
+<h3 id="v0-0-4-security">Security</h3>
+<ul>
+<li><strong>Chunked transfer parser hardened against slow-loris DoS.</strong> Previously read chunk headers one byte at a time with no timeout; now uses buffered reads with a configurable cap.</li>
+</ul>
+<ul>
+<li><strong><code>static_file()</code> TOCTOU fix.</strong> The file is now opened before symlink and path-traversal checks, pinning the inode. On Linux, the real path is resolved through <code>/proc/self/fd/&lt;n&gt;</code> for an atomic check.</li>
+</ul>
+<ul>
+<li><strong><code>FileUpload.save()</code> TOCTOU fix.</strong> Uses Python's <code>'x'</code> exclusive-create mode instead of <code>os.path.exists()</code> + <code>open()</code>, eliminating the race between the existence check and the file write.</li>
+</ul>
+<ul>
+<li><strong>Multipart filename sanitization added at parse time.</strong> The raw <code>_MultipartPart.filename</code> now strips directory separators via <code>os.path.basename()</code> as defense-in-depth, before <code>FileUpload.filename</code> does its full sanitization pass.</li>
+</ul>
+<ul>
+<li><strong>Error page template no longer uses <code>repr()</code> in HTML context.</strong> The auto-escaping <code>{{ }}</code> template expression handles URL escaping directly.</li>
+</ul>
+<ul>
+<li><strong><code>.env</code> quote stripping fixed.</strong> Only strips matching quote pairs (<code>"..."</code> or <code>'...'</code>) rather than all leading/trailing quote characters, preventing mangling of values like <code>"it's"</code>.</li>
+</ul>
+<h2 id="v0-0-2">0.0.2 (2026-02-23)</h2>
+<h3 id="v0-0-2-fixed">Fixed</h3>
+<ul>
+<li>PyPI project page logo not rendering (relative path → absolute URL in README)</li>
+</ul>
+<h2 id="v0-0-1">0.0.1 (2026-02-23) - Initial Release</h2>
+<p>First public release of Lcore. 🎉</p>
+<h3 id="v0-0-1-framework-core">Framework Core</h3>
+<ul>
+<li>Full <strong>WSGI compliance</strong> - works with Gunicorn, uWSGI, Waitress, Gevent, and 21 server adapters</li>
+</ul>
+<ul>
+<li><code>server='auto'</code> auto-selects the best available server at startup</li>
+</ul>
+<ul>
+<li>Single-file distribution (<code>lcore.py</code>) - zero external dependencies, pure Python 3.8+ standard library</li>
+</ul>
+<ul>
+<li><strong>Route decorator API</strong> - <code>@app.route</code>, <code>@app.get</code>, <code>@app.post</code>, <code>@app.put</code>, <code>@app.delete</code>, <code>@app.patch</code></li>
+</ul>
+<ul>
+<li><strong>Typed URL parameters</strong> - <code>&lt;name:int&gt;</code>, <code>&lt;name:float&gt;</code>, <code>&lt;name:path&gt;</code>, <code>&lt;name:uuid&gt;</code>, <code>&lt;name:slug&gt;</code></li>
+</ul>
+<ul>
+<li>Route groups with shared prefix and middleware</li>
+</ul>
+<ul>
+<li><code>async def</code> route handler support (WSGI-constrained - worker thread is blocked; documented caveat)</li>
+</ul>
+<h3 id="v0-0-1-request-response">Request / Response</h3>
+<ul>
+<li><code>request.json</code>, <code>request.form</code>, <code>request.files</code>, <code>request.query</code>, <code>request.headers</code>, <code>request.cookies</code></li>
+</ul>
+<ul>
+<li><code>request.remote_addr</code> with <code>ProxyFixMiddleware</code> support</li>
+</ul>
+<ul>
+<li>Fluent response builder - <code>response.set_header()</code>, <code>response.set_cookie()</code>, <code>response.set_status()</code></li>
+</ul>
+<ul>
+<li>Built-in JSON serialization via <code>json</code> (optional <code>ujson</code> drop-in)</li>
+</ul>
+<ul>
+<li>Streaming and file responses</li>
+</ul>
+<h3 id="v0-0-1-middleware-7-built-in">Middleware (7 built-in)</h3>
+<ul>
+<li><code>CORSMiddleware</code> - configurable origins, methods, headers, credentials</li>
+</ul>
+<ul>
+<li><code>CSRFMiddleware</code> - double-submit cookie pattern</li>
+</ul>
+<ul>
+<li><code>SecurityHeadersMiddleware</code> - HSTS, X-Frame-Options, CSP, X-Content-Type-Options</li>
+</ul>
+<ul>
+<li><code>CompressionMiddleware</code> - gzip response compression</li>
+</ul>
+<ul>
+<li><code>BodyLimitMiddleware</code> - max request body size enforcement</li>
+</ul>
+<ul>
+<li><code>RequestIDMiddleware</code> - unique request ID header injection</li>
+</ul>
+<ul>
+<li><code>LoggingMiddleware</code> - structured request/response logging</li>
+</ul>
+<ul>
+<li><code>TimeoutMiddleware</code> - per-request deadline with persistent thread pool</li>
+</ul>
+<ul>
+<li><code>ProxyFixMiddleware</code> - trusted reverse proxy IP and scheme fix</li>
+</ul>
+<h3 id="v0-0-1-security">Security</h3>
+<ul>
+<li><code>hash_password</code> / <code>verify_password</code> - PBKDF2-SHA256 with per-password salt</li>
+</ul>
+<ul>
+<li>HMAC-SHA256 signed cookies</li>
+</ul>
+<ul>
+<li><code>@rate_limit(n, per=seconds)</code> - in-process token bucket with 64-stripe locking</li>
+</ul>
+<ul>
+<li><code>RedisRateLimitBackend</code> - cross-worker rate limiting; fails open on Redis outage</li>
+</ul>
+<ul>
+<li>Timing-safe string comparison utilities</li>
+</ul>
+<h3 id="v0-0-1-dependency-injection">Dependency Injection</h3>
+<ul>
+<li><code>@app.provide</code> - singleton, scoped, and transient lifetimes</li>
+</ul>
+<ul>
+<li>Constructor and parameter injection</li>
+</ul>
+<h3 id="v0-0-1-plugin-system">Plugin System</h3>
+<ul>
+<li><code>setup</code> / <code>apply</code> plugin lifecycle</li>
+</ul>
+<ul>
+<li>Built-in JSON plugin, template plugin</li>
+</ul>
+<ul>
+<li>Custom plugin support</li>
+</ul>
+<h3 id="v0-0-1-request-validation">Request Validation</h3>
+<ul>
+<li><code>@validate_request(body={...}, query={...})</code> - type-checked JSON body and query params</li>
+</ul>
+<h3 id="v0-0-1-templates-4-engines">Templates (4 engines)</h3>
+<ul>
+<li>Built-in <code>SimpleTemplate</code> (no deps)</li>
+</ul>
+<ul>
+<li>Adapters for Jinja2, Mako, and Cheetah</li>
+</ul>
+<h3 id="v0-0-1-lifecycle-hooks-12-hooks">Lifecycle Hooks (12 hooks)</h3>
+<ul>
+<li><code>on_request</code>, <code>on_auth</code>, <code>before_handler</code>, <code>after_handler</code>, <code>on_response</code>, <code>on_send</code>, <code>on_error</code>, <code>on_shutdown</code>, and more</li>
+</ul>
+<h3 id="v0-0-1-background-tasks">Background Tasks</h3>
+<ul>
+<li><code>BackgroundTaskPool</code> - fire-and-forget task pool with configurable worker count and graceful shutdown</li>
+</ul>
+<h3 id="v0-0-1-module-mounting">Module Mounting</h3>
+<ul>
+<li><code>app.mount(prefix, sub_app)</code> - compose sub-applications with isolated routes and middleware</li>
+</ul>
+<h3 id="v0-0-1-testing">Testing</h3>
+<ul>
+<li><code>TestClient</code> - in-process test client, no server required</li>
+</ul>
+<ul>
+<li>449 tests using only <code>unittest</code> from the standard library</li>
+</ul>
+<h3 id="v0-0-1-performance">Performance</h3>
+<p>Benchmarked at 100,000 iterations × 3 runs (pure framework overhead, single process):</p>
+<table><thead><tr><th>Test</th><th>Lcore req/s</th><th>Flask req/s</th><th>vs Flask</th></tr></thead><tbody><tr><td>Plaintext</td><td>122,715</td><td>30,500</td><td>4.0x</td></tr><tr><td>JSON</td><td>95,910</td><td>26,403</td><td>3.6x</td></tr><tr><td>Route Params</td><td>90,332</td><td>24,784</td><td>3.6x</td></tr><tr><td>Middleware</td><td>53,113</td><td>24,261</td><td>2.2x</td></tr><tr><td>404 Miss</td><td>37,191</td><td>16,802</td><td>2.2x</td></tr><tr><td>Multi-Route</td><td>96,812</td><td>27,488</td><td>3.5x</td></tr><tr><td>POST JSON</td><td>62,963</td><td>21,149</td><td>3.0x</td></tr></tbody></table>
+<h3 id="v0-0-1-compatibility">Compatibility</h3>
+<ul>
+<li>Python 3.8, 3.9, 3.10, 3.11, 3.12, 3.13</li>
+</ul>
+<ul>
+<li>Linux, macOS, Windows</li>
+</ul>
+<ul>
+<li>All standard WSGI servers</li>
+</ul>
+<h3 id="v0-0-1-links">Links</h3>
+<ul>
+<li><strong>PyPI:</strong> https://pypi.org/project/lcore/</li>
+</ul>
+<ul>
+<li><strong>Docs:</strong> https://lcore.lusansapkota.com.np</li>
+</ul>
+<ul>
+<li><strong>Playground:</strong> https://play-lcore.lusansapkota.com.np</li>
+</ul>
+<ul>
+<li><strong>Source:</strong> https://github.com/Lusan-sapkota/lcore</li>
+</ul>
+<p>_Lcore follows <a href="https://semver.org">Semantic Versioning</a>. During the <code>0.x</code> series, minor versions may include breaking changes._</p><!--/chrome:content-->
+    </main>
+  </div>
+
+  <!--chrome:scripts--><script src="assets/highlight.min.js"></script>
+  <script src="assets/search-index.js"></script>
+  <script src="assets/site.js"></script><!--/chrome:scripts-->
+</body>
+</html>

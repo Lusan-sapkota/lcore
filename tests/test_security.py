@@ -51,7 +51,7 @@ class TestSecurityHeadersMiddleware(unittest.TestCase):
         self.assertEqual(status, '200 OK')
         self.assertEqual(headers.get('X-Content-Type-Options'), 'nosniff')
         self.assertEqual(headers.get('X-Frame-Options'), 'SAMEORIGIN')
-        self.assertEqual(headers.get('X-Xss-Protection'), '1; mode=block')
+        self.assertEqual(headers.get('X-Xss-Protection'), '0')
         self.assertEqual(headers.get('Referrer-Policy'),
                          'strict-origin-when-cross-origin')
 

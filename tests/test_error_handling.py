@@ -115,3 +115,88 @@ class TestExceptionHandling(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+def test_accept_json_gets_json_errors():
+    from lcore import Lcore, TestClient, abort
+    app = Lcore()
+
+    @app.get('/e')
+    def e(): abort(400, 'bad field x')
+
+    @app.get('/boom')
+    def boom(): 1 / 0
+
+    c, h = TestClient(app), {'Accept': 'application/json'}
+    for path, code, msg in (('/e', 400, 'bad field x'), ('/nope', 404, None), ('/boom', 500, None)):
+        r = c.get(path, headers=h)
+        assert r.status_code == code and r.headers['Content-Type'] == 'application/json'
+        assert r.json['status'] == code and (msg is None or r.json['error'] == msg)
+    assert c.get('/e', headers={'Accept': 'text/html,application/json'}).headers['Content-Type'].startswith('text/html')
+
+
+def test_client_cookie_jar_and_repeated_headers():
+    from lcore import Lcore, TestClient, request, response
+    app = Lcore()
+
+    @app.get('/login')
+    def login():
+        response.set_cookie('a', '1'); response.set_cookie('b', '2')
+        return 'ok'
+
+    @app.get('/me')
+    def me(): return request.get_cookie('a', '') + request.get_cookie('b', '')
+
+    c = TestClient(app)
+    assert len(c.get('/login').get_all('Set-Cookie')) == 2
+    assert c.get('/me').text == '12'
+    assert TestClient(app, cookies=False).get('/me').text == ''
+
+
+def test_rate_limit_single_process_is_silent():
+    import warnings
+    from lcore import rate_limit
+    with warnings.catch_warnings():
+        warnings.simplefilter('error')
+        rate_limit(5, single_process=True)
+
+
+def test_validate_request_returns_json_fields_and_rejects_empty_body():
+    from lcore import Lcore, TestClient, validate_request, request
+    app = Lcore()
+
+    @app.post('/u')
+    @validate_request(body={'name': str, 'age': int})
+    def u(): return request.json
+
+    c = TestClient(app)
+    r = c.post('/u', json={'name': 'x', 'age': 'z'})
+    assert r.status_code == 422 and r.json['fields'] == {'age': 'age must be int'}
+    r = c.post('/u', body=b'', content_type='application/json')
+    assert r.status_code == 422 and set(r.json['fields']) == {'name', 'age'}
+    assert c.post('/u', json={'name': ' x ', 'age': '3'}).json == {'name': 'x', 'age': 3}
+
+
+def test_query_types_json_or_redirects_and_dev_server_guard():
+    import pytest
+    from lcore import Lcore, TestClient, validate_request, request, redirect, run
+    app = Lcore()
+
+    @app.get('/q')
+    @validate_request(query={'n': int})
+    def q(): return 'ok'
+
+    @app.post('/j')
+    def j(): return {'v': request.json_or({'d': 1})}
+
+    @app.get('/go')
+    def go(): redirect('/q?n=1')
+
+    c = TestClient(app)
+    r = c.get('/q', query_string='n=abc')
+    assert r.status_code == 400 and r.json['fields'] == {'n': 'n must be int'}
+    assert c.post('/j', body=b'', content_type='application/json').json == {'v': {'d': 1}}
+    assert c.get('/go').status_code in (302, 303)
+    assert TestClient(app, follow_redirects=True).get('/go').text == 'ok'
+    with pytest.raises(RuntimeError, match='development server'):
+        run(app, host='0.0.0.0')

@@ -4,6 +4,59 @@ All notable changes to Lcore will be documented here.
 
 ---
 
+## [0.0.6] — 2026-11-15
+
+### Added
+- **JSON errors by content negotiation.** Any request with `Accept: application/json` (listed before `text/html`) gets `{"error": "<message>", "status": N}` for `HTTPError`, 404 and 500 alike; browsers still get the HTML page. `error.format = 'json'` still forces it, and its body now carries the real message instead of the status text.
+- **`TestClient` cookie jar.** `Set-Cookie` is replayed on later requests (`client.cookies`; `TestClient(app, cookies=False)` disables it). `TestResponse.get_all(name)` returns repeated headers such as `Set-Cookie`.
+- **`rate_limit(single_process=True)`** silences the in-process warning for single-worker apps.
+- **`request.json_or(default)`**, **`TestClient(follow_redirects=True)`**, and type checking of `validate_request(query=...)` values (400 with a `fields` map).
+- **`run()` refuses the `wsgiref` development server on a non-loopback host** unless `debug=True` or `dev_server_ok=True`. Breaking for anyone running `app.run(host='0.0.0.0')` without a real server.
+- **Port-in-use message** instead of a raw `OSError`, and a warning when the `wsgiref` development server is used.
+
+### Changed (behavior)
+- **Request bodies are capped at 10 MB by default** (`config['request.max_body']`, `0` = unlimited). Larger uploads now get 413 unless you raise it. `BodyLimitMiddleware` still overrides per app.
+- **`SecurityHeadersMiddleware` now runs before routing**, so unmatched-route 404s get the headers. A handler's own header of the same name now wins, and `skip=['security_headers']` no longer applies.
+- **`X-XSS-Protection` default is `0`** (the legacy filter caused holes). **`CSRFMiddleware(secure=None)`** now sets `Secure` automatically on HTTPS requests.
+- **`validate_request` is stricter:** `null`, dicts and lists no longer pass as `str`; `nan`/`inf`, fractional ints and non-boolean junk for `bool` are rejected; `Optional[...]` accepts an explicit `null`.
+- **Static files:** ETags are quoted, weak (`W/`) and listed `If-None-Match` values match, and 416 sends `Content-Range: bytes */size`.
+- **`Accept` negotiation honours q-weights** when choosing JSON or HTML errors.
+- **JSON responses honour `json.enable`, `json.dump_func`, `json.ascii`, `json.indent`.** Defaults changed to match the docs: non-ASCII is emitted as UTF-8 (was `\uXXXX`), no indentation. A returned `list` of non-strings is now serialised as JSON, as documented; error handlers may return a `dict`; a `dict` that reaches the response layer without the JSON plugin is a 500, not a key-by-key body.
+- **Config bool strings are strict:** `validate_config` accepts true/1/yes/on and false/0/no/off; anything else is an error. Field `max_body` now matches a literal `max_body` key before `max.body`.
+- **Post-routing middleware (request id, logging, compression) now also wraps 404 and 405 responses.**
+- **`CompressionMiddleware`** parses `Accept-Encoding` properly (`q=0`, case, `x-gzip...` lookalikes), merges `Vary`, adds `Vary` for every compressible response, compresses `image/svg+xml`, and no longer turns error responses into empty 200s.
+- **`verify_password` only accepts `sha256`/`sha512` and at most 10,000,000 iterations** from a stored hash.
+- **`rate_limit(backend=...)` takes any object with `consume()`**, and `max_buckets` is enforced on every insert.
+- **`Router.build`/`get_url` percent-encode path values.**
+- **`run()` raises `ValueError` for an unknown server name**; `on_shutdown` hooks run once; `trigger_hook` returns the list of results.
+- **A text field larger than the in-memory limit in a multipart POST is rejected (400)** instead of silently disappearing from `request.forms`.
+- **Signed cookies keep the type of their value** (dict, int...) instead of its `str()`.
+- **Faster than 0.0.5 on every path** (per-request latency, same machine, interleaved A/B): plaintext -39%, JSON -20%, two middleware layers -41%, POST JSON -27%, error pages -18% to -29%. From a cheaper context setup, cached header names, skipped hook calls, a `str`/`bytes` fast path, a single-pass header list, a precomputed middleware chain, a template-free default error page, and one-call small request bodies. Benchmark table in the README and docs updated.
+
+### Fixed
+- **Invalid UTF-8 in a request path crashed the error page** (and the last-resort 500 handler). Now a clean 404.
+- **Chunked request bodies failed** when the bytes arrived in one read; they now parse, and over-limit chunked bodies return 413.
+- **`request.max_body = 0` ("unlimited") broke every multipart upload.**
+- **Malformed multipart parts** (bad part `Content-Length`, unknown charset, invalid UTF-8) and **deeply nested JSON** returned 500; they return 400.
+- **`static_file`:** NUL in a name returned 500; an unknown `Range` unit returned 416; `If-Modified-Since` was honoured despite a non-matching `If-None-Match`.
+- **Bad template lookups raised `None`** (a `TypeError`) instead of `TemplateError`.
+- **`set_cookie`** accepted `;` in `path`/`domain` and garbage `max_age`/`expires`. **`set_header`** accepted invalid header names. **Generators mixing `str` and `bytes`** crashed mid-stream. **Text file-likes** (`StringIO`) returned an invalid body.
+- **`RequestIDMiddleware`** echoed any `X-Request-ID`; only `[A-Za-z0-9._-]{1,128}` is accepted now. **`RequestLoggerMiddleware`** logged 200 for error responses and uncaught exceptions. **`auth_basic`** did not escape its realm. **`remote_addr`** could return `''` for empty `X-Forwarded-For` entries.
+- **`validate_request`** accepted `'abc'` for `list`; `query=` values are now coerced like `body=`.
+- **`_run_async`** hid a coroutine's own `RuntimeError`. **`load()`** allowed dunder attributes. **The CLI** printed raw tracebacks for a bad app target or port.
+- **Concurrent writes to one session lost each other's keys** (the whole record was overwritten on save). Changes are now merged key by key against the stored record, atomically in `MemorySessionBackend` (lock), `SQLiteSessionBackend` (`BEGIN IMMEDIATE`) and `RedisSessionBackend` (`WATCH`/`MULTI`); a session revoked meanwhile is no longer resurrected by a late write. New optional `SessionBackend.merge()` with a default for custom backends. Same-key races are still last-writer-wins.
+- **`RedisSessionBackend`** truncated fractional TTLs to 0 (Redis rejects it) and left a session in the old user's index when it was re-saved under another user. The session tests now run against a live Redis too.
+- **Malformed `Content-Type` parameters** (e.g. `;charset` with no value) returned 500; they are now ignored.
+- **Rate limiter cleanup could raise `RuntimeError`** when other threads inserted buckets at the same moment.
+- **`redirect()` with a line break in the URL** returned 500; it now returns 400.
+- **`BackgroundTaskPool.submit`** rebuilt its whole future list on every call (quadratic under bursts); it now uses a set.
+- **CORS** adds `Vary: Origin` for rejected origins when `allow_origins` is a list.
+- **`validate_request` errors were wrapped in the HTML error page**, so clients had to scrape a `<pre>` tag. The JSON body is now returned as is.
+- **`validate_request` skipped validation for an empty body**, letting required fields through. It now returns 422.
+- **Docs said malformed `request.json` returns `None`.** It raises 400 "Invalid JSON"; docs corrected.
+
+---
+
 ## [0.0.5] — 2026-09-22
 
 ### Added
