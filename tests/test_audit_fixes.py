@@ -55,3 +55,16 @@ def test_rate_limit_cleanup_survives_concurrent_inserts():
     ts = [threading.Thread(target=w, args=(t,)) for t in range(8)]
     [t.start() for t in ts]; [t.join() for t in ts]
     assert not errs
+
+
+def test_default_body_limit_and_override():
+    app = Lcore()
+
+    @app.post('/j')
+    def j(): return {'n': len(request.json['x'])}
+
+    c = TestClient(app)
+    big = b'{"x": "' + b'a' * (11 * 1024 * 1024) + b'"}'
+    assert c.post('/j', body=big, content_type='application/json').status_code == 413
+    app.config['request.max_body'] = 0
+    assert c.post('/j', body=big, content_type='application/json').status_code == 200

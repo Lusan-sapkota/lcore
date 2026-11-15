@@ -771,6 +771,7 @@ class Lcore:
         self.config.update({
             "catchall": True,
             "error.format": "html",
+            "request.max_body": 10 * 1024 * 1024,  # bytes; 0 = unlimited
         })
 
         if kwargs.get('catchall') is False:
@@ -1216,6 +1217,7 @@ class Lcore:
             elif isinstance(trusted, str):
                 environ['lcore.trusted_proxies'] = frozenset(
                     a.strip() for a in trusted.split(',') if a.strip())
+        environ.setdefault('lcore.body_max_size', self.config.get('request.max_body', 0))
         request.bind(environ)
         response.bind()
         ctx.bind(request, response, self)
