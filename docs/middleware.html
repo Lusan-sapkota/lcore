@@ -269,6 +269,8 @@ app.use(SessionMiddleware(
       <!-- Sessions -->
       <h2 id="sessions">Sessions</h2>
 
+      <div class="info-box warning"><strong>Concurrent writes</strong><p>A session is saved as a whole record, so two requests that modify the same session at the same time are last-writer-wins: the later save can drop keys the earlier one set. Keep per-request session writes small and avoid parallel writers (for example, several simultaneous XHRs that all write the session).</p></div>
+
       <p>Lcore's signed cookies are fine for carrying a few bytes of state, but they cannot be taken back: once issued, a signed cookie stays valid until it expires. Anything that needs to be revocable, which means logins, carts and anything tied to a password, needs server-side state. <code>SessionMiddleware</code> stores the record in a backend and puts only a signed session id in the cookie.</p>
 
       <pre><code>import os
