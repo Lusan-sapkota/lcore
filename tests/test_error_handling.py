@@ -151,3 +151,11 @@ def test_client_cookie_jar_and_repeated_headers():
     assert len(c.get('/login').get_all('Set-Cookie')) == 2
     assert c.get('/me').text == '12'
     assert TestClient(app, cookies=False).get('/me').text == ''
+
+
+def test_rate_limit_single_process_is_silent():
+    import warnings
+    from lcore import rate_limit
+    with warnings.catch_warnings():
+        warnings.simplefilter('error')
+        rate_limit(5, single_process=True)

@@ -2978,11 +2978,13 @@ def _rate_limit_check_proxy_addr(addr):
                 RuntimeWarning, stacklevel=4)
 
 
-def rate_limit(limit, per=60, max_buckets=10000, backend=None):
+def rate_limit(limit, per=60, max_buckets=10000, backend=None, single_process=False):
     """Decorator: token-bucket rate limit per client IP. Raises 429 on bust.
     Without backend=, each gunicorn worker has its own buckets (N x limit).
-    Pass backend=RedisRateLimitBackend() for cross-worker enforcement."""
-    if backend is None:
+    Pass backend=RedisRateLimitBackend() for cross-worker enforcement.
+    single_process=True silences the in-process warning (one worker, and a
+    restart resets the counters)."""
+    if backend is None and not single_process:
         warnings.warn(
             "rate_limit() is using in-process token buckets. "
             "Under multi-worker deployment (e.g. gunicorn -w N) the effective "
