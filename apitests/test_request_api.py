@@ -887,7 +887,6 @@ def test_cookie_many_cookies(client):
     assert r.status_code == 200 and len(r.json['c']) == 2000
 
 
-@pytest.mark.xfail(strict=True, reason="BUG(minor): set_cookie(secret=) does str(value), so dict/int values come back as their repr string; docs say HMAC+JSON")
 def test_signed_cookie_roundtrip_structured(client):
     c = client(make_app())
     c.get('/setsigned')

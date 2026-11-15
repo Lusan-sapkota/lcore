@@ -2006,7 +2006,7 @@ class BaseResponse:
             Morsel._reserved.setdefault('samesite', 'SameSite')
 
         if secret:
-            encoded = base64.b64encode(tob(json_dumps([name, str(value)])))
+            encoded = base64.b64encode(tob(json_dumps([name, value])))
             sig = base64.b64encode(hmac.new(tob(secret), encoded,
                                             digestmod=digestmod).digest())
             value = touni(b'!' + sig + b'?' + encoded)
