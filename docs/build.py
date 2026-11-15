@@ -6,9 +6,9 @@ from pathlib import Path
 
 DOCS = Path(__file__).parent
 VERSION = re.search(r"__version__ = '([^']+)'", (DOCS.parent / 'lcore.py').read_text()).group(1)
-PAGES = ['index', 'getting-started', 'tutorial', 'routing', 'request-response', 'middleware', 'plugins', 'advanced', 'api-reference']
+PAGES = ['index', 'getting-started', 'tutorial', 'routing', 'request-response', 'middleware', 'plugins', 'advanced', 'api-reference', 'changelog']
 GROUPS = [('Getting Started', ['getting-started', 'tutorial']), ('Core', ['routing', 'request-response', 'middleware', 'plugins']),
-          ('Advanced', ['advanced']), ('Reference', ['api-reference'])]
+          ('Advanced', ['advanced']), ('Reference', ['api-reference', 'changelog'])]
 SITE = 'https://lcore.lusansapkota.com.np'
 GH = 'https://github.com/Lusan-sapkota/lcore'
 GH_ICON = '<svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>'
@@ -30,7 +30,7 @@ HEADER = f"""<a class="skip-link" href="#main">Skip to content</a>
           <a href="getting-started.html">Guide</a>
           <a href="middleware.html">Middleware</a>
           <a href="api-reference.html">API</a>
-          <a href="{GH}/blob/main/CHANGELOG.md">Changelog</a>
+          <a href="changelog.html">Changelog</a>
         </nav>
         <div class="header-right">
           <button class="icon-btn theme-toggle" type="button" aria-label="Toggle light/dark theme"><svg class="moon" {SVG}><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><svg class="sun" {SVG}><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
@@ -92,9 +92,43 @@ def sidebar(info, cur=''):
             out.append('        </div>')
         out.append('      </details>')
     out.append(f'      <details class="sidebar-section" open>\n        <summary class="sidebar-title">Project</summary>\n'
-               f'        <a href="{GH}/blob/main/CHANGELOG.md" class="sidebar-link">Changelog</a>\n'
-               f'        <a href="{GH}" class="sidebar-link">GitHub</a>\n      </details>')
+                              f'        <a href="{GH}" class="sidebar-link">GitHub</a>\n      </details>')
     out.append('      </nav>\n    </aside>')
+    return '\n'.join(out)
+
+
+def md(text):
+    """Tiny markdown subset for CHANGELOG.md: headings, flat lists, one table, paragraphs, bold, code, links."""
+    def inline(t):
+        t = html.escape(t, quote=False)
+        t = re.sub(r'`([^`]+)`', r'<code>\1</code>', t)
+        t = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\1</strong>', t)
+        return re.sub(r'\[([^\]]+)\]\((https?://[^)\s]+)\)', r'<a href="\2">\1</a>', t)
+    out, lst, tbl, ver = [], False, [], ''
+    def close():
+        nonlocal lst, tbl
+        if lst: out.append('</ul>'); lst = False
+        if tbl:
+            rows = [[c.strip() for c in r.strip().strip('|').split('|')] for r in tbl if not re.match(r'^\|[-| ]+\|$', r.strip())]
+            out.append('<table><thead><tr>' + ''.join(f'<th>{inline(c)}</th>' for c in rows[0]) + '</tr></thead><tbody>' +
+                       ''.join('<tr>' + ''.join(f'<td>{inline(c)}</td>' for c in r) + '</tr>' for r in rows[1:]) + '</tbody></table>')
+            tbl = []
+    for line in text.splitlines()[1:]:  # first line is the page h1
+        if line.startswith('|'): tbl.append(line); continue
+        close()
+        if m := re.match(r'^(##|###) (.*)', line):
+            plain = re.sub(r'[\[\]`*]', '', m.group(2))
+            if m.group(1) == '##':
+                ver = slug(plain.split('—')[0].replace('.', '-'))
+                out.append(f'<h2 id="v{ver}">{inline(re.sub(r"^\[([^]]+)\]", r"\1", m.group(2)))}</h2>')
+            else:
+                out.append(f'<h3 id="v{ver}-{slug(plain)}">{inline(m.group(2))}</h3>')
+        elif line.startswith('- '):
+            if not lst: out.append('<ul>'); lst = True
+            out.append(f'<li>{inline(line[2:])}</li>')
+        elif line.strip() and line.strip() != '---':
+            out.append(f'<p>{inline(line)}</p>')
+    close()
     return '\n'.join(out)
 
 
@@ -132,6 +166,7 @@ def main():
                 {'@type': 'ListItem', 'position': 2, 'name': info[pg][0], 'item': f'{SITE}/{pg}.html'}]}) + '</script>'
         s = region(s, 'head', '\n  <meta name="theme-color" content="#23272f">\n  <meta name="color-scheme" content="dark light">\n  ' + THEME_JS + crumbs + '\n  ', where='</head>')
         s = region(s, 'header', HEADER, fallback=r'<header class="site-header">.*?</header>', where='<body')
+        if pg == 'changelog': s = region(s, 'content', md((DOCS.parent / 'CHANGELOG.md').read_text()))
         s = region(s, 'sidebar', sidebar(info, pg), fallback=r'<aside class="sidebar">.*?</aside>')
         if pg == 'index' and '<!--chrome:sidebar-->' not in s:
             s = s.replace('<main class="content"', f'<!--chrome:sidebar-->{sidebar(info, pg)}<!--/chrome:sidebar-->\n  <main class="content"', 1)
