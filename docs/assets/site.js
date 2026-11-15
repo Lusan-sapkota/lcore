@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
   var root = document.documentElement;
   var page = location.pathname.split('/').pop() || 'index.html';
+  if (!/\.html$/.test(page)) page += '.html'; // extensionless URLs such as /routing
 
   if (typeof hljs !== 'undefined') {
     hljs.configure({ languages: ['python', 'bash', 'json', 'http', 'ini', 'xml', 'sql'] });
@@ -161,6 +162,33 @@ document.addEventListener('DOMContentLoaded', function () {
       try { navigator.clipboard.writeText(b.dataset.copy).then(function () { done(true); }, function () { done(false); }); } catch (e) { done(false); }
     });
   });
+
+  // Copy page: copies the generated Markdown twin of this page (see docs/build.py)
+  var contentEl = $('main.content');
+  if (contentEl && !document.body.classList.contains('index-page')) {
+    var cp = document.createElement('button');
+    cp.type = 'button';
+    cp.className = 'copy-page';
+    cp.setAttribute('aria-label', 'Copy page as Markdown');
+    cp.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span>Copy page</span>';
+    var label = cp.querySelector('span');
+    cp.addEventListener('click', function () {
+      function done(t) { label.textContent = t; cp.classList.toggle('done', t === 'Copied!'); setTimeout(function () { label.textContent = 'Copy page'; cp.classList.remove('done'); }, 2000); }
+      fetch(page.replace(/\.html$/, '.md')).then(function (r) {
+        if (!r.ok) throw new Error(r.status);
+        return r.text();
+      }).then(function (t) { return navigator.clipboard.writeText(t); })
+        .then(function () { done('Copied!'); }, function () { done('Copy failed'); });
+    });
+    var h1 = $('h1', contentEl);
+    if (h1) { // title on the left, button on the right, same row
+      var head = document.createElement('div');
+      head.className = 'page-head';
+      h1.parentNode.insertBefore(head, h1);
+      head.appendChild(h1);
+      head.appendChild(cp);
+    }
+  }
 
   // Previous / next page links
   var pages = $$('.sidebar-link:not(.sub)').filter(function (a) { return /^[a-z-]+\.html$/.test(a.getAttribute('href')); });

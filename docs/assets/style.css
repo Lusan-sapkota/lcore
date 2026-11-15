@@ -382,6 +382,13 @@ pre.editing code::after { content: ' '; }
 .pg-res.ok { border-left-color: var(--green); }
 .pg-res.err { border-left-color: var(--red); }
 
+/* ── Copy page ── */
+.page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.page-head h1 { min-width: 0; }
+.copy-page { flex: none; margin-top: 6px; display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 16px; border: 1px solid var(--border); border-radius: 999px; background: none; color: var(--text); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.copy-page.done { color: var(--accent); border-color: var(--accent); }
+.copy-page:hover { background: var(--bg-hover); border-color: var(--text-dim); }
+
 /* ── Prev / next ── */
 .pager { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-top: 64px; }
 .pager a { display: block; padding: 16px 20px; border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-weight: 600; font-size: 18px; transition: border-color .15s, background .15s; }
@@ -466,6 +473,8 @@ pre.editing code::after { content: ' '; }
   .search-btn kbd { display: none; }
 }
 @media (max-width: 560px) {
+  .copy-page span { display: none; }
+  .copy-page { width: 40px; padding: 0; justify-content: center; margin-top: 0; }
   .version-badge { display: none; }
   .search-btn span { font-size: 14px; }
   .btn { width: 100%; max-width: 320px; }
