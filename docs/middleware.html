@@ -269,7 +269,7 @@ app.use(SessionMiddleware(
       <!-- Sessions -->
       <h2 id="sessions">Sessions</h2>
 
-      <div class="info-box warning"><strong>Concurrent writes</strong><p>A session is saved as a whole record, so two requests that modify the same session at the same time are last-writer-wins: the later save can drop keys the earlier one set. Keep per-request session writes small and avoid parallel writers (for example, several simultaneous XHRs that all write the session).</p></div>
+      <div class="info-box note"><strong>Concurrent requests</strong><p>Session changes are merged into the stored record on save, key by key, so two requests that set different keys at the same time both keep their changes (atomically in the Memory, SQLite and Redis backends). If the session was revoked or expired meanwhile, the write is dropped instead of bringing it back. Two requests that set the <em>same</em> key still race: the later write wins. Changes made by mutating a nested value in place (<code>session['cart'].append(x)</code>) are not tracked; assign the key again.</p></div>
 
       <p>Lcore's signed cookies are fine for carrying a few bytes of state, but they cannot be taken back: once issued, a signed cookie stays valid until it expires. Anything that needs to be revocable, which means logins, carts and anything tied to a password, needs server-side state. <code>SessionMiddleware</code> stores the record in a backend and puts only a signed session id in the cookie.</p>
 
@@ -304,7 +304,7 @@ def add_to_cart():
         </tbody>
       </table>
 
-      <p>Write your own by subclassing <code>SessionBackend</code> and implementing seven methods: <code>load</code>, <code>save</code>, <code>delete</code>, <code>list_user</code>, <code>revoke_user</code>, <code>get_epoch</code> and <code>bump_epoch</code>. <code>revoke_all()</code> and <code>touch()</code> are provided by the base class. Records must stay JSON-serialisable: every shipped backend round-trips them through JSON, so development behaviour matches production.</p>
+      <p>Write your own by subclassing <code>SessionBackend</code> and implementing seven methods: <code>load</code>, <code>save</code>, <code>delete</code>, <code>list_user</code>, <code>revoke_user</code>, <code>get_epoch</code> and <code>bump_epoch</code>. An optional eighth, <code>merge(sid, ops, seen, ttl)</code>, applies a request's key changes to the stored record; the base class provides a non-atomic load-apply-save version, so override it if your store can do better. <code>revoke_all()</code> and <code>touch()</code> are provided by the base class. Records must stay JSON-serialisable: every shipped backend round-trips them through JSON, so development behaviour matches production.</p>
 
       <div class="info-box tip">
         <strong>unindex()</strong>

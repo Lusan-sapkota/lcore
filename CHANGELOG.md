@@ -44,7 +44,8 @@ All notable changes to Lcore will be documented here.
 - **`RequestIDMiddleware`** echoed any `X-Request-ID`; only `[A-Za-z0-9._-]{1,128}` is accepted now. **`RequestLoggerMiddleware`** logged 200 for error responses and uncaught exceptions. **`auth_basic`** did not escape its realm. **`remote_addr`** could return `''` for empty `X-Forwarded-For` entries.
 - **`validate_request`** accepted `'abc'` for `list`; `query=` values are now coerced like `body=`.
 - **`_run_async`** hid a coroutine's own `RuntimeError`. **`load()`** allowed dunder attributes. **The CLI** printed raw tracebacks for a bad app target or port.
-- **Known limitation, documented:** concurrent writes to one session are last-writer-wins.
+- **Concurrent writes to one session lost each other's keys** (the whole record was overwritten on save). Changes are now merged key by key against the stored record, atomically in `MemorySessionBackend` (lock), `SQLiteSessionBackend` (`BEGIN IMMEDIATE`) and `RedisSessionBackend` (`WATCH`/`MULTI`); a session revoked meanwhile is no longer resurrected by a late write. New optional `SessionBackend.merge()` with a default for custom backends. Same-key races are still last-writer-wins.
+- **`RedisSessionBackend`** truncated fractional TTLs to 0 (Redis rejects it) and left a session in the old user's index when it was re-saved under another user. The session tests now run against a live Redis too.
 - **Malformed `Content-Type` parameters** (e.g. `;charset` with no value) returned 500; they are now ignored.
 - **Rate limiter cleanup could raise `RuntimeError`** when other threads inserted buckets at the same moment.
 - **`redirect()` with a line break in the URL** returned 500; it now returns 400.
