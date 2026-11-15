@@ -1056,7 +1056,6 @@ def test_cookie_value_roundtrip_through_wire(live, val):
     assert b.decode('utf8') == val
 
 
-@pytest.mark.xfail(strict=True, reason="BUG(minor/security): set_cookie(path=/domain=) with ';' is emitted verbatim -> cookie attribute injection")
 @pytest.mark.parametrize('opt', ['path', 'domain'])
 def test_cookie_attribute_injection_via_semicolon(opt):
     r = BaseResponse()
@@ -1064,7 +1063,6 @@ def test_cookie_attribute_injection_via_semicolon(opt):
         r.set_cookie('a', 'b', **{opt: 'x; Secure; Domain=evil.com'})
 
 
-@pytest.mark.xfail(strict=True, reason="BUG(minor): set_cookie(max_age='garbage') / expires='garbage' emitted without validation")
 @pytest.mark.parametrize('opts', [{'max_age': 'x'}, {'expires': 'nonsense'}])
 def test_cookie_garbage_max_age_expires_rejected(opts):
     with pytest.raises(Exception):

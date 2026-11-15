@@ -2033,10 +2033,13 @@ class BaseResponse:
                 continue
             if key in ('max_age', 'maxage'):
                 key = 'max-age'
-                if isinstance(value, timedelta):
-                    value = int(value.total_seconds())
+                value = int(value.total_seconds() if isinstance(value, timedelta) else value)
             if key == 'expires':
+                if isinstance(value, str) and parse_date(value) is None:
+                    raise ValueError('Invalid cookie expires: %r' % value)
                 value = http_date(value)
+            if key in ('path', 'domain') and value and (';' in value or ',' in value):
+                raise CookieError('Invalid cookie %s: %r' % (key, value))
             if key in ('same_site', 'samesite'):
                 key, value = 'samesite', (value or "none").lower()
                 if value not in ('lax', 'strict', 'none'):
