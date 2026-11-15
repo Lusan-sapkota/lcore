@@ -5002,7 +5002,7 @@ def static_file(filename, root,
 
     headers["Accept-Ranges"] = "bytes"
     range_header = getenv('HTTP_RANGE')
-    if range_header:
+    if range_header and range_header[:6] == 'bytes=':  # other units are ignored (RFC 7233)
         ranges = list(parse_range_header(range_header, clen))
         if not ranges:
             _try_close(body)

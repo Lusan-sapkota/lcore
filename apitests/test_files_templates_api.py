@@ -213,7 +213,6 @@ def test_range_wrong_unit_ignored_or_416(client, root, rng):
     assert r.status_code in (200, 416)
 
 
-@pytest.mark.xfail(strict=True, reason="BUG(minor): unrecognised Range unit (e.g. items=0-1) answers 416; RFC 7233 says ignore the header and send 200")
 def test_range_unknown_unit_should_be_ignored(client, root):
     r = client(sapp(root)).get('/f/hello.txt', headers={'Range': 'items=0-1'})
     assert r.status_code == 200 and r.text == '0123456789abcdefghij'
