@@ -5254,7 +5254,8 @@ def auth_basic(check, realm="private", text="Access denied"):
             user, password = request.auth or (None, None)
             if user is None or not check(user, password):
                 err = HTTPError(401, text)
-                err.add_header('WWW-Authenticate', 'Basic realm="%s"' % realm)
+                quoted = realm.replace('\\', '\\\\').replace('"', '\\"')
+                err.add_header('WWW-Authenticate', 'Basic realm="%s"' % quoted)
                 return err
             return func(*a, **ka)
 

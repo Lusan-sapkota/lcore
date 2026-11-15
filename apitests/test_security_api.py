@@ -293,7 +293,6 @@ def test_basic_checker_exception_is_500(client):
     assert client(auth_app(bad)).get('/', headers={'Authorization': basic('a', 'b')}).status_code == 500
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: auth_basic realm is interpolated unescaped into WWW-Authenticate (quote/CRLF injection) (lcore.py:5167)")
 def test_basic_realm_quote_escaped(client):
     r = client(auth_app(realm='a", evil="1')).get('/')
     assert 'evil="1"' not in r.headers['Www-Authenticate']
