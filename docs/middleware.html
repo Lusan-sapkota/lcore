@@ -186,7 +186,7 @@ app.use(SecurityHeadersMiddleware(
     hsts=True,
     **{'Content-Security-Policy': "default-src 'self'"}
 ))</code></pre>
-      <p>Default headers set: <code>X-Content-Type-Options: nosniff</code>, <code>X-Frame-Options: DENY</code>, <code>X-XSS-Protection: 0</code>, <code>Referrer-Policy: strict-origin-when-cross-origin</code>, <code>Content-Security-Policy: default-src 'self'</code>.</p>
+      <p>Default headers set: <code>X-Content-Type-Options: nosniff</code>, <code>X-Frame-Options: SAMEORIGIN</code>, <code>X-XSS-Protection: 0</code>, <code>Referrer-Policy: strict-origin-when-cross-origin</code>, <code>Content-Security-Policy: default-src 'self'</code>.</p>
 
       <h3>CSRFMiddleware</h3>
       <p>Validates CSRF tokens on state-changing requests. Tokens are checked in the header first, then in form data:</p>

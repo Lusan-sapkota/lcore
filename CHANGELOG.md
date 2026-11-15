@@ -14,7 +14,20 @@ All notable changes to Lcore will be documented here.
 - **`run()` refuses the `wsgiref` development server on a non-loopback host** unless `debug=True` or `dev_server_ok=True`. Breaking for anyone running `app.run(host='0.0.0.0')` without a real server.
 - **Port-in-use message** instead of a raw `OSError`, and a warning when the `wsgiref` development server is used.
 
+### Changed (behavior)
+- **Request bodies are capped at 10 MB by default** (`config['request.max_body']`, `0` = unlimited). Larger uploads now get 413 unless you raise it. `BodyLimitMiddleware` still overrides per app.
+- **`SecurityHeadersMiddleware` now runs before routing**, so unmatched-route 404s get the headers. A handler's own header of the same name now wins, and `skip=['security_headers']` no longer applies.
+- **`X-XSS-Protection` default is `0`** (the legacy filter caused holes). **`CSRFMiddleware(secure=None)`** now sets `Secure` automatically on HTTPS requests.
+- **`validate_request` is stricter:** `null`, dicts and lists no longer pass as `str`; `nan`/`inf`, fractional ints and non-boolean junk for `bool` are rejected; `Optional[...]` accepts an explicit `null`.
+- **Static files:** ETags are quoted, weak (`W/`) and listed `If-None-Match` values match, and 416 sends `Content-Range: bytes */size`.
+- **`Accept` negotiation honours q-weights** when choosing JSON or HTML errors.
+
 ### Fixed
+- **`validate_request` errors were wrapped- **Malformed `Content-Type` parameters** (e.g. `;charset` with no value) returned 500; they are now ignored.
+- **Rate limiter cleanup could raise `RuntimeError`** when other threads inserted buckets at the same moment.
+- **`redirect()` with a line break in the URL** returned 500; it now returns 400.
+- **`BackgroundTaskPool.submit`** rebuilt its whole future list on every call (quadratic under bursts); it now uses a set.
+- **CORS** adds `Vary: Origin` for rejected origins when `allow_origins` is a list.
 - **`validate_request` errors were wrapped in the HTML error page**, so clients had to scrape a `<pre>` tag. The JSON body is now returned as is.
 - **`validate_request` skipped validation for an empty body**, letting required fields through. It now returns 422.
 - **Docs said malformed `request.json` returns `None`.** It raises 400 "Invalid JSON"; docs corrected.
