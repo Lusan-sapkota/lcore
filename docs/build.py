@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Regenerate the shared header, sidebar, head/script chrome and search index. Usage: python3 docs/build.py [page.html ...]"""
-import html, json, re, sys
+import html, json, re, subprocess, sys
 from html.parser import HTMLParser
 from pathlib import Path
 
@@ -21,7 +21,7 @@ HEADER = f"""<a class="skip-link" href="#main">Skip to content</a>
     <div class="header-inner">
       <div class="header-side">
         <button class="icon-btn menu-toggle" type="button" aria-label="Menu" aria-expanded="false" aria-controls="sidebar"><svg {SVG}><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
-        <a href="index.html" class="logo"><img src="lcore.png" alt="" class="logo-icon" width="30" height="30">Lcore</a>
+        <a href="index.html" class="logo"><img src="lcore-256.png" alt="" class="logo-icon" width="30" height="30">Lcore</a>
         <span class="version-badge">v{VERSION}</span>
       </div>
       <button class="search-btn" type="button" aria-label="Search docs"><svg {SVG}><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Search</span><kbd>Ctrl K</kbd></button>
@@ -141,6 +141,23 @@ def region(src, name, new, fallback=None, where=None):
     return src.replace(where, block + where, 1) if where else src
 
 
+def lastmod(pg):
+    try:
+        return subprocess.check_output(['git', 'log', '-1', '--format=%cs', '--', f'docs/{pg}.html'], cwd=DOCS.parent, text=True).strip() or None
+    except Exception:
+        return None
+
+
+def sitemap():
+    prio = {'index': '1.0', 'getting-started': '0.9', 'tutorial': '0.9', 'api-reference': '0.8', 'changelog': '0.6'}
+    rows = []
+    for pg in PAGES:
+        loc = SITE + '/' + ('' if pg == 'index' else f'{pg}.html')
+        lm = lastmod(pg)
+        rows.append(f'  <url>\n    <loc>{loc}</loc>\n' + (f'    <lastmod>{lm}</lastmod>\n' if lm else '') + f'    <priority>{prio.get(pg, "0.7")}</priority>\n  </url>')
+    (DOCS / 'sitemap.xml').write_text('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + '\n'.join(rows) + '\n</urlset>\n')
+
+
 def main():
     (DOCS / 'assets' / 'pyodide' / 'lcore.py').write_bytes((DOCS.parent / 'lcore.py').read_bytes())  # playground runs the real file
     cl = DOCS / 'changelog.html'  # regenerate first so the sidebar and search index see the new headings
@@ -162,11 +179,27 @@ def main():
     for pg in (sys.argv[1:] and [a.removesuffix('.html') for a in sys.argv[1:]] or PAGES):
         f = DOCS / f'{pg}.html'; s = f.read_text()
         s = re.sub(r'\s*<link rel="preconnect" href="https://fonts[^>]*>|\s*<link href="https://fonts[^>]*>|\s*<link rel="stylesheet" href="assets/github(-dark)?\.min\.css"[^>]*>', '', s)
-        crumbs = '' if pg == 'index' else '\n  <script type="application/ld+json">' + json.dumps({
-            '@context': 'https://schema.org', '@type': 'BreadcrumbList', 'itemListElement': [
-                {'@type': 'ListItem', 'position': 1, 'name': 'Lcore', 'item': SITE + '/'},
-                {'@type': 'ListItem', 'position': 2, 'name': info[pg][0], 'item': f'{SITE}/{pg}.html'}]}) + '</script>'
-        s = region(s, 'head', '\n  <meta name="theme-color" content="#23272f">\n  <meta name="color-scheme" content="dark light">\n  ' + THEME_JS + crumbs + '\n  ', where='</head>')
+        # social card, icons and robots hints (idempotent rewrites of the static head tags)
+        s = re.sub(r'(property="og:image" content=")[^"]*', rf'\g<1>{SITE}/og-image.png', s)
+        s = re.sub(r'(name="twitter:image" content=")[^"]*', rf'\g<1>{SITE}/og-image.png', s)
+        s = s.replace('<meta name="twitter:card" content="summary">', '<meta name="twitter:card" content="summary_large_image">')
+        s = s.replace('<meta name="robots" content="index, follow">', '<meta name="robots" content="index, follow, max-image-preview:large">')
+        s = re.sub(r'<link rel="shortcut icon"[^>]*>', '<link rel="icon" type="image/png" sizes="64x64" href="favicon.png">\n  <link rel="apple-touch-icon" href="apple-touch-icon.png">', s)
+        desc = re.search(r'name="description" content="([^"]*)"', s).group(1)
+        graph = ''
+        if pg != 'index':
+            graph = '\n  <script type="application/ld+json">' + json.dumps({'@context': 'https://schema.org', '@graph': [
+                {'@type': 'BreadcrumbList', 'itemListElement': [
+                    {'@type': 'ListItem', 'position': 1, 'name': 'Lcore', 'item': SITE + '/'},
+                    {'@type': 'ListItem', 'position': 2, 'name': info[pg][0], 'item': f'{SITE}/{pg}.html'}]},
+                {'@type': 'TechArticle', 'headline': info[pg][0], 'description': html.unescape(desc), 'url': f'{SITE}/{pg}.html',
+                 'inLanguage': 'en', 'dateModified': lastmod(pg), 'image': SITE + '/og-image.png',
+                 'author': {'@type': 'Person', 'name': 'Lusan Sapkota', 'url': 'https://lusansapkota.com.np'},
+                 'publisher': {'@type': 'Person', 'name': 'Lusan Sapkota'}}]}) + '</script>'
+        social = ('\n  <meta property="og:image:width" content="1200">\n  <meta property="og:image:height" content="630">'
+                  '\n  <meta property="og:image:alt" content="Lcore: fast, single-file Python WSGI framework">'
+                  '\n  <meta property="og:locale" content="en_US">\n  <meta name="twitter:image:alt" content="Lcore: fast, single-file Python WSGI framework">')
+        s = region(s, 'head', '\n  <meta name="theme-color" content="#23272f">\n  <meta name="color-scheme" content="dark light">' + social + '\n  ' + THEME_JS + graph + '\n  ', where='</head>')
         s = region(s, 'header', HEADER, fallback=r'<header class="site-header">.*?</header>', where='<body')
         s = region(s, 'sidebar', sidebar(info, pg), fallback=r'<aside class="sidebar">.*?</aside>')
         if pg == 'index' and '<!--chrome:sidebar-->' not in s:
@@ -181,3 +214,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    sitemap()
