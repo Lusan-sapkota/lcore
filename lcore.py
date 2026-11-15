@@ -45,7 +45,7 @@ if __name__ == '__main__':
     _cli_patch(sys.argv)
 
 # stdlib imports that's it, no pip install required
-import abc, asyncio, atexit, base64, errno, calendar, concurrent.futures, email.utils, \
+import abc, asyncio, atexit, base64, codecs, errno, calendar, concurrent.futures, email.utils, \
     functools, gzip, hmac, itertools, logging, mimetypes, os, re, tempfile, \
     threading, time, uuid, warnings, weakref, hashlib, zlib
 
@@ -5586,7 +5586,11 @@ class _MultipartPart:
         self.content_type, options = _parse_http_header(content_type)[0] if content_type else (None, {})
         self.charset = options.get("charset") or self.charset
 
-        self.content_length = int(self.headers.get("Content-Length", "-1"))
+        try:
+            self.content_length = int(self.headers.get("Content-Length", "-1"))
+            codecs.lookup(self.charset)
+        except (ValueError, LookupError):
+            raise MultipartError("Invalid part header.")
 
     def finish(self):
         if not self.file:
@@ -5598,7 +5602,10 @@ class _MultipartPart:
 
     @property
     def value(self):
-        return str(self.raw, self.charset)
+        try:
+            return str(self.raw, self.charset)
+        except (UnicodeError, LookupError):
+            raise MultipartError("Invalid field encoding.")
 
     @property
     def raw(self):

@@ -634,7 +634,6 @@ def test_multipart_header_without_colon_400(client):
     assert client(make_app()).post('/upload', body=body, content_type=MPCT).status_code == 400
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: non-numeric part Content-Length -> ValueError -> 500")
 def test_multipart_bad_part_content_length_not_500(client):
     body = (b'--XBOUNDARYX\r\nContent-Disposition: form-data; name="a"\r\n'
             b'Content-Length: abc\r\n\r\nv\r\n--XBOUNDARYX--\r\n')
@@ -642,7 +641,6 @@ def test_multipart_bad_part_content_length_not_500(client):
     assert r.status_code in (200, 400)
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: unknown part charset -> LookupError -> 500")
 def test_multipart_bad_charset_not_500(client):
     body = (b'--XBOUNDARYX\r\nContent-Disposition: form-data; name="a"\r\n'
             b'Content-Type: text/plain; charset=nonsense\r\n\r\nv\r\n--XBOUNDARYX--\r\n')
@@ -650,7 +648,6 @@ def test_multipart_bad_charset_not_500(client):
     assert r.status_code in (200, 400)
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: invalid UTF-8 in multipart field -> UnicodeDecodeError -> 500")
 def test_multipart_field_invalid_utf8_not_500(client):
     body = mp([('a', b'\xff\xfe')])
     r = client(make_app()).post('/upload', body=body, content_type=MPCT)
