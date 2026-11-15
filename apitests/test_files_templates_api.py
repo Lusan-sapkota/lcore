@@ -868,13 +868,11 @@ def test_jinja2_lookup_traversal_blocked(tpls):
     assert 'OUTSIDE' not in out
 
 
-@pytest.mark.xfail(strict=True, reason="BUG(minor): absolute template name -> `raise depr(...)` raises None -> TypeError (or DeprecationWarning under -W error) instead of TemplateError")
 def test_template_absolute_name_raises_templateerror(tpls):
     with pytest.raises(TemplateError):
         tp(tpls, '/etc/passwd')
 
 
-@pytest.mark.xfail(strict=True, reason="BUG(minor): empty lookup list -> `raise depr(...)` raises None -> TypeError instead of TemplateError")
 def test_template_search_empty_lookup_raises_templateerror():
     with pytest.raises(TemplateError):
         BaseTemplate.search('x', [])

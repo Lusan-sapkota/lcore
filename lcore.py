@@ -6325,11 +6325,10 @@ class BaseTemplate:
     @classmethod
     def search(cls, name, lookup=None):
         if not lookup:
-            raise depr(0, 0, "Empty template lookup path.", "Configure a template lookup path.")
+            raise TemplateError("Empty template lookup path.")
 
         if os.path.isabs(name):
-            raise depr(0, 0, "Use of absolute path for template name.",
-                       "Refer to templates with names or paths relative to the lookup path.")
+            raise TemplateError("Absolute template names are not allowed: use a name relative to the lookup path.")
 
         for spath in lookup:
             spath = os.path.abspath(spath) + os.sep
@@ -6450,7 +6449,7 @@ class SimpleTemplate(BaseTemplate):
         try:
             source, encoding = touni(source), 'utf8'
         except UnicodeError:
-            raise depr(0, 0, 'Unsupported template encodings.', 'Use utf-8 for templates.')
+            raise TemplateError('Unsupported template encoding: use utf-8.')
         parser = StplParser(source, encoding=encoding, syntax=self.syntax)
         code = parser.translate()
         self.encoding = parser.encoding
