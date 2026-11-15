@@ -175,7 +175,7 @@ def create_user():
 
       <div class="info-box note">
         <strong>Note</strong>
-        <p><code>request.json</code> returns <code>None</code> if the Content-Type is not <code>application/json</code> or the body is empty. A malformed body raises <code>HTTPError(400, 'Invalid JSON')</code>, so you never see half-parsed data. Use <code>request.json or {}</code> to treat empty as an empty dict.</p>
+        <p><code>request.json</code> returns <code>None</code> if the Content-Type is not <code>application/json</code> or the body is empty. A malformed body raises <code>HTTPError(400, 'Invalid JSON')</code>, so you never see half-parsed data. Use <code>request.json_or({})</code> to fall back to a default when the body is empty. To validate fields and types, see <code>@validate_request</code> in <a href="advanced.html#request-validation">Advanced</a>: it returns 422 with a per-field <code>fields</code> map.</p>
       </div>
 
       <div class="info-box tip">

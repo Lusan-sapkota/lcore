@@ -520,7 +520,7 @@ mc_backend = MemcacheRateLimitBackend(my_memcache_client)
 def login():
     ...</code></pre>
 
-      <h3>Request Validation</h3>
+      <h3 id="request-validation">Request Validation</h3>
       <p>The <code>@validate_request</code> decorator validates incoming request data against a schema. v0.0.4 adds <code>Optional[type]</code> support, automatic type coercion, whitespace stripping, and structured JSON error responses.</p>
 
       <h4>Basic body validation</h4>
@@ -706,7 +706,7 @@ resp = client.get('/api/data', headers={'Authorization': 'Bearer token123'})
 # Query strings
 resp = client.get('/search', query_string='q=hello&amp;page=1')</code></pre>
 
-      <p><code>TestClient(app)</code> keeps a cookie jar (<code>client.cookies</code>): a login's <code>Set-Cookie</code> is sent on later calls automatically. Use <code>TestClient(app, cookies=False)</code> to turn it off. <code>resp.get_all('Set-Cookie')</code> returns every repeated header value.</p>
+      <p><code>TestClient(app)</code> keeps a cookie jar (<code>client.cookies</code>): a login's <code>Set-Cookie</code> is sent on later calls automatically. Use <code>TestClient(app, cookies=False)</code> to turn it off, and <code>TestClient(app, follow_redirects=True)</code> to follow redirects (up to 10, same app only). <code>resp.get_all('Set-Cookie')</code> returns every repeated header value.</p>
 
       <h3>TestClient Methods</h3>
       <table>

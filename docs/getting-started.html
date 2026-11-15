@@ -423,7 +423,7 @@ app.config['proxy.trusted'] = '127.0.0.1,10.0.0.1'</code></pre>
 app.run(host='localhost', port=8080, debug=True, reloader=True)</code></pre>
 
       <h3>Production</h3>
-      <p><code>app.run()</code> defaults to <code>wsgiref</code>, a single-threaded <strong>development</strong> server. Do not expose it to the internet; use gunicorn or waitress behind a reverse proxy.</p>
+      <p><code>app.run()</code> defaults to <code>wsgiref</code>, a single-threaded <strong>development</strong> server. <code>run()</code> refuses to serve it on a non-loopback host unless you pass <code>debug=True</code> or <code>dev_server_ok=True</code>. Do not expose it to the internet; use gunicorn or waitress behind a reverse proxy.</p>
       <pre><code># With Gunicorn (recommended for Linux/macOS)
 app.run(server='gunicorn', host='0.0.0.0', port=8080)
 
