@@ -1304,6 +1304,15 @@ class Lcore:
 
     # Turn whatever the handler returned into a WSGI iterable
     def _cast(self, out, peek=None):
+        cls = out.__class__
+        if (cls is str or cls is bytes) and out:  # hot path: plain text/bytes body
+            hdrs = response._headers
+            if cls is str:
+                out = out.encode(response.charset if 'Content-Type' in hdrs else 'utf-8',
+                                 'surrogateescape')
+            if 'Content-Length' not in hdrs:
+                hdrs['Content-Length'] = [str(len(out))]
+            return [out]
 
         if inspect.iscoroutine(out):
             out = _run_async(out)
