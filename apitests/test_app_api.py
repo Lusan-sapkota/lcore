@@ -351,7 +351,6 @@ def test_async_handler_with_url_args():
     assert TestClient(a).get('/f/21').text == '42'
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: _run_async: `except RuntimeError` also swallows RuntimeError raised BY the coroutine under a running loop and re-runs asyncio.run(), masking the real error")
 def test_async_runtimeerror_not_masked_in_running_loop():
     a = mk()
     a.config['catchall'] = False
@@ -532,7 +531,6 @@ def test_trigger_hook_with_args_and_hook_removal_during_trigger():
     assert got == [1]
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: docs/api-reference.html says trigger_hook 'Returns list of results' but it returns None")
 def test_trigger_hook_returns_list_documented():
     a = mk()
     a.add_hook('before_request', lambda: 7)
@@ -1021,7 +1019,6 @@ def test_validate_config_underscore_maps_to_dotted_key():
     assert c['db.port'] == 5
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: validate_config coerces any unrecognised bool string (e.g. 'banana', 'maybe') to False instead of reporting an error")
 def test_validate_config_garbage_bool_is_an_error():
     c = ConfigDict()
     c['port'] = 1
@@ -1030,7 +1027,6 @@ def test_validate_config_garbage_bool_is_an_error():
         c.validate_config(Schema)
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: validate_config maps field 'max_body' to key 'max.body' so schema fields can never validate real underscore keys such as request.max_body")
 def test_validate_config_underscore_key_roundtrip():
     @dataclasses.dataclass
     class S:
@@ -1792,7 +1788,6 @@ def test_context_manager_pushes_default_app():
     assert lcore.default_app() is not a
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: run(server='nonexistent') raises a raw ModuleNotFoundError from load() instead of the intended ValueError('Unknown or unsupported server')")
 def test_run_unknown_server_name_clear_error(clean_hooks):
     with pytest.raises((ValueError, ImportError)) as ei:
         lcore.run(mk(), server='definitely_not_a_server', quiet=True)
@@ -1852,7 +1847,6 @@ def test_shutdown_hook_coroutine_awaited(clean_hooks):
     assert log == ['async']
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: _shutdown_hooks is a never-drained global list; every later run() in the process re-runs all hooks registered earlier")
 def test_shutdown_hooks_run_only_once(clean_hooks):
     log = []
     lcore.on_shutdown(lambda: log.append('once'))

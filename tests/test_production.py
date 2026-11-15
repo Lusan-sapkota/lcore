@@ -1042,7 +1042,7 @@ class TestHookTriggerOptimization(unittest.TestCase):
             return 'ok'
 
         result = app.trigger_hook('on_request_start')
-        self.assertIsNone(result)
+        self.assertEqual(result, [])
 
     def test_hook_with_callbacks(self):
         app = Lcore()

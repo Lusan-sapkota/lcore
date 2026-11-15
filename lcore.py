@@ -171,20 +171,20 @@ def _run_async(coro):
     """
     try:
         asyncio.get_running_loop()
-        result_holder = [None, None]  # [result, exception]
-        def _run_in_thread():
-            try:
-                result_holder[0] = asyncio.run(coro)
-            except Exception as exc:
-                result_holder[1] = exc
-        t = threading.Thread(target=_run_in_thread, daemon=True)
-        t.start()
-        t.join()
-        if result_holder[1] is not None:
-            raise result_holder[1]
-        return result_holder[0]
     except RuntimeError:
-        return asyncio.run(coro)
+        return asyncio.run(coro)  # no loop running: the normal case
+    result_holder = [None, None]  # [result, exception]
+    def _run_in_thread():
+        try:
+            result_holder[0] = asyncio.run(coro)
+        except Exception as exc:
+            result_holder[1] = exc
+    t = threading.Thread(target=_run_in_thread, daemon=True)
+    t.start()
+    t.join()
+    if result_holder[1] is not None:
+        raise result_holder[1]
+    return result_holder[0]
 
 # PEP 3333 workaround: WSGI gives us latin1, we want utf8
 def _wsgi_recode(src):
@@ -837,10 +837,7 @@ class Lcore:
 
     def trigger_hook(self, __name, *args, **kwargs):
         hooks = self._hooks[__name]
-        if not hooks:
-            return
-        for hook in hooks[:]:
-            hook(*args, **kwargs)
+        return [hook(*args, **kwargs) for hook in hooks[:]]
 
     def trigger_module_hooks(self, prefix, hook_name, *args, **kwargs):
         key = (prefix, hook_name)
@@ -4418,6 +4415,10 @@ class WSGIHeaderDict(DictMixin):
         return self._ekey(key) in self.environ
 
 # Hierarchical config: overlays, dotted keys, .env loading, dataclass validation
+_BOOL_STRINGS = {'true': True, '1': True, 'yes': True, 'on': True,
+                 'false': False, '0': False, 'no': False, 'off': False}
+
+
 class ConfigDict(dict):
 
     __slots__ = ('_meta', '_change_listener', '_overlays', '_virtual_keys', '_source', '__weakref__')
@@ -4611,7 +4612,7 @@ class ConfigDict(dict):
             raise TypeError('Schema must be a dataclass')
         errors = []
         for field in dataclasses.fields(schema):
-            key = field.name.replace('_', '.')
+            key = field.name if field.name in self else field.name.replace('_', '.')
             if key not in self and field.default is dataclasses.MISSING \
                and field.default_factory is dataclasses.MISSING:
                 errors.append('Missing required config key: %s' % key)
@@ -4621,7 +4622,9 @@ class ConfigDict(dict):
                    and not isinstance(val, field.type):
                     try:
                         if field.type is bool:
-                            self[key] = val.lower() in ('true', '1', 'yes')
+                            low = val.lower()
+                            if low not in _BOOL_STRINGS: raise ValueError(val)
+                            self[key] = _BOOL_STRINGS[low]
                         else:
                             self[key] = field.type(val)
                     except (ValueError, AttributeError):
@@ -5979,7 +5982,8 @@ def on_shutdown(func):
     return func
 
 def _run_shutdown_hooks():
-    for hook in reversed(_shutdown_hooks):
+    while _shutdown_hooks:  # drain: each hook runs once, newest first
+        hook = _shutdown_hooks.pop()
         try:
             result = hook()
             if inspect.iscoroutine(result):
@@ -6057,7 +6061,10 @@ def run(app=None,
         if server in server_names:
             server = server_names.get(server)
         if isinstance(server, str):
-            server = load(server)
+            try:
+                server = load(server)
+            except ImportError:
+                raise ValueError("Unknown or unsupported server: %r" % server)
         if isinstance(server, type):
             server = server(host=host, port=port, **kargs)
         if not isinstance(server, ServerAdapter):
