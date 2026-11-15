@@ -4,6 +4,21 @@ All notable changes to Lcore will be documented here.
 
 ---
 
+## [Unreleased]
+
+### Added
+- **JSON errors by content negotiation.** Any request with `Accept: application/json` (listed before `text/html`) gets `{"error": "<message>", "status": N}` for `HTTPError`, 404 and 500 alike; browsers still get the HTML page. `error.format = 'json'` still forces it, and its body now carries the real message instead of the status text.
+- **`TestClient` cookie jar.** `Set-Cookie` is replayed on later requests (`client.cookies`; `TestClient(app, cookies=False)` disables it). `TestResponse.get_all(name)` returns repeated headers such as `Set-Cookie`.
+- **`rate_limit(single_process=True)`** silences the in-process warning for single-worker apps.
+- **Port-in-use message** instead of a raw `OSError`, and a warning when the `wsgiref` development server is used.
+
+### Fixed
+- **`validate_request` errors were wrapped in the HTML error page**, so clients had to scrape a `<pre>` tag. The JSON body is now returned as is.
+- **`validate_request` skipped validation for an empty body**, letting required fields through. It now returns 422.
+- **Docs said malformed `request.json` returns `None`.** It raises 400 "Invalid JSON"; docs corrected.
+
+---
+
 ## [0.0.5] — 2026-09-22
 
 ### Added
