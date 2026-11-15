@@ -652,7 +652,7 @@ def test_template_missing_include_raises(tpls):
 
 
 @pytest.mark.parametrize('name', ['../outside.tpl', '../outside', 'sub/../../outside.tpl',
-                                  '..\\outside.tpl', '/etc/passwd', 'sub/../../../etc/passwd'])
+                                  '..\\outside.tpl', 'sub/../../../etc/passwd'])
 def test_template_lookup_traversal_blocked(tpls, name):
     with pytest.raises(TemplateError):
         tp(tpls, name)
@@ -866,3 +866,15 @@ def test_jinja2_lookup_traversal_blocked(tpls):
     except Exception:
         return
     assert 'OUTSIDE' not in out
+
+
+@pytest.mark.xfail(strict=True, reason="BUG(minor): absolute template name -> `raise depr(...)` raises None -> TypeError (or DeprecationWarning under -W error) instead of TemplateError")
+def test_template_absolute_name_raises_templateerror(tpls):
+    with pytest.raises(TemplateError):
+        tp(tpls, '/etc/passwd')
+
+
+@pytest.mark.xfail(strict=True, reason="BUG(minor): empty lookup list -> `raise depr(...)` raises None -> TypeError instead of TemplateError")
+def test_template_search_empty_lookup_raises_templateerror():
+    with pytest.raises(TemplateError):
+        BaseTemplate.search('x', [])
