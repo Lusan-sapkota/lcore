@@ -1242,7 +1242,12 @@ class Lcore:
                 if pre_result is not None:
                     out = pre_result
                 else:
-                    route, args = self.router.match(environ)
+                    try:
+                        route, args = self.router.match(environ)
+                        miss = None
+                    except HTTPError as E:
+                        if not self.middleware._middleware: raise
+                        route, args, miss = None, {}, E  # 404/405 still run post middleware
                     environ['route.handle'] = route
                     environ['lcore.route'] = route
                     environ['route.url_args'] = args
@@ -1253,12 +1258,12 @@ class Lcore:
                         self.trigger_hook('on_module_request', mount_prefix, ctx)
                         self.trigger_module_hooks(mount_prefix, 'before_request')
 
-                    if hk['on_auth_resolved']: self.trigger_hook('on_auth_resolved')
-
-                    if hk['on_handler_enter']: self.trigger_hook('on_handler_enter')
+                    if not miss:
+                        if hk['on_auth_resolved']: self.trigger_hook('on_auth_resolved')
+                        if hk['on_handler_enter']: self.trigger_hook('on_handler_enter')
 
                     def call_route():
-                        return route.call(**args)
+                        return miss or route.call(**args)
 
                     if self.middleware._middleware:
                         out = self.middleware.execute(ctx, call_route)
@@ -2558,6 +2563,8 @@ class CompressionMiddleware(Middleware):
 
     def __call__(self, ctx, next_handler):
         result = next_handler(ctx)
+        if isinstance(result, HTTPResponse):  # errors, redirects, static_file: keep status and headers
+            return result
         accept = ctx.request.get_header('Accept-Encoding', '')
         if 'gzip' not in accept:
             return result

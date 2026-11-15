@@ -64,7 +64,7 @@ def test_pre_runs_before_routing_even_on_404(client):
     app.use(Rec('pre', log, phase='pre')); app.use(Rec('post', log))
     r = client(app).get('/nope')
     assert r.status_code == 404
-    assert '>pre' in log and '>post' not in log
+    assert '>pre' in log and '>post' in log  # post middleware also wraps 404/405
 
 
 def test_pre_phase_before_post_phase_regardless_of_order(client):
@@ -1317,14 +1317,12 @@ def test_di_in_middleware_via_ctx(client):
 
 
 # ------------------------------------------------- unmatched routes / errors
-@pytest.mark.xfail(strict=True, reason="BUG: post-phase middleware (RequestID, Logger) is skipped for 404/405 (unmatched routes) (lcore.py:2265,2278)")
 def test_request_id_on_404(client):
     app = mk(RequestIDMiddleware())
     r = client(app).get('/nope')
     assert r.status_code == 404 and r.headers.get('X-Request-Id')
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: RequestLoggerMiddleware never logs 404/405 requests (post phase) (lcore.py:2278)")
 def test_logger_logs_404(client):
     lg, h = _logger()
     app = mk(RequestLoggerMiddleware(lg))
@@ -1356,3 +1354,13 @@ def test_pre_phase_post_processing_runs_before_handler_documented(client):
             r = nxt(ctx); seen.append(r); return None
     app = mk(P()); app.get('/')(lambda: 'h')
     assert client(app).get('/').text == 'h' and seen == [None]
+
+
+def test_compression_keeps_error_status_for_handler_aborts(client):
+    app = Lcore(); app.use(CompressionMiddleware())
+
+    @app.get('/a')
+    def a(): lcore.abort(404, 'x' * 1000)
+
+    r = client(app).get('/a', headers={'Accept-Encoding': 'gzip'})
+    assert r.status_code == 404 and 'Content-Encoding' not in r.headers
