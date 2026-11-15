@@ -139,23 +139,38 @@
     var editBtn = el('button', 'copy-btn', 'Edit');
     editBtn.type = 'button';
     editBtn.setAttribute('aria-pressed', 'false');
+    var ta = null;
+    function highlight() {
+      if (window.hljs) { code.className = 'hljs language-python'; code.innerHTML = hljs.highlight(ta.value, { language: 'python' }).value; }
+      else code.textContent = ta.value;
+      loaded = false;
+    }
+    // A real textarea sits exactly over the highlighted code: native selection, copy and undo
     editBtn.addEventListener('click', function () {
       var on = editBtn.getAttribute('aria-pressed') !== 'true';
       editBtn.setAttribute('aria-pressed', on);
-      code.textContent = code.textContent; // drop highlight spans while editing
-      code.contentEditable = on ? 'plaintext-only' : 'false';
-      code.spellcheck = false;
-      if (on) code.focus();
-      else if (window.hljs) { code.removeAttribute('data-highlighted'); code.className = 'language-python'; hljs.highlightElement(code); }
-      loaded = false;
+      if (on) {
+        ta = el('textarea', 'pg-ta');
+        ta.value = code.textContent;
+        ta.spellcheck = false;
+        ta.wrap = 'off';
+        ta.setAttribute('aria-label', 'Code editor. Press Escape to leave.');
+        pre.classList.add('editing');
+        pre.appendChild(ta);
+        highlight();
+        ta.focus();
+        ta.addEventListener('input', highlight);
+        ta.addEventListener('keydown', function (e) {
+          if (e.key === 'Tab' && !e.shiftKey) {
+            e.preventDefault();
+            if (!document.execCommand('insertText', false, '    ')) { ta.setRangeText('    ', ta.selectionStart, ta.selectionEnd, 'end'); highlight(); }
+          } else if (e.key === 'Escape') { editBtn.click(); editBtn.focus(); }
+        });
+      } else if (ta) {
+        ta.remove(); ta = null;
+        pre.classList.remove('editing');
+      }
     });
-    // Tab indents; Esc leaves the editor so keyboard users are not trapped
-    code.addEventListener('keydown', function (e) {
-      if (code.contentEditable === 'false') return;
-      if (e.key === 'Tab' && !e.shiftKey) { e.preventDefault(); document.execCommand('insertText', false, '    '); }
-      else if (e.key === 'Escape') { editBtn.click(); editBtn.focus(); }
-    });
-    code.addEventListener('input', function () { loaded = false; });
     var actions = el('span', 'pg-actions');
     actions.appendChild(editBtn);
     actions.appendChild(runBtn);
