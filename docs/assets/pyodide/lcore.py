@@ -1,0 +1,7122 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import sys
+
+__author__ = 'Lusan Sapkota'
+__version__ = '0.0.6'
+__license__ = 'MIT'
+
+def _cli_parse(args):
+    from argparse import ArgumentParser
+
+    parser = ArgumentParser(prog=args[0], usage="%(prog)s [options] package.module:app")
+    opt = parser.add_argument
+    opt("--version", action="store_true", help="show version number.")
+    opt("-b", "--bind", metavar="ADDRESS", help="bind socket to ADDRESS.")
+    opt("-s", "--server", default='wsgiref', help="use SERVER as backend.")
+    opt("-p", "--plugin", action="append", help="install additional plugin/s.")
+    opt("-c", "--conf", action="append", metavar="FILE",
+        help="load config values from FILE.")
+    opt("-C", "--param", action="append", metavar="NAME=VALUE",
+        help="override config values.")
+    opt("--debug", action="store_true", help="start server in debug mode.")
+    opt("--reload", action="store_true", help="auto-reload on file changes.")
+    opt("--docs", action="store_true", help="open documentation in browser.")
+    opt('app', help='WSGI app entry point.', nargs='?')
+
+    cli_args = parser.parse_args(args[1:])
+
+    return cli_args, parser
+
+# Patch early for gevent/eventlet users before stdlib imports kick in
+def _cli_patch(cli_args):
+    parsed_args, _ = _cli_parse(cli_args)
+    opts = parsed_args
+    if opts.server:
+        if opts.server.startswith('gevent'):
+            import gevent.monkey
+            gevent.monkey.patch_all()
+        elif opts.server.startswith('eventlet'):
+            import eventlet
+            eventlet.monkey_patch()
+
+if __name__ == '__main__':
+    _cli_patch(sys.argv)
+
+# stdlib imports that's it, no pip install required
+import abc, asyncio, atexit, base64, codecs, errno, json, calendar, concurrent.futures, email.utils, \
+    functools, gzip, hmac, itertools, logging, mimetypes, os, re, tempfile, \
+    threading, time, uuid, warnings, weakref, hashlib, zlib
+
+from types import FunctionType
+from datetime import date as datedate, datetime, timedelta
+from tempfile import NamedTemporaryFile
+from traceback import format_exc, print_exc
+from unicodedata import normalize
+
+try:
+    from ujson import dumps as json_dumps, loads as json_lds
+except ImportError:
+    from json import dumps as json_dumps, loads as json_lds
+
+py = sys.version_info
+
+import http.client as httplib
+import _thread as thread
+from urllib.parse import urljoin, urlparse, SplitResult as UrlSplitResult
+from urllib.parse import urlencode, quote as urlquote, unquote as urlunquote
+from http.cookies import SimpleCookie, Morsel, CookieError
+from collections import OrderedDict
+from collections.abc import MutableMapping as DictMixin
+from types import ModuleType as new_module
+
+from io import BytesIO, StringIO
+import configparser
+from datetime import timezone
+UTC = timezone.utc
+import inspect
+
+# Without this, `from lcore import *` also dumps every stdlib module imported
+# above into the caller's namespace, shadowing their own os, re, time and sys.
+__all__ = [
+    # Application, routing, context
+    'Lcore', 'Route', 'Router', 'app', 'default_app', 'apps', 'AppStack',
+    'local', 'ctx', 'request', 'response', 'RequestContext', 'LocalContext',
+    'redirect', 'abort', 'static_file', 'run', 'view', 'auth_basic',
+    'make_default_app_wrapper', 'yieldroutes', 'path_shift',
+    'route', 'get', 'post', 'put', 'delete', 'patch', 'error', 'mount',
+    'hook', 'install', 'uninstall', 'url', 'use',
+
+    # Requests and responses
+    'BaseRequest', 'BaseResponse', 'LocalRequest', 'LocalResponse',
+    'Request', 'Response', 'HTTPResponse', 'HTTPError', 'FileUpload',
+    'FormsDict', 'MultiDict', 'HeaderDict', 'WSGIHeaderDict',
+    'HeaderProperty', 'WSGIFileWrapper',
+
+    # Errors
+    'LcoreException', 'RouteError', 'RouteSyntaxError', 'RouteBuildError',
+    'RouterUnknownModeError', 'PluginError', 'TemplateError',
+    'StplSyntaxError', 'MultipartError',
+
+    # Middleware
+    'Middleware', 'MiddlewareHook', 'MiddlewarePipeline',
+    'ProxyFixMiddleware', 'TimeoutMiddleware', 'BodyLimitMiddleware',
+    'RequestIDMiddleware', 'RequestLoggerMiddleware', 'CORSMiddleware',
+    'SecurityHeadersMiddleware', 'CSRFMiddleware', 'SessionMiddleware',
+    'CompressionMiddleware',
+
+    # Sessions
+    'Session', 'SessionBackend', 'MemorySessionBackend',
+    'SQLiteSessionBackend', 'RedisSessionBackend',
+
+    # Security and validation
+    'hash_password', 'verify_password', 'rate_limit', 'RateLimitBackend',
+    'RedisRateLimitBackend', 'validate_request', 'parse_auth',
+    'cookie_encode', 'cookie_decode', 'cookie_is_encoded',
+
+    # Dependency injection, plugins, resources
+    'DependencyContainer', 'BackgroundTaskPool', 'JSONPlugin',
+    'TemplatePlugin', 'ResourceManager', 'on_shutdown',
+
+    # Templates
+    'BaseTemplate', 'SimpleTemplate', 'Jinja2Template', 'MakoTemplate',
+    'CheetahTemplate', 'StplParser', 'template', 'TEMPLATES',
+    'TEMPLATE_PATH', 'ERROR_PAGE_TEMPLATE', 'pretty_error_page',
+    'jinja2_template', 'jinja2_view', 'mako_template', 'mako_view',
+    'cheetah_template', 'cheetah_view',
+
+    # Testing
+    'TestClient', 'TestResponse',
+
+    # Server adapters
+    'ServerAdapter', 'AsyncioServerAdapter', 'AutoServer', 'WSGIRefServer',
+    'GunicornServer', 'WaitressServer', 'GeventServer', 'EventletServer',
+    'CherryPyServer', 'CherootServer', 'PasteServer', 'MeinheldServer',
+    'FapwsServer', 'TornadoServer', 'TwistedServer', 'DieselServer',
+    'BjoernServer', 'AiohttpServer', 'AiohttpUVLoopServer', 'CGIServer',
+    'FlupFCGIServer', 'AppEngineServer',
+
+    # Reloading
+    'AsyncReloader', 'WatchdogReloader', 'FileCheckerThread',
+
+    # Configuration and loading
+    'ConfigDict', 'load', 'load_app', 'load_dotenv', 'debug', 'main',
+    'DEBUG', 'NORUN', 'HTTP_CODES',
+
+    # Utilities
+    'tob', 'touni', 'html_escape', 'html_quote', 'http_date', 'parse_date',
+    'parse_range_header', 'makelist', 'update_wrapper', 'cached_property',
+    'lazy_attribute', 'DictProperty', 'depr', 'json_dumps', 'json_loads',
+    'server_names', 'ext',
+]
+
+json_loads = lambda s: json_lds(touni(s))
+_UNSET = object()  # sentinel for unset config values
+
+# Async handlers: yes you can write `async def` routes, but WSGI is synchronous
+# so each one blocks a worker thread. No magic event loop, no concurrency gain.
+# Use sync handlers. If you truly need async, switch to an ASGI framework.
+
+# Async detection and execution helpers
+def _is_async(func):
+    return inspect.iscoroutinefunction(func)
+
+def _run_async(coro):
+    """Run a coroutine synchronously, blocking the calling thread.
+
+    Two paths: asyncio.run() if no loop is running; otherwise a fresh
+    daemon thread with its own event loop per call.  A shared pool is
+    intentionally NOT used under concurrent load it starves.
+    """
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)  # no loop running: the normal case
+    result_holder = [None, None]  # [result, exception]
+    def _run_in_thread():
+        try:
+            result_holder[0] = asyncio.run(coro)
+        except Exception as exc:
+            result_holder[1] = exc
+    t = threading.Thread(target=_run_in_thread, daemon=True)
+    t.start()
+    t.join()
+    if result_holder[1] is not None:
+        raise result_holder[1]
+    return result_holder[0]
+
+# PEP 3333 workaround: WSGI gives us latin1, we want utf8
+def _wsgi_recode(src):
+    if src.isascii():
+        return src
+    return src.encode('latin1').decode('utf8', 'surrogateescape')
+
+def _raise(*a):
+    raise a[0](a[1]).with_traceback(a[2])
+
+# String encoding helpers: tob() -> bytes, touni() -> str
+def tob(s, enc='utf8'):
+    if isinstance(s, str):
+        return s.encode(enc)
+    return b'' if s is None else bytes(s)
+
+def touni(s, enc='utf8', err='strict'):
+    if isinstance(s, (bytes, bytearray)):
+        return str(s, enc, err)
+    return "" if s is None else str(s)
+
+def _stderr(*args):
+    try:
+        print(*args, file=sys.stderr)
+    except (IOError, AttributeError):
+        pass
+
+def update_wrapper(wrapper, wrapped, *a, **ka):
+    try:
+        functools.update_wrapper(wrapper, wrapped, *a, **ka)
+    except AttributeError:
+        pass
+
+def depr(major, minor, cause, fix, stacklevel=3):
+    text = "Use of feature or API deprecated since Lcore-%d.%d\n"\
+        "Cause: %s\n"\
+        "Fix: %s\n" % (major, minor, cause, fix)
+    if DEBUG == 'strict':
+        raise DeprecationWarning(text)
+    warnings.warn(text, DeprecationWarning, stacklevel=stacklevel)
+    return DeprecationWarning(text)
+
+def makelist(data):
+    if isinstance(data, (tuple, list, set, dict)):
+        return list(data)
+    elif data:
+        return [data]
+    else:
+        return []
+
+# Descriptors: DictProperty, cached_property, lazy_attribute
+
+class DictProperty:
+
+    def __init__(self, attr, key=None, read_only=False):
+        self.attr, self.key, self.read_only = attr, key, read_only
+
+    def __call__(self, func):
+        functools.update_wrapper(self, func, updated=[])
+        self.getter, self.key = func, self.key or func.__name__
+        return self
+
+    def __get__(self, obj, cls):
+        if obj is None: return self
+        key, storage = self.key, getattr(obj, self.attr)
+        if key not in storage: storage[key] = self.getter(obj)
+        return storage[key]
+
+    def __set__(self, obj, value):
+        if self.read_only: raise AttributeError("Read-Only property.")
+        getattr(obj, self.attr)[self.key] = value
+
+    def __delete__(self, obj):
+        if self.read_only: raise AttributeError("Read-Only property.")
+        del getattr(obj, self.attr)[self.key]
+
+# Computed once per instance, thread-safe
+class cached_property:
+
+    def __init__(self, func):
+        update_wrapper(self, func)
+        self.func = func
+        self.lock = threading.RLock()
+
+    def __get__(self, obj, cls):
+        if obj is None: return self
+        name = self.func.__name__
+        try:
+            return obj.__dict__[name]
+        except KeyError:
+            pass
+        with self.lock:
+            if name not in obj.__dict__:
+                obj.__dict__[name] = self.func(obj)
+            return obj.__dict__[name]
+
+# Computed once per class, then replaces itself
+class lazy_attribute:
+
+    def __init__(self, func):
+        functools.update_wrapper(self, func, updated=[])
+        self.getter = func
+
+    def __get__(self, obj, cls):
+        value = self.getter(cls)
+        setattr(cls, self.__name__, value)
+        return value
+
+# You broke something? Start here.
+class LcoreException(Exception):
+    pass
+
+class RouteError(LcoreException):
+    pass
+
+class RouterUnknownModeError(RouteError):
+    pass
+
+class RouteSyntaxError(RouteError):
+    pass
+
+class RouteBuildError(RouteError):
+    pass
+
+# Convert named/capturing groups to non-capturing for combined regex matching
+def _re_flatten(p):
+    if '(' not in p:
+        return p
+    return re.sub(r'(\\*)(\(\?P<[^>]+>|\((?!\?))', lambda m: m.group(0) if
+                  len(m.group(1)) % 2 else m.group(1) + '(?:', p)
+
+# URL pattern matching. Static routes hit a dict, dynamic ones hit compiled regex.
+class Router:
+
+    default_pattern = '[^/]+'
+    default_filter = 're'
+
+    _MAX_GROUPS_PER_PATTERN = 99  # regex group limit per combined pattern
+
+    def __init__(self, strict=False):
+        self.rules = []          # all registered rules
+        self._groups = {}        # (flatpat, method) -> index for overwrite detection
+        self.builder = {}        # rule/name -> builder tuples for URL generation
+        self.static = {}         # method -> {path: (target, getargs)} for static routes
+        self.dyna_routes = {}    # method -> [(rule, flatpat, target, getargs)]
+        self.dyna_regexes = {}   # method -> [(combined_match, rules)] compiled combos
+        self.strict_order = strict
+        self.filters = {         # name -> func(conf) -> (pattern, in_filter, out_filter)
+            're': lambda conf: (_re_flatten(conf or self.default_pattern),
+                                None, None),
+            'int': lambda conf: (r'-?\d+', int, lambda x: str(int(x))),
+            'float': lambda conf: (r'-?[\d.]+', float, lambda x: str(float(x))),
+            'path': lambda conf: (r'.+?', None, None)
+        }
+
+    def add_filter(self, name, func):
+        self.filters[name] = func
+
+    rule_syntax = re.compile('(\\\\*)'
+        '(?:(?::([a-zA-Z_][a-zA-Z_0-9]*)?()(?:#(.*?)#)?)'
+          '|(?:<([a-zA-Z_][a-zA-Z_0-9]*)?(?::([a-zA-Z_]*)'
+            '(?::((?:\\\\.|[^\\\\>])+)?)?)?>))')
+
+    def _itertokens(self, rule):
+        offset, prefix = 0, ''
+        for match in self.rule_syntax.finditer(rule):
+            prefix += rule[offset:match.start()]
+            g = match.groups()
+            if g[2] is not None:
+                depr(0, 0, "Use of old route syntax.",
+                            "Use <name> instead of :name in routes.",
+                            stacklevel=4)
+            if len(g[0]) % 2:
+                prefix += match.group(0)[len(g[0]):]
+                offset = match.end()
+                continue
+            if prefix:
+                yield prefix, None, None
+            name, filtr, conf = g[4:7] if g[2] is None else g[1:4]
+            yield name, filtr or 'default', conf or None
+            offset, prefix = match.end(), ''
+        if offset <= len(rule) or prefix:
+            yield prefix + rule[offset:], None, None
+
+    # Parse rule into regex pattern, register as static or dynamic route
+    def add(self, rule, method, target, name=None):
+        anons = []
+        keys = []
+        pattern = ''
+        filters = []
+        builder = []
+        is_static = True
+
+        for key, mode, conf in self._itertokens(rule):
+            if mode:
+                is_static = False
+                if mode == 'default': mode = self.default_filter
+                mask, in_filter, out_filter = self.filters[mode](conf)
+                if not key:
+                    key = 'anon%d' % len(anons)
+                    anons.append(key)
+                pattern += '(?P<%s>%s)' % (key, mask)
+                keys.append(key)
+                if in_filter: filters.append((key, in_filter))
+                if not out_filter:  # percent-encode raw values; :path keeps its slashes
+                    safe = '/' if mode == 'path' else ''
+                    out_filter = lambda x, safe=safe: urlquote(str(x), safe=safe)
+                builder.append((key, out_filter))
+            elif key:
+                pattern += re.escape(key)
+                builder.append((None, key))
+
+        self.builder[rule] = builder
+        if name: self.builder[name] = builder
+
+        if is_static and not self.strict_order:
+            self.static.setdefault(method, {})
+            self.static[method][self.build(rule)] = (target, None)
+            return
+
+        try:
+            re_pattern = re.compile('^(%s)$' % pattern)
+            re_match = re_pattern.match
+        except re.error as e:
+            raise RouteSyntaxError("Could not add Route: %s (%s)" % (rule, e))
+
+        if filters:
+
+            def getargs(path):
+                url_args = re_match(path).groupdict()
+                for name, wildcard_filter in filters:
+                    try:
+                        url_args[name] = wildcard_filter(url_args[name])
+                    except ValueError:
+                        raise HTTPError(400, 'Path has wrong format.')
+                for key in anons:
+                    del url_args[key]
+                return url_args
+        elif re_pattern.groupindex:
+
+            def getargs(path):
+                url_args = re_match(path).groupdict()
+                for key in anons:
+                    del url_args[key]
+                return url_args
+        else:
+            getargs = None
+
+        flatpat = _re_flatten(pattern)
+        whole_rule = (rule, flatpat, target, getargs)
+
+        if (flatpat, method) in self._groups:
+            if DEBUG:
+                msg = 'Route <%s %s> overwrites a previously defined route'
+                warnings.warn(msg % (method, rule), RuntimeWarning, stacklevel=3)
+            self.dyna_routes[method][
+                self._groups[flatpat, method]] = whole_rule
+        else:
+            self.dyna_routes.setdefault(method, []).append(whole_rule)
+            self._groups[flatpat, method] = len(self.dyna_routes[method]) - 1
+
+        self._compile(method)
+
+    # Batch dynamic routes into combined regexes (up to 99 per group)
+    def _compile(self, method):
+        all_rules = self.dyna_routes[method]
+        comborules = self.dyna_regexes[method] = []
+        maxgroups = self._MAX_GROUPS_PER_PATTERN
+        for x in range(0, len(all_rules), maxgroups):
+            some = all_rules[x:x + maxgroups]
+            combined = (flatpat for (_, flatpat, _, _) in some)
+            combined = '|'.join('(^%s$)' % flatpat for flatpat in combined)
+            combined = re.compile(combined).match
+            rules = [(target, getargs) for (_, _, target, getargs) in some]
+            comborules.append((combined, rules))
+
+    # Build a URL from a route name and arguments (reverse routing)
+    def build(self, _name, *anons, **query):
+        builder = self.builder.get(_name)
+        if not builder:
+            raise RouteBuildError("No route with that name.", _name)
+        try:
+            for i, value in enumerate(anons):
+                query['anon%d' % i] = value
+            url = ''.join([f(query.pop(n)) if n else f for (n, f) in builder])
+            return url if not query else url + '?' + urlencode(query, doseq=True)
+        except KeyError as E:
+            raise RouteBuildError('Missing URL argument: %r' % E.args[0])
+
+    # Match environ to a route. Returns (target, url_args) or raises HTTPError
+    def match(self, environ):
+        verb = environ['REQUEST_METHOD'].upper()
+        path = environ['PATH_INFO'] or '/'
+
+        methods = ('PROXY', 'HEAD', 'GET', 'ANY') if verb == 'HEAD' else ('PROXY', verb, 'ANY')
+
+        for method in methods:
+            if method in self.static and path in self.static[method]:
+                target, getargs = self.static[method][path]
+                return target, getargs(path) if getargs else {}
+            elif method in self.dyna_regexes:
+                for combined, rules in self.dyna_regexes[method]:
+                    match = combined(path)
+                    if match:
+                        target, getargs = rules[match.lastindex - 1]
+                        return target, getargs(path) if getargs else {}
+
+        allowed = set([])
+        nocheck = set(methods)
+        for method in set(self.static) - nocheck:
+            if path in self.static[method]:
+                allowed.add(method)
+        for method in set(self.dyna_regexes) - allowed - nocheck:
+            for combined, rules in self.dyna_regexes[method]:
+                match = combined(path)
+                if match:
+                    allowed.add(method)
+        if allowed:
+            allow_header = ",".join(sorted(allowed))
+            raise HTTPError(405, "Method not allowed.", Allow=allow_header)
+
+        raise HTTPError(404, "Not found: " + repr(path))
+
+# One URL rule + handler + plugins. The engine room of every request.
+class Route:
+
+    def __init__(self, app, rule, method, callback,
+                 name=None,
+                 plugins=None,
+                 skiplist=None, **config):
+        self.app = app
+        self.rule = rule
+        self.method = method
+        self.callback = callback
+        self.name = name or None
+        self.plugins = plugins or []
+        self.skiplist = skiplist or []
+        self.config = app.config._make_overlay()
+        self.config.load_dict(config)
+
+    @cached_property
+    def call(self):  # compiled callback with all plugins applied (cached)
+        return self._make_callback()
+
+    def reset(self):
+        self.__dict__.pop('call', None)
+
+    def prepare(self):
+        self.call
+
+    def all_plugins(self):
+        unique = set()
+        for p in reversed(self.app.plugins + self.plugins):
+            if True in self.skiplist: break
+            name = getattr(p, 'name', False)
+            if name and (name in self.skiplist or name in unique): continue
+            if p in self.skiplist or type(p) in self.skiplist: continue
+            if name: unique.add(name)
+            yield p
+
+    # Apply plugins, wrap async handlers for sync execution.
+    def _make_callback(self):
+        callback = self.callback
+        # Checked on the route's own callback, before plugins wrap it: with
+        # JSONPlugin auto-installed on every app, callback is already a
+        # plain sync wrapper by the time the plugin loop below finishes, so
+        # checking _is_async() only after the loop never fired here except
+        # on a route that explicitly skips every wrapping plugin.
+        if _is_async(callback):
+            warnings.warn(
+                "Lcore: route '%s %s' is async def, but WSGI is synchronous. "
+                "This will block a worker thread and won't give you "
+                "concurrency. Use sync handlers for WSGI; for real "
+                "concurrency without rewriting handlers, run under the "
+                "gevent or eventlet server adapter instead. For true async "
+                "execution, switch to an ASGI framework."
+                % (self.method, self.rule),
+                UserWarning, stacklevel=2)
+        for plugin in self.all_plugins():
+            if hasattr(plugin, 'apply'):
+                callback = plugin.apply(callback, self)
+            else:
+                callback = plugin(callback)
+            if callback is not self.callback:
+                update_wrapper(callback, self.callback)
+        if _is_async(callback):
+            # Only reached when no plugin already handled execution (e.g.
+            # JSONPlugin's own iscoroutine()/_run_async() branch) -- the
+            # callback survived the loop still a bare coroutine function.
+            original = callback
+            @functools.wraps(original)
+            def async_wrapper(*a, **ka):
+                return _run_async(original(*a, **ka))
+            callback = async_wrapper
+        return callback
+
+    def get_undecorated_callback(self):
+        func = self.callback
+        while True:
+            if getattr(func, '__wrapped__', False):
+                func = func.__wrapped__
+            elif getattr(func, '__func__', False):
+                func = func.__func__
+            elif getattr(func, '__closure__', False):
+                depr(0, 0, "Decorated callback without __wrapped__",
+                     "Use @functools.wraps or update_wrapper on decorators "
+                     "applied to route callbacks.")
+                cells_values = (cell.cell_contents for cell in func.__closure__)
+                isfunc = lambda x: isinstance(x, FunctionType) or hasattr(x, '__call__')
+                func = next(filter(isfunc, cells_values), func)
+            else:
+                return func
+
+    def get_callback_args(self):
+        sig = inspect.signature(self.get_undecorated_callback())
+        return [p.name for p in sig.parameters.values() if p.kind in (
+            p.POSITIONAL_OR_KEYWORD, p.KEYWORD_ONLY
+        )]
+
+    def get_config(self, key, default=None):
+        depr(0, 0, "Route.get_config() is deprecated.",
+                    "The Route.config property already includes values from the"
+                    " application config for missing keys. Access it directly.")
+        return self.config.get(key, default)
+
+    def __repr__(self):
+        cb = self.get_undecorated_callback()
+        return '<%s %s -> %s:%s>' % (
+            self.method, self.rule, cb.__module__, getattr(cb, '__name__', '?')
+        )
+
+_DOCS_HTML = """\
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>API Docs Lcore %(version)s</title>
+<style>
+:root {
+  --bg: #fff; --bg-card: #fafbfc; --bg-code: #f6f8fa;
+  --border: #d0d7de; --text: #1f2328; --text-muted: #656d76; --text-dim: #8b949e;
+  --accent: #0969da; --green: #1a7f37; --green-bg: #dafbe1;
+  --blue: #0969da; --blue-bg: #ddf4ff;
+  --orange: #bf8700; --orange-bg: #fff1e5;
+  --red: #cf222e; --red-bg: #ffebe9;
+  --radius: 8px;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --mono: ui-monospace, 'SF Mono', 'Cascadia Code', monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1117; --bg-card: #161b22; --bg-code: #161b22;
+    --border: #30363d; --text: #e6edf3; --text-muted: #8b949e; --text-dim: #6e7681;
+    --accent: #58a6ff; --green: #3fb950; --green-bg: rgba(63,185,80,0.15);
+    --blue: #58a6ff; --blue-bg: rgba(88,166,255,0.15);
+    --orange: #d2991d; --orange-bg: rgba(210,153,29,0.15);
+    --red: #f85149; --red-bg: rgba(248,81,73,0.15);
+  }
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font);background:var(--bg);color:var(--text);line-height:1.6}
+.container{max-width:960px;margin:0 auto;padding:32px 24px}
+header{padding:0 0 20px;border-bottom:1px solid var(--border);margin-bottom:28px}
+header h1{font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px}
+header h1 span{color:var(--accent)}
+header p{color:var(--text-muted);font-size:14px}
+.count{color:var(--text-muted);font-size:14px;margin-bottom:20px}
+.endpoint{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);
+margin-bottom:10px;overflow:hidden}
+.endpoint-header{display:flex;align-items:center;gap:10px;padding:14px 18px;cursor:pointer}
+.badge{display:inline-block;padding:3px 10px;border-radius:4px;font-size:11px;
+font-weight:700;font-family:var(--mono);text-transform:uppercase;min-width:62px;text-align:center}
+.method-get{background:var(--green-bg);color:var(--green)}
+.method-post{background:var(--blue-bg);color:var(--blue)}
+.method-put{background:var(--orange-bg);color:var(--orange)}
+.method-delete{background:var(--red-bg);color:var(--red)}
+.method-other{background:var(--bg-code);color:var(--text-muted)}
+.path{font-family:var(--mono);font-size:15px;color:var(--text);font-weight:500;word-break:break-all}
+.ret{font-family:var(--mono);font-size:13px;color:var(--text-dim);margin-left:auto;white-space:nowrap}
+.docstring{padding:0 18px 14px;color:var(--text-muted);font-size:14px}
+.params{width:calc(100%% - 36px);margin:0 18px 14px;border-collapse:collapse;font-size:13px}
+.params th{text-align:left;padding:8px 12px;background:var(--bg-code);color:var(--text-muted);
+font-weight:600;border-bottom:1px solid var(--border);font-size:12px;text-transform:uppercase}
+.params td{padding:8px 12px;border-bottom:1px solid var(--border);font-family:var(--mono);color:var(--text)}
+.json-link{display:inline-block;margin-top:20px;color:var(--accent);font-size:13px;text-decoration:none}
+.json-link:hover{text-decoration:underline}
+@media (max-width:600px) {
+  .endpoint-header{flex-wrap:wrap;gap:6px}
+  .ret{margin-left:0;width:100%%}
+  .params td,.params th{padding:6px 8px;font-size:12px}
+}
+</style>
+</head>
+<body>
+<div class="container">
+<header>
+<h1><span>Lcore</span> API Documentation</h1>
+<p>v%(version)s &middot; Auto-generated from route signatures and docstrings</p>
+</header>
+<p class="count">%(count)s endpoint%(plural)s</p>
+%(routes)s
+<a class="json-link" href="%(json_url)s">View raw JSON &#8594;</a>
+</div>
+<script>
+document.querySelectorAll('.endpoint-header').forEach(function(h) {
+  h.addEventListener('click', function() {
+    var body = this.nextElementSibling;
+    if (body) body.style.display = body.style.display === 'none' ? 'block' : 'none';
+  });
+});
+</script>
+</body>
+</html>"""
+
+# Thread-safe route prefix helper. Returns a proxy that tacks on a prefix
+# without mutating the parent app. Safe across threads in test factories.
+class _RouteGroup:
+    """Proxy returned by app.group(prefix). Use as context manager or directly."""
+
+    def __init__(self, app, prefix, common_config):
+        self._app = app
+        self._prefix = prefix.rstrip('/')
+        self._config = common_config
+
+    def _prefixed(self, path):
+        return self._prefix + '/' + path.lstrip('/')
+
+    def route(self, path='/', method='GET', **kwargs):
+        merged = {**self._config, **kwargs}
+        return self._app.route(self._prefixed(path), method, **merged)
+
+    def get(self, path='/', **kwargs):
+        return self.route(path, 'GET', **kwargs)
+
+    def post(self, path='/', **kwargs):
+        return self.route(path, 'POST', **kwargs)
+
+    def put(self, path='/', **kwargs):
+        return self.route(path, 'PUT', **kwargs)
+
+    def delete(self, path='/', **kwargs):
+        return self.route(path, 'DELETE', **kwargs)
+
+    def patch(self, path='/', **kwargs):
+        return self.route(path, 'PATCH', **kwargs)
+
+    def use(self, middleware, **kwargs):
+        """Register middleware scoped to this group's prefix pattern."""
+        pattern = '^' + re.escape(self._prefix)
+        return self._app.use(middleware, routes=pattern, **kwargs)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        pass
+
+
+# The thing you came for. Routes, middleware, plugins, config, WSGI all here.
+_fast_page = [None, None]  # [template it was derived from, format string]
+
+def _fast_error_page(url):
+    """'%(s)s %(u)s %(b)s' format string equal to what ERROR_PAGE_TEMPLATE renders
+    outside DEBUG. Derived by rendering the template once with sentinels (the
+    template reads the live request for the URL, so *url* is located by value),
+    so it cannot drift from the template. None if the derivation is ambiguous."""
+    if _fast_page[0] is not ERROR_PAGE_TEMPLATE:
+        class _E: status, body, exception, traceback = '@@S@@', '@@B@@', None, None
+        try:
+            out = template(ERROR_PAGE_TEMPLATE, e=_E, template_settings=dict(name='__ERROR_PAGE_TEMPLATE_FAST'))
+            u = html_escape(url)
+            ok = (out.count('@@S@@') == 2 and out.count('@@B@@') == 1 and out.count(u) == 1
+                  and '%' not in out.replace(u, ''))
+        except Exception:  # template needs more of `e` than we can fake: never use the fast path
+            _fast_page[:] = [ERROR_PAGE_TEMPLATE, None]
+            return None
+        if ok:
+            out = out.replace('@@S@@', '%(s)s').replace('@@B@@', '%(b)s').replace(u, '%(u)s')
+            _fast_page[:] = [ERROR_PAGE_TEMPLATE, out]
+        else:
+            return None  # not cached: retried on a later request
+    return _fast_page[1]
+
+
+def _prefers_json(environ):
+    """True when Accept ranks application/json above text/html (q-weights honoured)."""
+    rank = {}
+    for i, part in enumerate(environ.get('HTTP_ACCEPT', '').lower().split(',')):
+        kind, _, params = part.partition(';')
+        q = 1.0
+        for p in params.split(';'):
+            k, _, v = p.strip().partition('=')
+            if k == 'q':
+                try: q = float(v)
+                except ValueError: q = 0.0
+        rank.setdefault(kind.strip(), (-q, i))
+    if 'application/json' not in rank or rank['application/json'][0] == 0: return False
+    return 'text/html' not in rank or rank['application/json'] < rank['text/html']
+
+
+class Lcore:
+
+    @lazy_attribute
+    def _global_config(cls):
+        cfg = ConfigDict()
+        cfg.meta_set('catchall', 'validate', bool)
+        return cfg
+
+    def __init__(self, **kwargs):
+        # Initialise the plugin-attribute tracker FIRST so that __setattr__
+        # can safely reference it for every subsequent assignment.
+        object.__setattr__(self, '_plugin_attrs', set())
+
+        self.config = self._global_config._make_overlay()
+        self.config._add_change_listener(
+            functools.partial(self.trigger_hook, 'config'))
+
+        self.config.update({
+            "catchall": True,
+            "error.format": "html",
+            "request.max_body": 10 * 1024 * 1024,  # bytes; 0 = unlimited
+        })
+
+        if kwargs.get('catchall') is False:
+            depr(0, 0, "Lcore(catchall) keyword argument.",
+                        "The 'catchall' setting is now part of the app "
+                        "configuration. Fix: `app.config['catchall'] = False`")
+            self.config['catchall'] = False
+        if kwargs.get('autojson') is False:
+            depr(0, 0, "Lcore(autojson) keyword argument.",
+                 "The 'autojson' setting is now part of the app "
+                 "configuration. Fix: `app.config['json.enable'] = False`")
+            self.config['json.enable'] = False
+
+        self._mounts = []
+        self._module_hooks = {}
+        self._dependencies = None
+
+        self.resources = ResourceManager()
+
+        self.routes = []
+        self.router = Router()
+        self.error_handler = {}
+        self.middleware = MiddlewarePipeline()
+
+        self.plugins = []
+        self.install(JSONPlugin())
+        self.install(TemplatePlugin())
+
+    catchall = DictProperty('config', 'catchall')
+
+    # 12 lifecycle hooks; reversed hooks run in LIFO order
+    __hook_names = ('before_request', 'after_request', 'app_reset', 'config',
+                    'on_request_start', 'on_auth_resolved', 'on_handler_enter',
+                    'on_handler_exit', 'on_response_build', 'on_response_send',
+                    'on_module_mount', 'on_module_request')
+    __hook_reversed = {'after_request', 'on_handler_exit', 'on_response_build',
+                       'on_response_send'}
+
+    @cached_property
+    def _hooks(self):
+        return dict((name, []) for name in self.__hook_names)
+
+    def add_hook(self, name, func):
+        if name in self.__hook_reversed:
+            self._hooks[name].insert(0, func)
+        else:
+            self._hooks[name].append(func)
+
+    def remove_hook(self, name, func):
+        if name in self._hooks and func in self._hooks[name]:
+            self._hooks[name].remove(func)
+            return True
+
+    def trigger_hook(self, __name, *args, **kwargs):
+        hooks = self._hooks[__name]
+        return [hook(*args, **kwargs) for hook in hooks[:]]
+
+    def trigger_module_hooks(self, prefix, hook_name, *args, **kwargs):
+        key = (prefix, hook_name)
+        for func in self._module_hooks.get(key, []):
+            func(*args, **kwargs)
+
+    def hook(self, name):
+
+        def decorator(func):
+            self.add_hook(name, func)
+            return func
+
+        return decorator
+
+    # Mount an external WSGI app under a URL prefix
+    def _mount_wsgi(self, prefix, app, **options):
+        segments = [p for p in prefix.split('/') if p]
+        if not segments:
+            raise ValueError('WSGI applications cannot be mounted to "/".')
+        path_depth = len(segments)
+
+        def mountpoint_wrapper():
+            try:
+                request.path_shift(path_depth)
+                rs = HTTPResponse([])
+
+                def start_response(status, headerlist, exc_info=None):
+                    if exc_info:
+                        _raise(*exc_info)
+                    status = _wsgi_recode(status)
+                    headerlist = [(k, _wsgi_recode(v)) for (k, v) in headerlist]
+                    rs.status = status
+                    for name, value in headerlist:
+                        rs.add_header(name, value)
+                    return rs.body.append
+
+                body = app(request.environ, start_response)
+                rs.body = itertools.chain(rs.body, body) if rs.body else body
+                return rs
+            finally:
+                request.path_shift(-path_depth)
+
+        options.setdefault('skip', True)
+        options.setdefault('method', 'PROXY')
+        options.setdefault('mountpoint', {'prefix': prefix, 'target': app})
+        options['callback'] = mountpoint_wrapper
+
+        self.route('/%s/<:re:.*>' % '/'.join(segments), **options)
+        if not prefix.endswith('/'):
+            self.route('/' + '/'.join(segments), **options)
+
+    # Mount a Lcore sub-app: merges routes and hooks under prefix
+    def _mount_app(self, prefix, app, **options):
+        if app in self._mounts or '_mount.app' in app.config:
+            depr(0, 0, "Application mounted multiple times. Falling back to WSGI mount.",
+                 "Clone application before mounting to a different location.")
+            return self._mount_wsgi(prefix, app, **options)
+
+        if options:
+            depr(0, 0, "Unsupported mount options. Falling back to WSGI mount.",
+                 "Do not specify any route options when mounting lcore application.")
+            return self._mount_wsgi(prefix, app, **options)
+
+        if not prefix.endswith("/"):
+            depr(0, 0, "Prefix must end in '/'. Falling back to WSGI mount.",
+                 "Consider adding an explicit redirect from '/prefix' to '/prefix/' in the parent application.")
+            return self._mount_wsgi(prefix, app, **options)
+
+        self._mounts.append(app)
+        app.config['_mount.prefix'] = prefix
+        app.config['_mount.app'] = self
+        for route in app.routes:
+            route.rule = prefix + route.rule.lstrip('/')
+            route.config['_mount.prefix'] = prefix
+            self.add_route(route)
+        for hook_name in self.__hook_names:
+            for func in app._hooks.get(hook_name, []):
+                self.add_module_hook(prefix, hook_name, func)
+        self.trigger_hook('on_module_mount', prefix, app)
+
+    def mount(self, prefix, app, **options):
+
+        if not prefix.startswith('/'):
+            raise ValueError("Prefix must start with '/'")
+
+        if isinstance(app, Lcore):
+            return self._mount_app(prefix, app, **options)
+        else:
+            return self._mount_wsgi(prefix, app, **options)
+
+    def merge(self, routes):
+        if isinstance(routes, Lcore):
+            routes = routes.routes
+        for route in routes:
+            self.add_route(route)
+
+    # Register middleware (optionally scoped to route patterns)
+    def use(self, middleware, routes=None, order=None):
+        self.middleware.add(middleware, routes=routes, order=order)
+        return middleware
+
+    # Register a dependency for DI (singleton, scoped, or transient)
+    def inject(self, name, factory, lifetime='singleton'):
+        if self._dependencies is None:
+            object.__setattr__(self, '_dependencies', DependencyContainer())
+        self._dependencies.register(name, factory, lifetime)
+        return factory
+
+    def add_module_hook(self, prefix, hook_name, func):
+        key = (prefix, hook_name)
+        self._module_hooks.setdefault(key, [])
+        self._module_hooks[key].append(func)
+
+    def module_hook(self, prefix, hook_name):
+        def decorator(func):
+            self.add_module_hook(prefix, hook_name, func)
+            return func
+        return decorator
+
+    def group(self, prefix, **common_config):
+        return _RouteGroup(self, prefix, common_config)
+
+    def add_route_filter(self, name, pattern, to_python=None, to_url=None):
+        self.router.add_filter(name, lambda conf: (pattern, to_python, to_url))
+
+    def install(self, plugin):
+        before = set(self.__dict__.keys())
+        if hasattr(plugin, 'setup'): plugin.setup(self)
+        after = set(self.__dict__.keys())
+        self._plugin_attrs.update(after - before - {'_plugin_attrs'})
+        if not callable(plugin) and not hasattr(plugin, 'apply'):
+            raise TypeError("Plugins must be callable or implement .apply()")
+        self.plugins.append(plugin)
+        self.reset()
+        return plugin
+
+    def uninstall(self, plugin):
+        removed, remove = [], plugin
+        for i, plugin in list(enumerate(self.plugins))[::-1]:
+            if remove is True or remove is plugin or remove is type(plugin) \
+               or getattr(plugin, 'name', True) == remove:
+                removed.append(plugin)
+                del self.plugins[i]
+                if hasattr(plugin, 'close'): plugin.close()
+        if removed: self.reset()
+        return removed
+
+    def reset(self, route=None):
+        if route is None: routes = self.routes
+        elif isinstance(route, Route): routes = [route]
+        else: routes = [self.routes[route]]
+        for route in routes:
+            route.reset()
+        if DEBUG:
+            for route in routes:
+                route.prepare()
+        self.trigger_hook('app_reset')
+
+    def close(self):
+        for plugin in self.plugins:
+            if hasattr(plugin, 'close'): plugin.close()
+
+    def run(self, **kwargs):
+        run(self, **kwargs)
+
+    def show_routes(self):
+        lines = []
+        for r in self.routes:
+            cb = r.get_undecorated_callback()
+            mod = getattr(cb, '__module__', '?')
+            name = getattr(cb, '__name__', '?')
+            plugins = [getattr(p, 'name', type(p).__name__)
+                       for p in r.all_plugins()]
+            line = {
+                'method': r.method,
+                'rule': r.rule,
+                'name': r.name or '',
+                'callback': '%s:%s' % (mod, name),
+                'plugins': plugins,
+            }
+            lines.append(line)
+        return lines
+
+    def show_middleware(self):
+        entries = []
+        for mw, pattern in self.middleware._middleware:
+            entry = {
+                'name': getattr(mw, 'name', None) or type(mw).__name__,
+                'order': getattr(mw, 'order', 50),
+                'routes': pattern.pattern if pattern else '*',
+                'type': type(mw).__name__,
+            }
+            entries.append(entry)
+        entries.sort(key=lambda x: x['order'])
+        return entries
+
+    def api_docs(self):
+        docs = {'routes': [], 'version': __version__}
+        hidden = getattr(self, '_docs_paths', set())
+        for r in self.routes:
+            if r.rule in hidden:
+                continue
+            cb = r.get_undecorated_callback()
+            sig = inspect.signature(cb)
+            params = []
+            for pname, p in sig.parameters.items():
+                param_info = {'name': pname, 'kind': str(p.kind.name)}
+                if p.default is not p.empty:
+                    param_info['default'] = repr(p.default)
+                if p.annotation is not p.empty:
+                    param_info['type'] = getattr(p.annotation, '__name__',
+                                                 str(p.annotation))
+                params.append(param_info)
+            return_type = None
+            if sig.return_annotation is not sig.empty:
+                return_type = getattr(sig.return_annotation, '__name__',
+                                      str(sig.return_annotation))
+            doc_entry = {
+                'method': r.method,
+                'rule': r.rule,
+                'name': r.name or '',
+                'callback': getattr(cb, '__name__', '?'),
+                'module': getattr(cb, '__module__', '?'),
+                'docstring': inspect.getdoc(cb) or '',
+                'parameters': params,
+            }
+            if return_type:
+                doc_entry['return_type'] = return_type
+            docs['routes'].append(doc_entry)
+        return docs
+
+    def api_docs_json(self):
+        return json_dumps(self.api_docs())
+
+    # Auto-generate API docs from route signatures and docstrings
+    def enable_docs(self, path='/docs'):
+        app = self
+        json_path = path.rstrip('/') + '/json'
+        self._docs_paths = {path, json_path}
+
+        @app.route(json_path)
+        def _docs_json():
+            response.content_type = 'application/json'
+            return app.api_docs_json()
+
+        @app.route(path)
+        def _docs_ui():
+            data = app.api_docs()
+            routes_html = []
+            for r in data['routes']:
+                method = r['method']
+                if isinstance(method, (list, tuple)):
+                    method = ', '.join(method)
+                method_upper = method.upper()
+                if 'GET' in method_upper:
+                    badge_cls = 'method-get'
+                elif 'POST' in method_upper:
+                    badge_cls = 'method-post'
+                elif 'PUT' in method_upper:
+                    badge_cls = 'method-put'
+                elif 'DELETE' in method_upper:
+                    badge_cls = 'method-delete'
+                else:
+                    badge_cls = 'method-other'
+                params_html = ''
+                if r['parameters']:
+                    rows = ''
+                    for p in r['parameters']:
+                        rows += '<tr><td>%s</td><td>%s</td><td>%s</td></tr>' % (
+                            html_escape(p['name']),
+                            html_escape(p.get('type', '-')),
+                            html_escape(p.get('default', 'required')))
+                    params_html = (
+                        '<table class="params"><thead><tr>'
+                        '<th>Parameter</th><th>Type</th><th>Default</th>'
+                        '</tr></thead><tbody>%s</tbody></table>' % rows)
+                doc = html_escape(r.get('docstring', ''))
+                ret = r.get('return_type', '')
+                ret_html = (' <span class="ret">&#8594; %s</span>' %
+                            html_escape(ret)) if ret else ''
+                extra = (doc or params_html)
+                routes_html.append(
+                    '<div class="endpoint">'
+                    '<div class="endpoint-header">'
+                    '<span class="badge %s">%s</span>'
+                    '<span class="path">%s</span>%s</div>'
+                    '%s%s</div>' % (
+                        badge_cls, html_escape(method),
+                        html_escape(r['rule']), ret_html,
+                        ('<div style="display:none"><p class="docstring">%s</p>%s</div>' % (doc, params_html)) if extra else '',
+                        ''))
+            n = len(data['routes'])
+            return _DOCS_HTML % {
+                'version': html_escape(data.get('version', '')),
+                'routes': '\n'.join(routes_html),
+                'json_url': json_path,
+                'count': str(n),
+                'plural': 's' if n != 1 else ''}
+
+    def match(self, environ):
+        return self.router.match(environ)
+
+    def get_url(self, routename, **kargs):
+        scriptname = request.environ.get('SCRIPT_NAME', '').strip('/') + '/'
+        location = self.router.build(routename, **kargs).lstrip('/')
+        return urljoin(urljoin('/', scriptname), location)
+
+    def add_route(self, route):
+        self.routes.append(route)
+        self.router.add(route.rule, route.method, route, name=route.name)
+        if DEBUG: route.prepare()
+
+    def route(self,
+              path=None,
+              method='GET',
+              callback=None,
+              name=None,
+              apply=None,
+              skip=None, **config):
+        if callable(path): path, callback = None, path
+        plugins = makelist(apply)
+        skiplist = makelist(skip)
+
+        def decorator(callback):
+            if isinstance(callback, str):
+                callback = load(callback)
+            for rule in makelist(path) or yieldroutes(callback):
+                for verb in makelist(method):
+                    verb = verb.upper()
+                    route = Route(self, rule, verb, callback,
+                                  name=name,
+                                  plugins=plugins,
+                                  skiplist=skiplist, **config)
+                    self.add_route(route)
+            return callback
+
+        return decorator(callback) if callback else decorator
+
+    def get(self, path=None, method='GET', **options):
+        return self.route(path, method, **options)
+
+    def post(self, path=None, method='POST', **options):
+        return self.route(path, method, **options)
+
+    def put(self, path=None, method='PUT', **options):
+        return self.route(path, method, **options)
+
+    def delete(self, path=None, method='DELETE', **options):
+        return self.route(path, method, **options)
+
+    def patch(self, path=None, method='PATCH', **options):
+        return self.route(path, method, **options)
+
+    def error(self, code=500, callback=None):
+
+        def decorator(callback):
+            if isinstance(callback, str): callback = load(callback)
+            self.error_handler[int(code)] = callback
+            return callback
+
+        return decorator(callback) if callback else decorator
+
+    def default_error_handler(self, res):
+        if (res.content_type or '').startswith('application/json'):
+            return tob(res.body) if isinstance(res.body, str) else res.body  # handler already built JSON
+        if self.config.get('error.format') == 'json' or _prefers_json(request.environ):
+            body = res.body if isinstance(res.body, str) and res.body else \
+                _HTTP_STATUS_LINES.get(res.status_code, res.status_line).split(' ', 1)[-1]
+            response.set_header('Content-Type', 'application/json')
+            return tob(json_dumps({'error': body, 'status': res.status_code}))
+        if not DEBUG and isinstance(res.body, str):
+            url = request.url
+            fast = _fast_error_page(url)
+            if fast: return tob(fast % {'s': html_escape(res.status), 'u': html_escape(url), 'b': html_escape(res.body)})
+        return tob(template(ERROR_PAGE_TEMPLATE, e=res, template_settings=dict(name='__ERROR_PAGE_TEMPLATE')))
+
+    # The request hot path. Bind, hook, route, middleware, respond.
+    def _handle(self, environ):
+        path = environ['lcore.raw_path'] = environ['PATH_INFO']
+        environ['PATH_INFO'] = _wsgi_recode(path)
+
+        environ['lcore.app'] = self
+        hk = self._hooks  # skip the call when a hook has no listeners (8x per request)
+        # Auto-inject trusted proxies from config (simplifies ProxyFix setup)
+        trusted = self.config.get('proxy.trusted')
+        if trusted:
+            if isinstance(trusted, (list, tuple, set, frozenset)):
+                environ['lcore.trusted_proxies'] = frozenset(trusted)
+            elif isinstance(trusted, str):
+                environ['lcore.trusted_proxies'] = frozenset(
+                    a.strip() for a in trusted.split(',') if a.strip())
+        environ.setdefault('lcore.body_max_size', self.config.get('request.max_body', 0))
+        request.bind(environ)
+        response.bind()
+        ctx.bind(request, response, self)
+        if self._dependencies:
+            self._dependencies._begin_scope(ctx)
+        out = None
+        mount_prefix = None
+
+        try:
+            try:
+                if hk['on_request_start']: self.trigger_hook('on_request_start')
+                if hk['before_request']: self.trigger_hook('before_request')
+                pre_result = self.middleware.execute_pre_routing(ctx)
+                if pre_result is not None:
+                    out = pre_result
+                else:
+                    try:
+                        route, args = self.router.match(environ)
+                        miss = None
+                    except HTTPError as E:
+                        if not self.middleware._middleware: raise
+                        route, args, miss = None, {}, E  # 404/405 still run post middleware
+                    environ['route.handle'] = route
+                    environ['lcore.route'] = route
+                    environ['route.url_args'] = args
+                    ctx.route = route
+
+                    mount_prefix = getattr(route, 'config', {}).get('_mount.prefix')
+                    if mount_prefix:
+                        self.trigger_hook('on_module_request', mount_prefix, ctx)
+                        self.trigger_module_hooks(mount_prefix, 'before_request')
+
+                    if not miss:
+                        if hk['on_auth_resolved']: self.trigger_hook('on_auth_resolved')
+                        if hk['on_handler_enter']: self.trigger_hook('on_handler_enter')
+
+                    def call_route():
+                        return miss or route.call(**args)
+
+                    if self.middleware._middleware:
+                        out = self.middleware.execute(ctx, call_route)
+                    else:
+                        out = call_route()
+
+                if hk['on_handler_exit']: self.trigger_hook('on_handler_exit')
+            except HTTPResponse as E:
+                out = E
+            finally:
+                if isinstance(out, HTTPResponse):
+                    out.apply(response)
+                if hk['on_response_build']: self.trigger_hook('on_response_build')
+                try:
+                    if mount_prefix:
+                        self.trigger_module_hooks(mount_prefix, 'after_request')
+                    if hk['after_request']: self.trigger_hook('after_request')
+                except HTTPResponse as E:
+                    out = E
+                    out.apply(response)
+                if hk['on_response_send']: self.trigger_hook('on_response_send')
+        except (KeyboardInterrupt, SystemExit, MemoryError):
+            raise
+        except Exception as E:
+            _try_close(out)
+            if not self.catchall: raise
+            stacktrace = format_exc()
+            environ['wsgi.errors'].write(stacktrace)
+            environ['wsgi.errors'].flush()
+            environ['lcore.exc_info'] = sys.exc_info()
+            out = HTTPError(500, "Internal Server Error", E, stacktrace)
+            out.apply(response)
+        finally:
+            if self._dependencies:
+                self._dependencies._end_scope(ctx)
+
+        return out
+
+    # Turn whatever the handler returned into a WSGI iterable
+    def _cast(self, out, peek=None):
+        cls = out.__class__
+        if (cls is str or cls is bytes) and out:  # hot path: plain text/bytes body
+            hdrs = response._headers
+            if cls is str:
+                out = out.encode(response.charset if 'Content-Type' in hdrs else 'utf-8',
+                                 'surrogateescape')
+            if 'Content-Length' not in hdrs:
+                hdrs['Content-Length'] = [str(len(out))]
+            return [out]
+
+        if inspect.iscoroutine(out):
+            out = _run_async(out)
+
+        if not out:
+            if 'Content-Length' not in response:
+                response['Content-Length'] = 0
+            return []
+        if isinstance(out, (tuple, list)) and isinstance(out[0], (bytes, str)):
+            out = out[0][0:0].join(out)
+        if isinstance(out, str):
+            out = out.encode(response.charset, 'surrogateescape')
+        if isinstance(out, bytes):
+            if 'Content-Length' not in response:
+                response['Content-Length'] = len(out)
+            return [out]
+        if isinstance(out, HTTPError):
+            out.apply(response)
+            out = self.error_handler.get(out.status_code,
+                                         self.default_error_handler)(out)
+            if isinstance(out, dict):  # error handlers may return a dict too
+                response.content_type = 'application/json'
+                out = json_dumps(out)
+            return self._cast(out)
+        if isinstance(out, HTTPResponse):
+            out.apply(response)
+            return self._cast(out.body)
+
+        if hasattr(out, 'read'):
+            if 'wsgi.file_wrapper' in request.environ:
+                return request.environ['wsgi.file_wrapper'](out)
+            elif hasattr(out, 'close') or not hasattr(out, '__iter__'):
+                return WSGIFileWrapper(out)
+
+        if isinstance(out, dict):  # JSON plugin off or skipped: don't iterate the keys
+            return self._cast(HTTPError(500, 'Unsupported response type: dict'))
+
+        try:
+            iout = iter(out)
+            first = next(iout)
+            while not first:
+                first = next(iout)
+        except StopIteration:
+            _try_close(out)
+            return self._cast('')
+        except HTTPResponse as E:
+            first = E
+        except (KeyboardInterrupt, SystemExit, MemoryError):
+            raise
+        except Exception as error:
+            _try_close(out)
+            if not self.catchall: raise
+            first = HTTPError(500, 'Unhandled exception', error, format_exc())
+
+        if isinstance(first, HTTPResponse):
+            return self._cast(first)
+        elif isinstance(first, bytes):
+            new_iter = itertools.chain([first], iout)
+        elif isinstance(first, str):
+            encoder = lambda x: x if isinstance(x, bytes) else x.encode(response.charset, 'surrogateescape')
+            new_iter = map(encoder, itertools.chain([first], iout))
+        else:
+            _try_close(out)
+            msg = 'Unsupported response type: %s' % type(first)
+            return self._cast(HTTPError(500, msg))
+        if hasattr(out, 'close'):
+            new_iter = _closeiter(new_iter, out.close)
+        return new_iter
+
+    # PEP 3333 entry point
+    def wsgi(self, environ, start_response):
+        out = None
+        try:
+            out = self._cast(self._handle(environ))
+            if response._status_code in (100, 101, 204, 304) \
+               or environ['REQUEST_METHOD'] == 'HEAD':
+                if hasattr(out, 'close'): out.close()
+                out = []
+            exc_info = environ.get('lcore.exc_info')
+            if exc_info is not None:
+                del environ['lcore.exc_info']
+            start_response(response._wsgi_status_line(), response.headerlist, exc_info)
+            return out
+        except (KeyboardInterrupt, SystemExit, MemoryError):
+            raise
+        except Exception as E:
+            _try_close(out)
+            if not self.catchall: raise
+            err = '<h1>Critical error while processing request: %s</h1>' \
+                  % html_escape(environ.get('PATH_INFO', '/'))
+            if DEBUG:
+                err += '<h2>Error:</h2>\n<pre>\n%s\n</pre>\n' \
+                       '<h2>Traceback:</h2>\n<pre>\n%s\n</pre>\n' \
+                       % (html_escape(repr(E)), html_escape(format_exc()))
+            environ['wsgi.errors'].write(err)
+            environ['wsgi.errors'].flush()
+            headers = [('Content-Type', 'text/html; charset=UTF-8')]
+            start_response('500 INTERNAL SERVER ERROR', headers, sys.exc_info())
+            return [err.encode('utf8', 'replace')]
+
+    def __call__(self, environ, start_response):
+        return self.wsgi(environ, start_response)
+
+    def __enter__(self):
+        default_app.push(self)
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        default_app.pop()
+
+    def __setattr__(self, name, value):
+        plugin_attrs = self.__dict__.get('_plugin_attrs', ())
+        if name in plugin_attrs and name in self.__dict__:
+            raise AttributeError(
+                "Attribute '%s' was registered by a plugin and cannot be "
+                "overwritten. Uninstall the conflicting plugin first." % name)
+        object.__setattr__(self, name, value)
+
+# Your WSGI environ, gift-wrapped with lazy parsing of headers, cookies, JSON, etc.
+class BaseRequest:
+
+    __slots__ = ('environ', )
+
+    MEMFILE_MAX = 102400  # body size threshold before spilling to temp file
+
+    def __init__(self, environ=None):
+        self.environ = {} if environ is None else environ
+        self.environ['lcore.request'] = self
+
+    @DictProperty('environ', 'lcore.app', read_only=True)
+    def app(self):
+        raise RuntimeError('This request is not connected to an application.')
+
+    @DictProperty('environ', 'lcore.route', read_only=True)
+    def route(self):
+        raise RuntimeError('This request is not connected to a route.')
+
+    @DictProperty('environ', 'route.url_args', read_only=True)
+    def url_args(self):
+        raise RuntimeError('This request is not connected to a route.')
+
+    @property
+    def path(self):
+        return '/' + self.environ.get('PATH_INFO', '').lstrip('/')
+
+    @property
+    def method(self):
+        return self.environ.get('REQUEST_METHOD', 'GET').upper()
+
+    @DictProperty('environ', 'lcore.request.headers', read_only=True)
+    def headers(self):
+        return WSGIHeaderDict(self.environ)
+
+    def get_header(self, name, default=None):
+        return self.headers.get(name, default)
+
+    @DictProperty('environ', 'lcore.request.cookies', read_only=True)
+    def cookies(self):
+        cookie_header = _wsgi_recode(self.environ.get('HTTP_COOKIE', ''))
+        cookies = SimpleCookie(cookie_header).values()
+        return FormsDict((c.key, c.value) for c in cookies)
+
+    # Read a cookie, optionally verifying HMAC signature if secret is provided
+    def get_cookie(self, key, default=None, secret=None, digestmod=hashlib.sha256):
+        value = self.cookies.get(key)
+        if secret:
+            if value and value.startswith('!') and '?' in value:
+                sig, msg = map(tob, value[1:].split('?', 1))
+                hashed = hmac.new(tob(secret), msg, digestmod=digestmod).digest()
+                if _lscmp(sig, base64.b64encode(hashed)):
+                    try:
+                        dst = json_loads(base64.b64decode(msg))
+                    except (ValueError, TypeError):
+                        return default
+                    if dst and dst[0] == key:
+                        return dst[1]
+            return default
+        return value or default
+
+    @DictProperty('environ', 'lcore.request.query', read_only=True)
+    def query(self):
+        get = self.environ['lcore.get'] = FormsDict()
+        pairs = _parse_qsl(self.environ.get('QUERY_STRING', ''), 'utf8')
+        for key, value in pairs:
+            get[key] = value
+        return get
+
+    @DictProperty('environ', 'lcore.request.forms', read_only=True)
+    def forms(self):
+        forms = FormsDict()
+        for name, item in self.POST.allitems():
+            if not isinstance(item, FileUpload):
+                forms[name] = item
+        return forms
+
+    @DictProperty('environ', 'lcore.request.params', read_only=True)
+    def params(self):
+        params = FormsDict()
+        for key, value in self.query.allitems():
+            params[key] = value
+        for key, value in self.forms.allitems():
+            params[key] = value
+        return params
+
+    @DictProperty('environ', 'lcore.request.files', read_only=True)
+    def files(self):
+        files = FormsDict()
+        for name, item in self.POST.allitems():
+            if isinstance(item, FileUpload):
+                files[name] = item
+        return files
+
+    @DictProperty('environ', 'lcore.request.json', read_only=True)
+    def json(self):  # parse JSON body (returns None for non-JSON content types)
+        ctype = self.environ.get('CONTENT_TYPE', '').lower().split(';')[0]
+        if ctype in ('application/json', 'application/json-rpc'):
+            b = self.body.read()
+            if not b:
+                return None
+            try:
+                return json_loads(b)
+            except (ValueError, TypeError, RecursionError) as err:
+                raise HTTPError(400, 'Invalid JSON', exception=err)
+        return None
+
+    def json_or(self, default=None):
+        """request.json, or *default* when the body is empty / not JSON."""
+        data = self.json
+        return default if data is None else data
+
+    def _iter_body(self, read, bufsize):
+        hard_limit = self.environ.get('lcore.body_max_size', 0)
+        total = 0
+        maxread = max(0, self.content_length)
+        while maxread:
+            part = read(min(maxread, bufsize))
+            if not part: break
+            total += len(part)
+            if hard_limit and total > hard_limit:
+                raise HTTPError(413, 'Request body exceeds size limit')
+            yield part
+            maxread -= len(part)
+
+    def _iter_chunked(self, read, bufsize):
+        # Instance method so BodyLimitMiddleware applies to chunked transfers too
+        hard_limit = self.environ.get('lcore.body_max_size', 0)
+        total = 0
+        err = HTTPError(400, 'Error while parsing chunked transfer body.')
+        rn, sem, bs = b'\r\n', b';', b''
+        header_buf = b''
+        while True:
+            # Read chunk header: scan for \r\n in buffered reads
+            while rn not in header_buf:
+                chunk = read(bufsize)
+                if not chunk:
+                    raise err
+                header_buf += chunk
+                if len(header_buf) > bufsize:
+                    raise err
+            header, header_buf = header_buf.split(rn, 1)
+            size, _, _ = header.partition(sem)
+            try:
+                maxread = int(size.strip(), 16)
+            except ValueError:
+                raise err
+            if maxread == 0: break
+            # Consume chunk body (already-buffered trailer + fresh reads)
+            buff = header_buf if header_buf else b''
+            header_buf = b''
+            while maxread > 0:
+                if not buff:
+                    buff = read(min(maxread, bufsize))
+                part, buff = buff[:maxread], buff[maxread:]
+                if not part: raise err
+                total += len(part)
+                if hard_limit and total > hard_limit:
+                    raise HTTPError(413, 'Request body exceeds size limit')
+                yield part
+                maxread -= len(part)
+            header_buf = buff  # bytes over-read past this chunk belong to the next one
+            # Consume trailing \r\n after chunk body
+            while len(header_buf) < 2:
+                chunk = read(2 - len(header_buf))
+                if not chunk: raise err
+                header_buf += chunk
+            if header_buf[:2] != rn:
+                raise err
+            header_buf = header_buf[2:]
+
+    @DictProperty('environ', 'lcore.request.body', read_only=True)
+    def _body(self):  # Buffers body in memory, spills to temp file if large
+        try:
+            read_func = self.environ['wsgi.input'].read
+        except KeyError:
+            self.environ['wsgi.input'] = BytesIO()
+            return self.environ['wsgi.input']
+        env = self.environ
+        if 'HTTP_TRANSFER_ENCODING' not in env:  # fast path: small, length-declared body
+            cl, limit = self.content_length, env.get('lcore.body_max_size', 0)
+            if 0 < cl <= self.MEMFILE_MAX and not (limit and cl > limit):
+                data = read_func(cl)
+                while len(data) < cl:
+                    more = read_func(cl - len(data))
+                    if not more: break
+                    data += more
+                env['wsgi.input'] = body = BytesIO(data)
+                return body
+        body_iter = self._iter_chunked if self.chunked else self._iter_body
+        body, body_size, is_temp_file = BytesIO(), 0, False
+        for part in body_iter(read_func, self.MEMFILE_MAX):
+            body.write(part)
+            body_size += len(part)
+            if not is_temp_file and body_size > self.MEMFILE_MAX:
+                body, tmp = NamedTemporaryFile(mode='w+b'), body
+                body.write(tmp.getvalue())
+                del tmp
+                is_temp_file = True
+        self.environ['wsgi.input'] = body
+        body.seek(0)
+        return body
+
+    def _get_body_string(self, maxread):
+        if self.content_length > maxread:
+            raise HTTPError(413, 'Request entity too large')
+        data = self.body.read(maxread + 1)
+        if len(data) > maxread:
+            raise HTTPError(413, 'Request entity too large')
+        return data
+
+    @property
+    def body(self):
+        self._body.seek(0)
+        return self._body
+
+    @property
+    def chunked(self):
+        return 'chunked' in self.environ.get(
+            'HTTP_TRANSFER_ENCODING', '').lower()
+
+    GET = query
+
+    @DictProperty('environ', 'lcore.request.post', read_only=True)
+    def POST(self):  # parse URL-encoded or multipart form data
+        post = FormsDict()
+        content_type = self.environ.get('CONTENT_TYPE', '')
+        content_type, options = _parse_http_header(content_type)[0]
+        if not content_type.startswith('multipart/'):
+            body = self.body.read().decode('utf8', 'surrogateescape')
+            for key, value in _parse_qsl(body, 'utf8'):
+                post[key] = value
+            return post
+
+        charset = options.get("charset", "utf8")
+        boundary = options.get("boundary")
+        if not boundary:
+            raise MultipartError("Invalid content type header, missing boundary")
+        disk_limit = self.environ.get('lcore.body_max_size') or 2 ** 30  # 0 = unlimited
+        parser = _MultipartParser(self.body, boundary, self.content_length,
+            mem_limit=self.MEMFILE_MAX, memfile_limit=self.MEMFILE_MAX,
+            disk_limit=disk_limit, charset=charset)
+
+        for part in parser.parse():
+            if not part.filename:
+                if not part.is_buffered():  # a spilled text field would silently vanish from forms
+                    raise MultipartError("Form field too large.")
+                post[part.name] = part.value
+            else:
+                post[part.name] = FileUpload(part.file, part.name,
+                                            part.filename, part.headerlist)
+
+        return post
+
+    @property
+    def url(self):
+        return self.urlparts.geturl()
+
+    @DictProperty('environ', 'lcore.request.urlparts', read_only=True)
+    def urlparts(self):
+        env = self.environ
+        trusted = env.get('lcore.trusted_proxies')
+        direct = env.get('REMOTE_ADDR')
+        hops = env.get('lcore.trusted_proxy_hops')
+        trust_forward = bool(hops) or bool(trusted and direct in trusted)
+        if trust_forward:
+            http = env.get('HTTP_X_FORWARDED_PROTO') or env.get('wsgi.url_scheme', 'http')
+            host = env.get('HTTP_X_FORWARDED_HOST') or env.get('HTTP_HOST')
+        else:
+            http = env.get('wsgi.url_scheme', 'http')
+            host = env.get('HTTP_HOST')
+        if not host:
+            host = env.get('SERVER_NAME', '127.0.0.1')
+            port = env.get('SERVER_PORT')
+            if port and port != ('80' if http == 'http' else '443'):
+                host += ':' + port
+        path = urlquote(self.fullpath, errors='surrogateescape')
+        return UrlSplitResult(http, host, path, env.get('QUERY_STRING'), '')
+
+    @property
+    def fullpath(self):
+        return urljoin(self.script_name, self.path.lstrip('/'))
+
+    @property
+    def query_string(self):
+        return self.environ.get('QUERY_STRING', '')
+
+    @property
+    def script_name(self):
+        script_name = self.environ.get('SCRIPT_NAME', '').strip('/')
+        return '/' + script_name + '/' if script_name else '/'
+
+    def path_shift(self, shift=1):
+        script, path = path_shift(self.environ.get('SCRIPT_NAME', '/'), self.path, shift)
+        self['SCRIPT_NAME'], self['PATH_INFO'] = script, path
+
+    @property
+    def content_length(self):
+        try:
+            return int(self.environ.get('CONTENT_LENGTH') or -1)
+        except (ValueError, TypeError):
+            return -1
+
+    @property
+    def content_type(self):
+        return self.environ.get('CONTENT_TYPE', '').lower()
+
+    @property
+    def is_xhr(self):
+        requested_with = self.environ.get('HTTP_X_REQUESTED_WITH', '')
+        return requested_with.lower() == 'xmlhttprequest'
+
+    @property
+    def is_ajax(self):
+        return self.is_xhr
+
+    @property
+    def auth(self):
+        basic = parse_auth(self.environ.get('HTTP_AUTHORIZATION', ''))
+        if basic: return basic
+        ruser = self.environ.get('REMOTE_USER')
+        if ruser: return (ruser, None)
+        return None
+
+    @property
+    def remote_route(self):
+        proxy = self.environ.get('HTTP_X_FORWARDED_FOR')
+        if proxy: return [ip.strip() for ip in proxy.split(',')]
+        remote = self.environ.get('REMOTE_ADDR')
+        return [remote] if remote else []
+
+    @property
+    def remote_addr(self):
+        direct = self.environ.get('REMOTE_ADDR')
+        proxy = self.environ.get('HTTP_X_FORWARDED_FOR')
+        hops = self.environ.get('lcore.trusted_proxy_hops')
+        if proxy and hops:
+            addrs = [ip.strip() for ip in proxy.split(',') if ip.strip()]
+            if len(addrs) >= hops:
+                return addrs[-hops]
+            return direct
+        trusted = self.environ.get('lcore.trusted_proxies')
+        if proxy and trusted:
+            # Walk X-Forwarded-For from right, skipping known proxies
+            addrs = [ip.strip() for ip in proxy.split(',') if ip.strip()]
+            if direct:
+                addrs.append(direct)
+            # Walk backwards: skip trusted proxies to find the real client
+            for i in range(len(addrs) - 1, -1, -1):
+                if addrs[i] not in trusted:
+                    return addrs[i]
+            return addrs[0] if addrs else direct
+        elif proxy and not trusted:
+            # No trusted proxies configured: return REMOTE_ADDR (safe default)
+            return direct
+        return direct
+
+    def copy(self):
+        return Request(self.environ.copy())
+
+    def get(self, key, default=None):
+        return self.environ.get(key, default)
+
+    def __getitem__(self, key):
+        return self.environ[key]
+
+    def __delitem__(self, key):
+        self[key] = ""
+        del (self.environ[key])
+
+    def __iter__(self):
+        return iter(self.environ)
+
+    def __len__(self):
+        return len(self.environ)
+
+    def keys(self):
+        return self.environ.keys()
+
+    def __setitem__(self, key, value):
+
+        if self.environ.get('lcore.request.readonly'):
+            raise KeyError('The environ dictionary is read-only.')
+
+        self.environ[key] = value
+        todelete = ()
+
+        if key == 'wsgi.input':
+            todelete = ('body', 'forms', 'files', 'params', 'post', 'json')
+        elif key == 'QUERY_STRING':
+            todelete = ('query', 'params')
+        elif key.startswith('HTTP_'):
+            todelete = ('headers', 'cookies')
+
+        for key in todelete:
+            self.environ.pop('lcore.request.' + key, None)
+
+    def __repr__(self):
+        return '<%s: %s %s>' % (self.__class__.__name__, self.method, self.url)
+
+    def __getattr__(self, name):
+        try:
+            var = self.environ['lcore.request.ext.%s' % name]
+            return var.__get__(self) if hasattr(var, '__get__') else var
+        except KeyError:
+            raise AttributeError('Attribute %r not defined.' % name)
+
+    def __setattr__(self, name, value):
+        if name == 'environ': return object.__setattr__(self, name, value)
+        key = 'lcore.request.ext.%s' % name
+        if hasattr(self, name):
+            raise AttributeError("Attribute already defined: %s" % name)
+        self.environ[key] = value
+
+    def __delattr__(self, name):
+        try:
+            del self.environ['lcore.request.ext.%s' % name]
+        except KeyError:
+            raise AttributeError("Attribute not defined: %s" % name)
+
+# Header name normalisation: underscores become hyphens, Title-Case enforced
+_HKEY_CACHE = {}
+_HEADER_TOKEN = re.compile(r"[!#$%&'*+\-.^_`|~0-9A-Za-z]+\Z").match  # RFC 7230 token
+
+def _hkey(key):
+    try:
+        return _HKEY_CACHE[key]  # header names repeat on every request
+    except KeyError:
+        pass
+    raw = key
+    key = touni(key)
+    if not _HEADER_TOKEN(key):
+        raise ValueError("Invalid header name: %r" % key)
+    key = key.title().replace('_', '-')
+    if len(_HKEY_CACHE) < 512 and isinstance(raw, str):
+        _HKEY_CACHE[raw] = key
+    return key
+
+def _hval(value):
+    if value.__class__ is not str: value = touni(value)
+    if '\n' in value or '\r' in value or '\0' in value:
+        raise ValueError("Header value must not contain control characters: %r" % value)
+    return value
+
+# Descriptor for typed access to a specific response header
+class HeaderProperty:
+    def __init__(self, name, reader=None, writer=None, default=''):
+        self.name, self.default = name, default
+        self.reader, self.writer = reader, writer
+        self.__doc__ = 'Current value of the %r header.' % name.title()
+
+    def __get__(self, obj, _):
+        if obj is None: return self
+        value = obj.get_header(self.name, self.default)
+        return self.reader(value) if self.reader else value
+
+    def __set__(self, obj, value):
+        obj[self.name] = self.writer(value) if self.writer else value
+
+    def __delete__(self, obj):
+        del obj[self.name]
+
+# Status, headers, cookies, body. Turns it all into a WSGI headerlist.
+class BaseResponse:
+
+    default_status = 200
+    default_content_type = 'text/html; charset=UTF-8'
+
+    bad_headers = {
+        204: frozenset(('Content-Type', 'Content-Length')),
+        304: frozenset(('Allow', 'Content-Encoding', 'Content-Language',
+                  'Content-Length', 'Content-Range', 'Content-Type',
+                  'Content-Md5', 'Last-Modified'))
+    }
+
+    def __init__(self, body='', status=None, headers=None, **more_headers):
+        self._cookies = None
+        self._headers = {}
+        self.body = body
+        self.status = status or self.default_status
+        if headers:
+            if isinstance(headers, dict):
+                headers = headers.items()
+            for name, value in headers:
+                self.add_header(name, value)
+        if more_headers:
+            for name, value in more_headers.items():
+                self.add_header(name, value)
+
+    def copy(self, cls=None):
+        cls = cls or BaseResponse
+        assert issubclass(cls, BaseResponse)
+        copy = cls()
+        copy.status = self.status
+        copy._headers = dict((k, v[:]) for (k, v) in self._headers.items())
+        if self._cookies:
+            cookies = copy._cookies = SimpleCookie()
+            for k, v in self._cookies.items():
+                cookies[k] = v.value
+                cookies[k].update(v)
+        return copy
+
+    def __iter__(self):
+        return iter(self.body)
+
+    def close(self):
+        if hasattr(self.body, 'close'):
+            self.body.close()
+
+    @property
+    def status_line(self):
+        return self._status_line
+
+    @property
+    def status_code(self):
+        return self._status_code
+
+    def _set_status(self, status):
+        if isinstance(status, int):
+            code, status = status, _HTTP_STATUS_LINES.get(status)
+        elif ' ' in status:
+            if '\n' in status or '\r' in status or '\0' in status:
+                raise ValueError('Status line must not include control chars.')
+            status = status.strip()
+            code = int(status.split()[0])
+        else:
+            raise ValueError('String status line without a reason phrase.')
+        if not 100 <= code <= 999:
+            raise ValueError('Status code out of range.')
+        self._status_code = code
+        self._status_line = str(status or ('%d Unknown' % code))
+
+    def _get_status(self):
+        return self._status_line
+
+    status = property(
+        _get_status, _set_status, None,
+        ''' A writeable property to change the HTTP response status. It accepts
+            either a numeric code (100-999) or a string with a custom reason
+            phrase (e.g. "404 Brain not found"). Both :data:`status_line` and
+            :data:`status_code` are updated accordingly. The return value is
+            always a status string. ''')
+    del _get_status, _set_status
+
+    @property
+    def headers(self):
+        hdict = HeaderDict()
+        hdict.dict = self._headers
+        return hdict
+
+    def __contains__(self, name):
+        return _hkey(name) in self._headers
+
+    def __delitem__(self, name):
+        del self._headers[_hkey(name)]
+
+    def __getitem__(self, name):
+        return self._headers[_hkey(name)][-1]
+
+    def __setitem__(self, name, value):
+        self._headers[_hkey(name)] = [_hval(value)]
+
+    def get_header(self, name, default=None):
+        return self._headers.get(_hkey(name), [default])[-1]
+
+    def set_header(self, name, value):
+        self._headers[_hkey(name)] = [_hval(value)]
+
+    def add_header(self, name, value):
+        self._headers.setdefault(_hkey(name), []).append(_hval(value))
+
+    def iter_headers(self):
+        return self.headerlist
+
+    def _wsgi_status_line(self):
+        line = self._status_line
+        return line if line.isascii() else line.encode('utf8', 'surrogateescape').decode('latin1')
+
+    @property
+    def headerlist(self):
+        hdrs = self._headers
+        bad = self.bad_headers.get(self._status_code)
+        out = []
+        for name, vals in hdrs.items():
+            if bad and name in bad: continue
+            for v in vals:
+                # PEP 3333 wants latin-1 str; ascii values (nearly all) need no re-encode
+                out.append((name, v if v.isascii() else v.encode('utf8', 'surrogateescape').decode('latin1')))
+        if 'Content-Type' not in hdrs and not (bad and 'Content-Type' in bad):
+            out.append(('Content-Type', self.default_content_type))
+        if self._cookies:
+            for c in self._cookies.values():
+                v = _hval(c.OutputString())
+                out.append(('Set-Cookie', v if v.isascii() else v.encode('utf8', 'surrogateescape').decode('latin1')))
+        return out
+
+    content_type = HeaderProperty('Content-Type')
+    content_length = HeaderProperty('Content-Length', reader=int, default=-1)
+    expires = HeaderProperty(
+        'Expires',
+        reader=lambda x: datetime.fromtimestamp(parse_date(x), UTC),
+        writer=lambda x: http_date(x))
+
+    @property
+    def charset(self, default='UTF-8'):
+        if 'charset=' in self.content_type:
+            return self.content_type.split('charset=')[-1].split(';')[0].strip()
+        return default
+
+    # Set a cookie, optionally HMAC-signed if secret is provided.
+    def set_cookie(self, name, value, secret=None, digestmod=hashlib.sha256, **options):
+        if not self._cookies:
+            self._cookies = SimpleCookie()
+
+        if py < (3, 8, 0):
+            Morsel._reserved.setdefault('samesite', 'SameSite')
+
+        if secret:
+            encoded = base64.b64encode(tob(json_dumps([name, value])))
+            sig = base64.b64encode(hmac.new(tob(secret), encoded,
+                                            digestmod=digestmod).digest())
+            value = touni(b'!' + sig + b'?' + encoded)
+        elif not isinstance(value, str):
+            raise TypeError('Secret key required for non-string cookies.')
+
+        if len(name) + len(value) > 3800:
+            raise ValueError('Content does not fit into a cookie.')
+
+        self._cookies[name] = value
+
+        defaults = {'samesite': 'Lax', 'httponly': True}
+        for key, default_val in defaults.items():
+            if key not in options:
+                options[key] = default_val
+
+        for key, value in options.items():
+            # An unset attribute must be omitted, not rendered as "Domain=None".
+            # Checked before the falsy skip below: delete_cookie() relies on
+            # expires=0 and max_age=-1 still being emitted. samesite=None is
+            # exempt: it means "SameSite=None" (the explicit cross-site
+            # opt-in), not "omit this attribute".
+            if value is None and key not in ('same_site', 'samesite'):
+                continue
+            if key in ('max_age', 'maxage'):
+                key = 'max-age'
+                value = int(value.total_seconds() if isinstance(value, timedelta) else value)
+            if key == 'expires':
+                if isinstance(value, str) and parse_date(value) is None:
+                    raise ValueError('Invalid cookie expires: %r' % value)
+                value = http_date(value)
+            if key in ('path', 'domain') and value and (';' in value or ',' in value):
+                raise CookieError('Invalid cookie %s: %r' % (key, value))
+            if key in ('same_site', 'samesite'):
+                key, value = 'samesite', (value or "none").lower()
+                if value not in ('lax', 'strict', 'none'):
+                    raise CookieError("Invalid value for SameSite")
+            if key in ('secure', 'httponly') and not value:
+                continue
+            self._cookies[name][key] = value
+
+    def delete_cookie(self, key, **kwargs):
+        kwargs['max_age'] = -1
+        kwargs['expires'] = 0
+        self.set_cookie(key, '', **kwargs)
+
+    def __repr__(self):
+        out = ''
+        for name, value in self.headerlist:
+            out += '%s: %s\n' % (name.title(), value.strip())
+        return out
+
+# Thread-local magic: one request/response per thread, no passing args around
+
+def _local_property():
+    ls = threading.local()
+
+    def fget(_):
+        try:
+            return ls.var
+        except AttributeError:
+            raise RuntimeError("Request context not initialized.")
+
+    def fset(_, value):
+        ls.var = value
+
+    def fdel(_):
+        del ls.var
+
+    return property(fget, fset, fdel, 'Thread-local property')
+
+# Thread-local versions: each thread gets its own request/response state
+class LocalRequest(BaseRequest):
+    bind = BaseRequest.__init__
+    environ = _local_property()
+
+class LocalResponse(BaseResponse):
+    bind = BaseResponse.__init__
+    _status_line = _local_property()
+    _status_code = _local_property()
+    _cookies = _local_property()
+    _headers = _local_property()
+    body = _local_property()
+
+Request = BaseRequest
+Response = BaseResponse
+
+# Holds request, response, app, route, user, and whatever else you stuff into it.
+_CTX_SLOTS = frozenset(('request', 'response', 'app', 'route', 'request_id', 'user', 'state', '_lazy'))
+
+class RequestContext:
+
+    __slots__ = ('request', 'response', 'app', 'route',
+                 'request_id', 'user', 'state', '_lazy')
+
+    def __init__(self, req=None, resp=None, app=None):
+        # object.__setattr__ skips our Python-level __setattr__ (8 calls/request)
+        # and still honours LocalContext's thread-local descriptors.
+        s = object.__setattr__
+        s(self, 'request', req)
+        s(self, 'response', resp)
+        s(self, 'app', app)
+        s(self, 'route', None)
+        s(self, 'request_id', None)
+        s(self, 'user', None)
+        s(self, 'state', {})
+        s(self, '_lazy', {})
+
+    def lazy(self, key, factory):
+        self._lazy[key] = factory
+
+    def __getattr__(self, name):
+        if name in ('state', '_lazy'):
+            raise AttributeError(name)
+        try:
+            state = object.__getattribute__(self, 'state')
+            if name in state:
+                return state[name]
+        except AttributeError:
+            pass
+        try:
+            lazy = object.__getattribute__(self, '_lazy')
+            if name in lazy:
+                val = lazy[name]()
+                state = object.__getattribute__(self, 'state')
+                state[name] = val
+                return val
+        except AttributeError:
+            pass
+        raise AttributeError(f'RequestContext has no attribute {name!r}')
+
+    def __setattr__(self, name, value):
+        if name in _CTX_SLOTS:
+            object.__setattr__(self, name, value)
+        else:
+            self.state[name] = value
+
+class LocalContext(RequestContext):
+    bind = RequestContext.__init__
+    request = _local_property()
+    response = _local_property()
+    app = _local_property()
+    route = _local_property()
+    request_id = _local_property()
+    user = _local_property()
+    state = _local_property()
+    _lazy = _local_property()
+
+# Middleware: subclass, override __call__, ship it.
+class Middleware:
+    name = None
+    order = 50  # execution order (lower = earlier)
+    phase = 'post'  # 'pre' runs before routing, 'post' wraps the handler
+
+    def __call__(self, ctx, next_handler):
+        return next_handler(ctx)
+
+# Builds & executes middleware chains. Two phases: 'pre' runs before routing
+# (CORS, CSRF, body limits), 'post' wraps the handler. Chains are LRU-cached.
+class MiddlewarePipeline:
+
+    def __init__(self):
+        self._middleware = []
+        self._has_patterns = False
+        self._sorted = False
+        self._global_pre_chain = None
+        self._global_post_chain = None
+        self._path_cache = OrderedDict()  # LRU cache: path -> (pre_chain, post_chain)
+        self._path_cache_max = 1024
+
+    def _invalidate(self):
+        self._sorted = False
+        self._global_pre_chain = None
+        self._global_post_chain = None
+        self._path_cache.clear()
+
+    def add(self, middleware, routes=None, order=None):
+        if order is not None:
+            middleware.order = order
+        pattern = re.compile(routes) if isinstance(routes, str) else routes
+        self._middleware.append((middleware, pattern))
+        self._invalidate()
+
+    def remove(self, middleware):
+        self._middleware = [(m, p) for m, p in self._middleware
+                           if m is not middleware]
+        self._invalidate()
+
+    def _get_chains(self, path):
+        """Return (pre_chain, post_chain) tuples for the given path."""
+        if not self._sorted:
+            self._middleware.sort(key=lambda x: getattr(x[0], 'order', 50))
+            self._has_patterns = any(pat is not None for _, pat in self._middleware)
+            self._sorted = True
+        if not self._has_patterns:
+            if self._global_pre_chain is None:
+                pre = tuple(m for m, _ in self._middleware
+                           if getattr(m, 'phase', 'post') == 'pre')
+                post = tuple(m for m, _ in self._middleware
+                            if getattr(m, 'phase', 'post') != 'pre')
+                self._global_pre_chain = pre
+                self._global_post_chain = post
+            return self._global_pre_chain, self._global_post_chain
+        if path in self._path_cache:
+            self._path_cache.move_to_end(path)
+            return self._path_cache[path]
+        pre = tuple(m for m, pat in self._middleware
+                    if getattr(m, 'phase', 'post') == 'pre'
+                    and (pat is None or pat.match(path)))
+        post = tuple(m for m, pat in self._middleware
+                     if getattr(m, 'phase', 'post') != 'pre'
+                     and (pat is None or pat.match(path)))
+        if len(self._path_cache) >= self._path_cache_max:
+            self._path_cache.popitem(last=False)
+        self._path_cache[path] = (pre, post)
+        return pre, post
+
+    def execute_pre_routing(self, ctx):
+        """Run pre-routing middleware. If any returns a truthy value, return
+        it as the response (short-circuiting routing)."""
+        pre_chain, _ = self._get_chains(ctx.request.path)
+        if not pre_chain:
+            return None
+        idx = 0
+        n = len(pre_chain)
+
+        def run(c):
+            nonlocal idx
+            i = idx
+            if i >= n:
+                return None
+            idx = i + 1
+            try:
+                return pre_chain[i](c, run)
+            finally:
+                idx = i
+
+        return run(ctx)
+
+    def execute(self, ctx, handler):
+        """Run post-routing middleware chain. Respects the route's skiplist."""
+        _, post_chain = self._get_chains(ctx.request.path)
+        # Filter out middleware whose name is in the route's skiplist
+        route = getattr(ctx, 'route', None)
+        skiplist = set(getattr(route, 'skiplist', []) if route else [])
+        if skiplist and post_chain:
+            post_chain = tuple(m for m in post_chain
+                               if getattr(m, 'name', None) not in skiplist)
+        if not post_chain:
+            return handler()
+        idx = 0
+        n = len(post_chain)
+
+        def run(c):
+            nonlocal idx
+            i = idx
+            if i >= n:
+                return handler()
+            idx = i + 1
+            try:
+                result = post_chain[i](c, run)
+                if inspect.iscoroutine(result):
+                    result = _run_async(result)
+                return result
+            finally:
+                idx = i
+
+        return run(ctx)
+
+# Slaps an X-Request-ID on every request/response
+_REQ_ID_OK = re.compile(r'[A-Za-z0-9._-]{1,128}\Z').match
+
+
+class RequestIDMiddleware(Middleware):
+    name = 'request_id'
+    order = 1
+
+    def __call__(self, ctx, next_handler):
+        req_id = ctx.request.get_header('X-Request-ID')
+        if not req_id or not _REQ_ID_OK(req_id):  # never echo unbounded or odd input
+            req_id = str(uuid.uuid4())
+        ctx.request_id = req_id
+        result = next_handler(ctx)
+        ctx.response.set_header('X-Request-ID', req_id)
+        return result
+
+# One JSON line per request: method, path, status, duration
+class RequestLoggerMiddleware(Middleware):
+    name = 'request_logger'
+    order = 2
+
+    def __init__(self, logger=None):
+        self.logger = logger or logging.getLogger('lcore.access')
+
+    def __call__(self, ctx, next_handler):
+        start = time.monotonic()
+        status = None
+        try:
+            result = next_handler(ctx)
+            if isinstance(result, HTTPResponse):  # not applied to ctx.response yet
+                status = result.status_code
+            return result
+        except HTTPResponse as E:
+            status = E.status_code
+            raise
+        except Exception:
+            status = 500
+            raise
+        finally:
+            duration_ms = (time.monotonic() - start) * 1000
+            self.logger.info(json_dumps({
+                'timestamp': datetime.now(UTC).isoformat(),
+                'request_id': getattr(ctx, 'request_id', None),
+                'method': ctx.request.method,
+                'path': ctx.request.path,
+                'status': status or ctx.response.status_code,
+                'duration_ms': round(duration_ms, 2),
+                'remote_addr': ctx.request.remote_addr,
+            }))
+
+# Drops X-Content-Type-Options, X-Frame-Options, and friends on every response
+class SecurityHeadersMiddleware(Middleware):
+    name = 'security_headers'
+    order = 5
+    phase = 'pre'  # pre-routing, so unmatched-route 404s get the headers too
+
+    DEFAULTS = {
+        'X-Content-Type-Options': 'nosniff',
+        'X-Frame-Options': 'SAMEORIGIN',
+        'X-XSS-Protection': '0',  # the old browser filter creates holes; OWASP says disable
+        'Referrer-Policy': 'strict-origin-when-cross-origin',
+    }
+
+    def __init__(self, hsts=False, hsts_max_age=31536000, **overrides):
+        self.headers = {**self.DEFAULTS, **overrides}
+        if hsts:
+            self.headers['Strict-Transport-Security'] = \
+                'max-age=%d; includeSubDomains' % hsts_max_age
+        self._items = tuple((_hkey(k), _hval(v)) for k, v in self.headers.items())
+
+    def __call__(self, ctx, next_handler):
+        result = next_handler(ctx)
+        hdrs = ctx.response._headers
+        for key, value in self._items:  # names and values were validated once in __init__
+            hdrs[key] = [value]
+        return result
+
+# CSRF via double-submit cookie pattern. The cookie is HMAC-signed so sibling
+# subdomains can't toss a forged one at your users.
+class CSRFMiddleware(Middleware):
+    name = 'csrf'
+    order = 10
+    phase = 'pre'
+
+    def __init__(self, secret=None, cookie_name='_csrf_token',
+                 header_name='X-CSRF-Token', form_field='_csrf_token',
+                 safe_methods=('GET', 'HEAD', 'OPTIONS'), secure=None):
+        if secret is None:
+            secret = hashlib.sha256(os.urandom(32)).hexdigest()
+            warnings.warn(
+                "CSRFMiddleware: no secret= given, using a random per-process "
+                "secret. Under multi-worker deployment (e.g. gunicorn -w N) "
+                "each worker generates its own secret, so a token cookie "
+                "signed by one worker fails verification on another and "
+                "legitimate submissions get randomly rejected with 403. Pass "
+                "a fixed secret= (e.g. from an environment variable) in any "
+                "multi-process deployment.",
+                UserWarning, stacklevel=2)
+        self.secret = secret
+        self.cookie_name = cookie_name
+        self.header_name = header_name
+        self.form_field = form_field
+        self.safe_methods = safe_methods
+        self.secure = secure
+
+    def _generate_token(self):
+        return hashlib.sha256(os.urandom(32)).hexdigest()
+
+    def _sign_token(self, token):
+        sig = hmac.new(tob(self.secret), tob(token),
+                       digestmod=hashlib.sha256).hexdigest()
+        return '%s.%s' % (token, sig)
+
+    def _verify_signed_token(self, signed):
+        if not signed or '.' not in signed:
+            return None
+        token, sig = signed.rsplit('.', 1)
+        expected = hmac.new(tob(self.secret), tob(token),
+                            digestmod=hashlib.sha256).hexdigest()
+        if _lscmp(sig, expected):
+            return token
+        return None
+
+    def __call__(self, ctx, next_handler):
+        signed_cookie = ctx.request.cookies.get(self.cookie_name)
+        token = self._verify_signed_token(signed_cookie) if signed_cookie else None
+        if not token:
+            token = self._generate_token()
+            ctx.response.set_cookie(self.cookie_name,
+                                     self._sign_token(token),
+                                     httponly=False, samesite='Strict',
+                                     # None = auto: Secure whenever the request came in over HTTPS
+                                     secure=(ctx.request.environ.get('wsgi.url_scheme') == 'https'
+                                             if self.secure is None else self.secure))
+        ctx.csrf_token = token
+
+        if ctx.request.method not in self.safe_methods:
+            submitted = (ctx.request.get_header(self.header_name)
+                         or ctx.request.forms.get(self.form_field))
+            if not submitted or not _lscmp(submitted, token):
+                raise HTTPError(403, 'CSRF token validation failed')
+
+        return next_handler(ctx)
+
+# Handles CORS preflight and sets Access-Control-* on every response
+class CORSMiddleware(Middleware):
+    name = 'cors'
+    order = 3
+    phase = 'pre'
+
+    def __init__(self, allow_origins='*', allow_methods=None,
+                 allow_headers=None, expose_headers=None,
+                 allow_credentials=False, max_age=86400):
+        if allow_credentials and allow_origins == '*':
+            raise ValueError(
+                "CORS: allow_credentials=True cannot be used with allow_origins='*'. "
+                "Specify explicit origins instead.")
+        self.allow_origins = allow_origins
+        self.allow_methods = allow_methods or ['GET', 'POST', 'PUT', 'DELETE',
+                                               'PATCH', 'OPTIONS']
+        self.allow_headers = allow_headers or ['Content-Type', 'Authorization',
+                                               'X-Requested-With']
+        self.expose_headers = expose_headers or []
+        self.allow_credentials = allow_credentials
+        self.max_age = max_age
+
+    def _origin_allowed(self, origin):
+        if not origin:
+            return False
+        if self.allow_origins == '*':
+            return True
+        if isinstance(self.allow_origins, str):
+            return origin == self.allow_origins
+        return origin in self.allow_origins
+
+    def _set_cors_headers(self, ctx, origin):
+        resp = ctx.response
+        if self.allow_origins == '*' and not self.allow_credentials:
+            resp.set_header('Access-Control-Allow-Origin', '*')
+        else:
+            resp.set_header('Access-Control-Allow-Origin', origin)
+            resp.add_header('Vary', 'Origin')
+        if self.allow_credentials:
+            resp.set_header('Access-Control-Allow-Credentials', 'true')
+        if self.expose_headers:
+            resp.set_header('Access-Control-Expose-Headers',
+                            ', '.join(self.expose_headers))
+
+    def __call__(self, ctx, next_handler):
+        origin = ctx.request.get_header('Origin')
+        if not self._origin_allowed(origin):
+            result = next_handler(ctx)
+            if self.allow_origins != '*':  # keep shared caches from mixing origins
+                ctx.response.add_header('Vary', 'Origin')
+            return result
+
+        if ctx.request.method == 'OPTIONS':
+            ctx.response.status = 204
+            self._set_cors_headers(ctx, origin)
+            ctx.response.set_header('Access-Control-Allow-Methods',
+                                     ', '.join(self.allow_methods))
+            ctx.response.set_header('Access-Control-Allow-Headers',
+                                     ', '.join(self.allow_headers))
+            ctx.response.set_header('Access-Control-Max-Age',
+                                     str(self.max_age))
+            return ''
+
+        result = next_handler(ctx)
+        self._set_cors_headers(ctx, origin)
+        return result
+
+
+class _ClosingIterator:
+    """Wraps a body iterator so its underlying source is always closed, even
+    if this wrapper is discarded before ever being iterated. A bare
+    generator's own `finally` only runs once its frame has started
+    executing, so something that throws the returned iterable away unstarted
+    would otherwise leak whatever `source` holds open (a file, a DB cursor).
+    """
+    __slots__ = ('_it', '_source', '_closed')
+
+    def __init__(self, it, source):
+        self._it = it
+        self._source = source
+        self._closed = False
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return next(self._it)
+
+    def close(self):
+        if self._closed:
+            return
+        self._closed = True
+        _try_close(self._it)
+        _try_close(self._source)
+
+    def __del__(self):
+        try:
+            self.close()
+        except Exception:
+            pass
+
+
+# gzip for responses skips tiny bodies and already-encoded ones
+def _accepts_gzip(header):
+    """Parse Accept-Encoding tokens: case-insensitive, q=0 refuses, '*' allows."""
+    q = {}
+    for part in header.lower().split(','):
+        token, _, params = part.partition(';')
+        weight = 1.0
+        for p in params.split(';'):
+            k, _, v = p.strip().partition('=')
+            if k == 'q':
+                try: weight = float(v)
+                except ValueError: weight = 0.0
+        q[token.strip()] = weight
+    return q.get('gzip', q.get('*', 0)) > 0
+
+
+class CompressionMiddleware(Middleware):
+    name = 'compression'
+    order = 90
+
+    def __init__(self, min_size=256, level=6,
+                 content_types=None, stream_threshold=256 * 1024):
+        self.min_size = min_size
+        self.level = level
+        # How much of a streamed body to buffer before giving up on knowing
+        # its length and switching to incremental compression.
+        self.stream_threshold = stream_threshold
+        self.content_types = content_types or (
+            'text/', 'application/json', 'application/javascript',
+            'application/xml', 'application/xhtml+xml', 'image/svg+xml',
+        )
+
+    @staticmethod
+    def _add_vary(ctx):
+        vary = ctx.response.get_header('Vary')
+        if not vary:
+            ctx.response.set_header('Vary', 'Accept-Encoding')
+        elif 'accept-encoding' not in vary.lower():
+            ctx.response.set_header('Vary', vary + ', Accept-Encoding')
+
+    def _should_compress(self, ctx):
+        ct = ctx.response.get_header('Content-Type', '') or 'text/html'
+        return any(ct.startswith(t) for t in self.content_types)
+
+    def __call__(self, ctx, next_handler):
+        result = next_handler(ctx)
+        if isinstance(result, HTTPResponse):  # errors, redirects, static_file: keep status and headers
+            return result
+        if not self._should_compress(ctx) or ctx.response.get_header('Content-Encoding'):
+            return result
+        self._add_vary(ctx)  # the response now depends on Accept-Encoding, compressed or not
+        if not _accepts_gzip(ctx.request.get_header('Accept-Encoding', '')):
+            return result
+        # An ordinary bytes or str body is compressed in a single call with a
+        # known Content-Length, exactly as before streaming support existed.
+        if isinstance(result, bytes):
+            body = result
+        elif isinstance(result, str):
+            body = result.encode('utf-8')
+        else:
+            return self._compress_iterable(ctx, result)
+        return self._compress_whole(ctx, body)
+
+    def _compress_whole(self, ctx, body):
+        if len(body) < self.min_size:
+            return body
+        compressed = gzip.compress(body, compresslevel=self.level)
+        ctx.response.set_header('Content-Encoding', 'gzip')
+        ctx.response.set_header('Content-Length', str(len(compressed)))
+        return compressed
+
+    def _compress_iterable(self, ctx, result):
+        """Buffer a streamed body up to stream_threshold, then stream.
+
+        Anything that fits in the buffer is compressed whole and keeps its
+        Content-Length, so ordinary responses behave exactly as they used to.
+        Only a body that outgrows the buffer switches to incremental gzip,
+        which trades Content-Length for constant memory. Buffering the whole
+        thing meant a 20MB response cost 40MB of RAM per concurrent request
+        and defeated streaming entirely.
+        """
+        iterator = iter(result)
+        buffered, total = [], 0
+        try:
+            for chunk in iterator:
+                chunk = tob(chunk)
+                buffered.append(chunk)
+                total += len(chunk)
+                if total > self.stream_threshold:
+                    break
+            else:
+                _try_close(result)
+                return self._compress_whole(ctx, b''.join(buffered))
+        except Exception:
+            _try_close(result)
+            return result
+
+        # Too big to buffer. The compressed length is unknown until the body
+        # ends, so any Content-Length already set would now be a lie.
+        ctx.response.set_header('Content-Encoding', 'gzip')
+        if 'Content-Length' in ctx.response:
+            del ctx.response['Content-Length']
+        return _ClosingIterator(
+            self._gzip_stream(buffered, iterator, result), result)
+
+    def _gzip_stream(self, buffered, iterator, source):
+        # wbits=31 is zlib's raw deflate plus a gzip wrapper
+        compressor = zlib.compressobj(self.level, zlib.DEFLATED, 31)
+        try:
+            for chunk in itertools.chain(buffered, iterator):
+                data = compressor.compress(tob(chunk))
+                if data:
+                    yield data
+            yield compressor.flush()
+        finally:
+            _try_close(source)
+
+
+# Rejects bodies over max_size before they clog your pipes
+class BodyLimitMiddleware(Middleware):
+    name = 'body_limit'
+    order = 0
+    phase = 'pre'
+
+    def __init__(self, max_size=10 * 1024 * 1024):
+        self.max_size = max_size
+
+    def __call__(self, ctx, next_handler):
+        cl = ctx.request.content_length
+        # Fast-reject when Content-Length is declared and already over limit.
+        if cl > self.max_size:
+            raise HTTPError(413, 'Request entity too large (limit: %d bytes)'
+                            % self.max_size)
+        ctx.request.environ['lcore.body_max_size'] = self.max_size
+        return next_handler(ctx)
+
+
+# Tells request.remote_addr to trust X-Forwarded-For from your nginx/load-balancer.
+#
+# Two independent trust modes:
+#   trusted_proxies=[...]  IP allowlist. X-Forwarded-* is only honored when the
+#                          directly-connecting peer (REMOTE_ADDR) is in the list.
+#                          Handles multi-hop chains as long as every proxy's IP
+#                          is known.
+#   num_proxies=N          Hop-count trust. Blindly trusts the last N entries of
+#                          X-Forwarded-For, no IP check at all just like
+#                          Werkzeug's ProxyFix. Use when your proxy's IP isn't
+#                          fixed/known but your network guarantees exactly N
+#                          proxies sit in front of the app (nothing else can
+#                          reach it directly).
+# Pass at most one of the two; num_proxies takes precedence if both are given.
+class ProxyFixMiddleware(Middleware):
+    name = 'proxy_fix'
+    order = -10
+    phase = 'pre'
+
+    def __init__(self, trusted_proxies=None, num_proxies=None):
+        if trusted_proxies is not None:
+            self.trusted = frozenset(trusted_proxies)
+        else:
+            self.trusted = frozenset(('127.0.0.1', '::1'))
+        self.num_proxies = num_proxies
+
+    def __call__(self, ctx, next_handler):
+        env = ctx.request.environ
+        env['lcore.trusted_proxies'] = self.trusted
+        if self.num_proxies is not None:
+            env['lcore.trusted_proxy_hops'] = self.num_proxies
+        return next_handler(ctx)
+
+
+# Runs handler in a thread pool, raises 503 if it drags on too long.
+# Can't actually kill the thread (Python, sigh), but the client gets a response.
+class TimeoutMiddleware(Middleware):
+    name = 'timeout'
+    order = -5  # run early, after proxy fix
+
+    def __init__(self, timeout=30, max_workers=None):
+        self.timeout = timeout
+        # max_workers=None lets Python pick (min(32, os.cpu_count()+4) in 3.8+).
+        self._max_workers = max_workers
+        self._pool = None
+        self._pool_lock = threading.Lock()
+
+    def _get_pool(self):
+        if self._pool is None:
+            with self._pool_lock:
+                if self._pool is None:
+                    self._pool = concurrent.futures.ThreadPoolExecutor(
+                        max_workers=self._max_workers,
+                        thread_name_prefix='lcore-timeout')
+                    # Release threads on normal process exit so the process does
+                    # not hang waiting for in-flight timeout handlers to finish.
+                    atexit.register(self._pool.shutdown, wait=False)
+        return self._pool
+
+    def __call__(self, ctx, next_handler):
+        pool = self._get_pool()
+        # request, response and ctx are thread-locals bound in the serving
+        # thread; a pool thread has none of them, so a handler touching
+        # request used to die with "Request context not initialized". The
+        # worker's response is seeded from a snapshot of the outer one so a
+        # handler can read/overwrite/delete what pre-phase middleware set,
+        # same as it would with no thread hop at all.
+        environ = ctx.request.environ
+        app, route = ctx.app, ctx.route
+        user, request_id = ctx.user, ctx.request_id
+        state, lazy = ctx.state, ctx._lazy
+        seed = ctx.response.copy()
+        carried = {}
+
+        def run_bound():
+            request.bind(environ)
+            response.bind()
+            response._status_code = seed._status_code
+            response._status_line = seed._status_line
+            response._headers = seed._headers
+            response._cookies = seed._cookies
+            # Not ctx.bind() (RequestContext.__init__): that allocates fresh
+            # state={}/_lazy={} dicts and sets route/user/request_id to None,
+            # all immediately overwritten below. Setting every slot directly
+            # skips the wasted allocations and redundant writes.
+            ctx.request = request
+            ctx.response = response
+            ctx.app = app
+            ctx.route = route
+            ctx.user = user
+            ctx.request_id = request_id
+            # The same dict objects, not copies, so anything the handler adds
+            # to the session or a DI scope is visible to the serving thread.
+            # user/route/request_id are RequestContext __slots__, which are
+            # thread-local and NOT part of these dicts, so they don't cross
+            # the thread boundary this way; carried back explicitly below.
+            ctx.state = state
+            ctx._lazy = lazy
+            try:
+                return next_handler(ctx)
+            finally:
+                # A plain snapshot, not the thread-local `response` object
+                # itself: response._headers et al. are thread-local
+                # properties, so reading them from the serving thread would
+                # silently resolve to the SERVING thread's own slot rather
+                # than what this worker thread just set. Captured even when
+                # the handler raises, so a redirect still carries the
+                # cookies set before it.
+                carried['done'] = True
+                carried['response'] = response.copy()
+                carried['user'] = ctx.user
+                carried['route'] = ctx.route
+                carried['request_id'] = ctx.request_id
+
+        future = pool.submit(run_bound)
+        try:
+            return future.result(timeout=self.timeout)
+        except concurrent.futures.TimeoutError:
+            raise HTTPError(503, 'Request timed out (limit: %ds)'
+                            % self.timeout)
+        finally:
+            if carried.get('done'):
+                self._carry_response_back(carried['response'], ctx.response)
+                ctx.user = carried['user']
+                ctx.route = carried['route']
+                ctx.request_id = carried['request_id']
+
+    @staticmethod
+    def _carry_response_back(worker_response, outer_response):
+        """Replace the outer response's status/headers/cookies with the
+        worker's.
+
+        The worker's response was seeded with a snapshot of the outer
+        response before the worker started (see __call__), so its final
+        state already reflects everything pre-phase middleware set, plus
+        whatever the handler and post-phase middleware (e.g. compression)
+        changed on top of that -- including deletions. A full replace is
+        correct here, not a merge: the worker's response is a strict
+        continuation of the outer one, not an independent, only-additive
+        view of it.
+
+        Deliberately not HTTPResponse.apply(): that also overwrites the body,
+        and here the body is the handler's return value, passed back separately.
+        """
+        outer_response._status_code = worker_response._status_code
+        outer_response._status_line = worker_response._status_line
+        outer_response._headers = worker_response._headers
+        outer_response._cookies = worker_response._cookies
+
+
+# Middleware with separate pre() and post() no chain-wrangling needed
+class MiddlewareHook(Middleware):
+    name = None
+    order = 50
+
+    def pre(self, ctx):  # return HTTPResponse to short-circuit
+        pass
+
+    def post(self, ctx, result):  # modify handler result
+        return result
+
+    def __call__(self, ctx, next_handler):
+        pre_result = self.pre(ctx)
+        if _is_async(self.pre):
+            pre_result = _run_async(pre_result)
+        if isinstance(pre_result, HTTPResponse):
+            return pre_result
+        result = next_handler(ctx)
+        post_result = self.post(ctx, result)
+        if _is_async(self.post):
+            post_result = _run_async(post_result)
+        return post_result if post_result is not None else result
+
+
+# DI container: singleton, scoped, transient. Your classes get their dependencies served.
+class DependencyContainer:
+
+    SINGLETON = 'singleton'
+    SCOPED = 'scoped'
+    TRANSIENT = 'transient'
+
+    def __init__(self):
+        self._registry = {}
+        self._singletons = {}
+        self._lock = threading.Lock()
+
+    def register(self, name, factory, lifetime='singleton'):
+        if lifetime not in (self.SINGLETON, self.SCOPED, self.TRANSIENT):
+            raise ValueError("lifetime must be 'singleton', 'scoped', or 'transient'")
+        if name in RequestContext.__slots__ or hasattr(RequestContext, name):
+            raise ValueError(
+                "%r is reserved by RequestContext: ctx.%s would silently "
+                "resolve to the built-in attribute or method instead of "
+                "this dependency. Pick a different name." % (name, name))
+        self._registry[name] = (factory, lifetime)
+
+    def resolve(self, name, ctx=None):
+        if name not in self._registry:
+            raise KeyError("Dependency %r not registered" % name)
+        factory, lifetime = self._registry[name]
+        if lifetime == self.SINGLETON:
+            with self._lock:
+                if name not in self._singletons:
+                    self._singletons[name] = factory()
+                return self._singletons[name]
+        elif lifetime == self.SCOPED:
+            if ctx is None:
+                raise RuntimeError("Scoped dependency %r requires a request context" % name)
+            scoped = ctx.state.get('_di_scoped')
+            if scoped is None:
+                scoped = {}
+                ctx.state['_di_scoped'] = scoped
+            if name not in scoped:
+                scoped[name] = factory()
+            return scoped[name]
+        else:
+            return factory()
+
+    def _begin_scope(self, ctx):
+        for name, (factory, lifetime) in self._registry.items():
+            if lifetime == self.TRANSIENT:
+                ctx.lazy(name, factory)
+            elif lifetime == self.SCOPED:
+                ctx.lazy(name, lambda n=name: self.resolve(n, ctx))
+            else:
+                ctx.state[name] = self.resolve(name)
+
+    def _end_scope(self, ctx):
+        scoped = ctx.state.get('_di_scoped')
+        if scoped:
+            for val in scoped.values():
+                if hasattr(val, 'close'):
+                    try:
+                        result = val.close()
+                        if inspect.iscoroutine(result):
+                            _run_async(result)
+                    except Exception:
+                        logging.getLogger('lcore').debug(
+                            "Error closing scoped dependency %r", val, exc_info=True)
+            scoped.clear()
+
+    def __contains__(self, name):
+        return name in self._registry
+
+    def __len__(self):
+        return len(self._registry)
+
+
+class BackgroundTaskPool:
+    """Fire-and-forget tasks. Thread pool, configurable workers."""
+
+    def __init__(self, max_workers=4):
+        self._pool = concurrent.futures.ThreadPoolExecutor(max_workers=max_workers)
+        self._futures = set()
+
+    def submit(self, fn, *args, **kwargs):
+        """Submit a task for background execution. Returns a Future."""
+        future = self._pool.submit(fn, *args, **kwargs)
+        self._futures.add(future)
+        future.add_done_callback(self._futures.discard)  # O(1), no list rebuild
+        return future
+
+    @property
+    def pending(self):
+        """Number of tasks still running or queued."""
+        return len(self._futures)
+
+    def shutdown(self, wait=True):
+        """Shut down the pool, optionally waiting for pending tasks."""
+        self._pool.shutdown(wait=wait)
+
+
+# Rate-limit backends. Subclass RateLimitBackend for cross-worker enforcement.
+class RateLimitBackend(abc.ABC):
+    """ABC for rate-limit backends. Override consume(). Use RedisRateLimitBackend."""
+
+    @abc.abstractmethod
+    def consume(self, key, limit, per):
+        """Atomically consume one token for *key*.
+
+        Args:
+            key   : client identifier (typically IP address).
+            limit : maximum requests allowed inside the window.
+            per   : window length in seconds.
+
+        Returns:
+            ``True`` request is allowed (token consumed).
+            ``False`` limit exceeded; :func:`rate_limit` raises HTTP 429.
+        """
+
+    def close(self):
+        """Optional: release resources (connection pool, threads).
+        Called automatically on normal process exit if the backend was
+        registered via :func:`on_shutdown` or used with the default
+        :func:`rate_limit` wrapper."""
+
+
+def _make_redis_client(requirer, redis_url, socket_connect_timeout,
+                        health_check_interval):
+    """Shared redis-py client construction for RedisRateLimitBackend and
+    RedisSessionBackend: same import guard, same from_url() options."""
+    try:
+        import redis as _redis_mod
+    except ImportError:
+        raise ImportError(
+            "%s requires the 'redis' package (lcore itself has zero "
+            "dependencies; redis is only imported if you use this backend).\n"
+            "Install it with:  uv add redis  (or: pip install redis)" % requirer)
+    return _redis_mod.from_url(
+        redis_url,
+        decode_responses=True,
+        socket_connect_timeout=socket_connect_timeout,
+        health_check_interval=health_check_interval)
+
+
+def _close_redis(client):
+    try:
+        client.close()
+    except Exception:
+        pass
+
+
+class RedisRateLimitBackend(RateLimitBackend):
+    """Redis-backed rate limiter. uv add redis (or pip install redis), pass
+    backend= to rate_limit(). Fails open on Redis outage your app keeps
+    working, limits get a holiday."""
+
+    # Atomic fixed-window counter.
+    # INCR the key; on first increment set the TTL equal to the window; return count.
+    _LUA = (
+        "local count = redis.call('INCR', KEYS[1])\n"
+        "if count == 1 then redis.call('EXPIRE', KEYS[1], ARGV[2]) end\n"
+        "return count\n"
+    )
+
+    def __init__(self, redis_url='redis://localhost:6379/0',
+                 prefix='lcore:rl:',
+                 socket_connect_timeout=2,
+                 health_check_interval=30):
+        self._prefix = prefix
+        self._r = _make_redis_client('RedisRateLimitBackend', redis_url,
+                                      socket_connect_timeout,
+                                      health_check_interval)
+        self._script = self._r.register_script(self._LUA)
+        # Ensure the connection pool is released on normal process exit.
+        atexit.register(self.close)
+
+    def consume(self, key, limit, per):
+        """Atomically increment the fixed-window counter.  Returns True if allowed."""
+        try:
+            count = self._script(keys=[self._prefix + key],
+                                 args=[limit, int(per)])
+            return int(count) <= limit
+        except Exception as exc:
+            # Fail open: a Redis outage should not break the application.
+            logging.getLogger('lcore.rate_limit').warning(
+                'RedisRateLimitBackend error (failing open): %s', exc)
+            return True
+
+    def close(self):
+        """Close the Redis connection pool."""
+        _close_redis(self._r)
+
+
+# Token bucket per IP with 64-way lock striping. Without a backend= each
+# gunicorn worker gets its own bucket, so the real limit is N × your number.
+# Pass backend=RedisRateLimitBackend() for cross-worker enforcement.
+
+_RL_NSTRIPES = 64
+_RL_STRIPES = [threading.Lock() for _ in range(_RL_NSTRIPES)]
+
+
+def _rate_limit_check_proxy_addr(addr):
+    """Warn when rate-limiting loopback without ProxyFixMiddleware everyone
+    shares one bucket and your limit is silently useless."""
+    if addr in ('127.0.0.1', '::1', '0.0.0.0'):
+        if 'lcore.trusted_proxies' not in request.environ:
+            warnings.warn(
+                "rate_limit: resolved remote_addr is '%s' (a loopback/unset address). "
+                "This usually means your app is behind a reverse proxy but "
+                "ProxyFixMiddleware is not configured. All clients will share "
+                "a single rate-limit bucket, effectively disabling the limit. "
+                "Add `app.use(ProxyFixMiddleware(trusted_proxies=['<proxy-ip>']))` "
+                "to fix this." % addr,
+                RuntimeWarning, stacklevel=4)
+
+
+def rate_limit(limit, per=60, max_buckets=10000, backend=None, single_process=False):
+    """Decorator: token-bucket rate limit per client IP. Raises 429 on bust.
+    Without backend=, each gunicorn worker has its own buckets (N x limit).
+    Pass backend=RedisRateLimitBackend() for cross-worker enforcement.
+    single_process=True silences the in-process warning (one worker, and a
+    restart resets the counters)."""
+    if backend is None and not single_process:
+        warnings.warn(
+            "rate_limit() is using in-process token buckets. "
+            "Under multi-worker deployment (e.g. gunicorn -w N) the effective "
+            "per-client limit is N x limit per window. "
+            "Pass backend=RedisRateLimitBackend() for cross-worker enforcement.",
+            UserWarning, stacklevel=2)
+    # Delegate to the backend's atomic consume()
+    if backend is not None and not hasattr(backend, 'consume'):
+        raise TypeError("rate_limit backend needs a consume(key, limit, per) method")
+    if backend is not None:
+        def decorator(func):
+            @functools.wraps(func)
+            def wrapper(*a, **ka):
+                addr = request.remote_addr or '0.0.0.0'
+                _rate_limit_check_proxy_addr(addr)
+                if not backend.consume(addr, limit, per):
+                    raise HTTPError(429, 'Too Many Requests')
+                return func(*a, **ka)
+            return wrapper
+        return decorator
+
+    # In-process buckets with 64-way lock striping
+    buckets = {}
+    _last_cleanup = [0.0]
+
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*a, **ka):
+            addr = request.remote_addr or '0.0.0.0'
+            _rate_limit_check_proxy_addr(addr)
+            now = time.monotonic()
+            # Select one of the 64 stripes for this IP to avoid a single
+            # global lock serialising all concurrent requests.
+            lock = _RL_STRIPES[hash(addr) % _RL_NSTRIPES]
+            with lock:
+                # Periodic cleanup of stale buckets (once per window).
+                if now - _last_cleanup[0] > per:
+                    _last_cleanup[0] = now
+                    # Snapshot first: other stripes insert into this dict concurrently.
+                    snap = list(buckets.items())
+                    for k, v in snap:
+                        if now - v[0] > per:
+                            buckets.pop(k, None)
+                    if len(buckets) > max_buckets:
+                        oldest = sorted(snap, key=lambda kv: kv[1][0])
+                        for k, _ in oldest[:len(buckets) - max_buckets]:
+                            buckets.pop(k, None)
+                if addr not in buckets:
+                    while len(buckets) >= max_buckets:  # oldest-inserted first, O(1)
+                        try: buckets.pop(next(iter(buckets)), None)
+                        except (StopIteration, RuntimeError): break
+                    buckets[addr] = [now, limit]
+                tokens_info = buckets[addr]
+                elapsed = now - tokens_info[0]
+                tokens_info[0] = now
+                tokens_info[1] = min(limit,
+                                     tokens_info[1] + elapsed * (limit / per))
+                if tokens_info[1] < 1:
+                    raise HTTPError(429, 'Too Many Requests')
+                tokens_info[1] -= 1
+            return func(*a, **ka)
+        return wrapper
+    return decorator
+
+# Server-side sessions. The cookie carries a signed session id and nothing
+# else; all state lives in a backend you pick. Two revocation mechanisms, both
+# implemented by every shipped backend:
+#   index  per-user set of live session ids. Powers list_user() ("you are
+#          signed in on 3 devices") and revoking one device without the others.
+#   epoch  per-user counter stamped into a session when it is bound to a user.
+#          Bump it and every session issued before the bump dies on its next
+#          load, without walking the index. The cheap global kill switch.
+# revoke_all() does both, and is what a password reset should call.
+
+_SESSION_SID_BYTES = 32
+
+
+def _new_sid():
+    return os.urandom(_SESSION_SID_BYTES).hex()
+
+
+def _blank_session_record():
+    now = time.time()
+    return {'data': {}, 'uid': None, 'epoch': 0,
+            'created': now, 'seen': now, 'ip': None, 'ua': None}
+
+
+def _apply_session_ops(data, ops):
+    """Replay Session change ops: ('s', key, value), ('d', key), ('c',)."""
+    for op in ops:
+        if op[0] == 's': data[op[1]] = op[2]
+        elif op[0] == 'd': data.pop(op[1], None)
+        else: data.clear()
+
+
+class SessionBackend(abc.ABC):
+    """ABC for session stores. Subclass for Postgres, DynamoDB, Memcached.
+
+    Records are plain dicts and must stay JSON-serialisable: every shipped
+    backend round-trips them through JSON, so what works in development with
+    MemorySessionBackend also works in production.
+    """
+
+    @abc.abstractmethod
+    def load(self, sid):
+        """Return the record dict stored under *sid*, or None if absent."""
+
+    @abc.abstractmethod
+    def save(self, sid, record, ttl):
+        """Store *record* under *sid*, expiring *ttl* seconds from now.
+
+        Implementations must index the session under ``record['uid']`` when
+        that key is set, so list_user() and revoke_user() can find it.
+        """
+
+    @abc.abstractmethod
+    def delete(self, sid):
+        """Remove one session. Returns True if it existed."""
+
+    @abc.abstractmethod
+    def list_user(self, user_key):
+        """Return ``[(sid, record), ...]`` for a user's live sessions."""
+
+    @abc.abstractmethod
+    def revoke_user(self, user_key, except_sid=None):
+        """Delete every session for *user_key*. Returns the number removed."""
+
+    @abc.abstractmethod
+    def get_epoch(self, user_key):
+        """Return the user's current epoch. 0 if never bumped."""
+
+    @abc.abstractmethod
+    def bump_epoch(self, user_key):
+        """Invalidate every session issued before now. Returns the new epoch."""
+
+    # Seconds to cache per-user epochs in this process. Without a cache every
+    # authenticated request costs a second round trip on top of loading the session.
+    epoch_cache_ttl = 5.0
+    epoch_cache_max = 10000
+
+    def cached_epoch(self, user_key):
+        """get_epoch() behind a short process-local TTL cache.
+
+        A local bump_epoch() drops the entry at once, so revocation from this
+        process is immediate. Another process's bump is picked up within
+        epoch_cache_ttl seconds.
+        """
+        ttl = self.epoch_cache_ttl
+        if not ttl:
+            return self.get_epoch(user_key)
+        key = str(user_key)
+        try:
+            cache = self._epoch_cache
+            gens = self._epoch_cache_gen
+        except AttributeError:
+            cache = self._epoch_cache = {}
+            gens = self._epoch_cache_gen = {}
+        # Unlocked on purpose: dict get/set are atomic under the GIL and the
+        # worst an ordinary race can do is fetch the same epoch twice.
+        entry = cache.get(key)
+        now = time.monotonic()
+        if entry is not None and entry[1] > now:
+            return entry[0]
+        # get_epoch() is a backend round trip, which releases the GIL: a
+        # concurrent bump_epoch()/_forget_epoch() for this key can run to
+        # completion while we're waiting on it. Detect that by generation
+        # number rather than caching unconditionally, otherwise the epoch we
+        # read here (possibly the pre-bump value) gets written into the cache
+        # right after the bump that was supposed to invalidate it, reviving a
+        # just-revoked epoch for up to epoch_cache_ttl seconds.
+        gen_before = gens.get(key, 0)
+        epoch = self.get_epoch(key)
+        if gens.get(key, 0) != gen_before:
+            return epoch
+        if len(cache) >= self.epoch_cache_max:
+            cache.clear()
+        cache[key] = (epoch, now + ttl)
+        return epoch
+
+    def _forget_epoch(self, user_key):
+        """Drop a cached epoch. Call from bump_epoch() implementations."""
+        key = str(user_key)
+        cache = getattr(self, '_epoch_cache', None)
+        if cache is not None:
+            cache.pop(key, None)
+        gens = getattr(self, '_epoch_cache_gen', None)
+        if gens is None:
+            gens = self._epoch_cache_gen = {}
+        gens[key] = gens.get(key, 0) + 1
+
+    def revoke_all(self, user_key, except_sid=None):
+        """Sign out everywhere. Call this on password reset.
+
+        The index pass kills every session this backend knows about; the epoch
+        bump catches the ones it does not (written by another worker while the
+        revoke was in flight, or dropped from the index).
+        """
+        removed = self.revoke_user(user_key, except_sid=except_sid)
+        self.bump_epoch(user_key)
+        return removed
+
+    def touch(self, sid, ttl):
+        """Refresh a session's TTL. Returns False if it no longer exists."""
+        record = self.load(sid)
+        if record is None:
+            return False
+        self.save(sid, record, ttl)
+        return True
+
+    def merge(self, sid, ops, seen, ttl):
+        """Apply a request's key changes (see _apply_session_ops) to the *stored*
+        record, so concurrent requests on one session don't overwrite each
+        other's keys. Returns the merged record, or None if the session no
+        longer exists (revoked or expired: it must not be resurrected).
+
+        This default is load-apply-save and only narrows the race; the
+        shipped backends override it with an atomic version."""
+        record = self.load(sid)
+        if record is None:
+            return None
+        _apply_session_ops(record['data'], ops)
+        record['seen'] = seen
+        self.save(sid, record, ttl)
+        return record
+
+    def unindex(self, sid, user_key):
+        """Remove sid from user_key's per-user index without deleting the
+        session itself. Called by Session.bind_user(regenerate=False) when a
+        session is reassigned to a different user without a new sid, so the
+        old user's index does not keep pointing at a session that now
+        belongs to someone else. Default no-op: a backend whose list_user()/
+        revoke_user() derive membership structurally from the record itself
+        (e.g. a uid column, as SQLiteSessionBackend has) needs no override.
+        """
+        pass
+
+    def close(self):
+        """Optional: release connections or threads."""
+
+
+class MemorySessionBackend(SessionBackend):
+    """Sessions in process memory. Development and single-worker only."""
+
+    def __init__(self, max_sessions=100000, warn=True):
+        self._store = {}    # sid -> (expires_at, uid_key or None, json blob)
+        self._index = {}    # user key -> set of sid
+        self._epochs = {}   # user key -> int
+        self._lock = threading.RLock()
+        self._max_sessions = max_sessions
+        if warn:
+            warnings.warn(
+                "MemorySessionBackend keeps sessions in process memory: they "
+                "are lost on restart, and under multi-worker deployment (e.g. "
+                "gunicorn -w N) each worker has its own store, so a user is "
+                "logged in on one worker and logged out on the others. Use "
+                "SQLiteSessionBackend (single server) or RedisSessionBackend "
+                "(multi server) in production.",
+                UserWarning, stacklevel=2)
+
+    def load(self, sid):
+        with self._lock:
+            entry = self._store.get(sid)
+            if entry is None:
+                return None
+            if entry[0] <= time.time():
+                self._drop(sid)
+                return None
+            return json_loads(entry[2])
+
+    def save(self, sid, record, ttl):
+        blob = json_dumps(record)
+        uid = record.get('uid')
+        uid_key = None if uid is None else str(uid)
+        with self._lock:
+            old = self._store.get(sid)
+            if old is None and len(self._store) >= self._max_sessions:
+                self._evict_expired()
+                if len(self._store) >= self._max_sessions:
+                    # Nothing had expired: evict the oldest-inserted sessions
+                    # (dicts preserve insertion order) rather than growing
+                    # past max_sessions without bound.
+                    overflow = len(self._store) - self._max_sessions + 1
+                    for old_sid in list(itertools.islice(self._store, overflow)):
+                        self._drop(old_sid)
+            if old is not None and old[1] is not None and old[1] != uid_key:
+                # Session was re-pointed at a different uid (bind_user with
+                # regenerate=False) since it was last saved: the old uid's
+                # index must not keep claiming a session that is now
+                # someone else's.
+                self._deindex(sid, old[1])
+            self._store[sid] = (time.time() + ttl, uid_key, blob)
+            if uid_key is not None:
+                self._index.setdefault(uid_key, set()).add(sid)
+
+    def merge(self, sid, ops, seen, ttl):
+        with self._lock:  # RLock: load and save re-enter it, so the whole merge is atomic
+            return SessionBackend.merge(self, sid, ops, seen, ttl)
+
+    def delete(self, sid):
+        with self._lock:
+            return self._drop(sid)
+
+    def unindex(self, sid, user_key):
+        with self._lock:
+            self._deindex(sid, str(user_key))
+
+    def list_user(self, user_key):
+        key = str(user_key)
+        with self._lock:
+            return [(sid, json_loads(entry[2]))
+                    for sid, entry in list(self._live_entries(key))]
+
+    def revoke_user(self, user_key, except_sid=None):
+        key = str(user_key)
+        removed = 0
+        with self._lock:
+            for sid, _entry in list(self._live_entries(key)):
+                if sid == except_sid:
+                    continue
+                if self._drop(sid):
+                    removed += 1
+        return removed
+
+    def get_epoch(self, user_key):
+        with self._lock:
+            return self._epochs.get(str(user_key), 0)
+
+    def bump_epoch(self, user_key):
+        with self._lock:
+            key = str(user_key)
+            epoch = self._epochs.get(key, 0) + 1
+            self._epochs[key] = epoch
+        self._forget_epoch(key)
+        return epoch
+
+    def _live_entries(self, key):
+        """Yield (sid, entry) for key's index members that are still live.
+
+        Prunes anything expired, vanished, or reassigned to a different user
+        by bind_user(regenerate=False) since it was indexed under key. Caller
+        holds the lock.
+        """
+        now = time.time()
+        for sid in list(self._index.get(key, ())):
+            entry = self._store.get(sid)
+            if entry is None or entry[0] <= now:
+                self._drop(sid)
+                continue
+            if entry[1] != key:
+                self._deindex(sid, key)
+                continue
+            yield sid, entry
+
+    def _drop(self, sid):
+        """Remove a session and its index entry. Caller holds the lock."""
+        entry = self._store.pop(sid, None)
+        if entry is None:
+            return False
+        self._deindex(sid, entry[1])
+        return True
+
+    def _deindex(self, sid, uid_key):
+        """Remove sid from uid_key's index set. Caller holds the lock."""
+        if uid_key is None:
+            return
+        sids = self._index.get(uid_key)
+        if sids is not None:
+            sids.discard(sid)
+            if not sids:
+                del self._index[uid_key]
+
+    def _evict_expired(self):
+        now = time.time()
+        for sid in [s for s, entry in list(self._store.items()) if entry[0] <= now]:
+            self._drop(sid)
+
+
+class SQLiteSessionBackend(SessionBackend):
+    """Sessions in a SQLite file. Stdlib only, so it keeps the zero-dependency
+    promise, survives restarts, and is safe across worker processes on a single
+    machine (WAL journalling plus a busy timeout). Reach for Redis only when
+    you outgrow one box."""
+
+    def __init__(self, path='lcore_sessions.db', busy_timeout=5000,
+                 cleanup_every=300, cleanup_batch=1000):
+        import sqlite3
+        self._sqlite3 = sqlite3
+        self._path = path
+        self._busy_timeout = busy_timeout
+        self._cleanup_every = cleanup_every
+        # Bounds each sweep to one write transaction over at most this many
+        # expired rows, so a backlog built up over cleanup_every seconds
+        # cannot turn one unlucky request's save() into a full-table scan
+        # and a write-transaction that (under WAL) blocks other writers for
+        # its duration. Leftover rows are caught by the next sweep.
+        self._cleanup_batch = cleanup_batch
+        self._last_cleanup = time.time()
+        self._local = threading.local()
+        with self._conn as conn:
+            conn.execute("CREATE TABLE IF NOT EXISTS lcore_sessions ("
+                         "sid TEXT PRIMARY KEY, uid TEXT, "
+                         "expires REAL NOT NULL, record TEXT NOT NULL)")
+            conn.execute("CREATE INDEX IF NOT EXISTS lcore_sessions_uid "
+                         "ON lcore_sessions (uid)")
+            conn.execute("CREATE INDEX IF NOT EXISTS lcore_sessions_expires "
+                         "ON lcore_sessions (expires)")
+            conn.execute("CREATE TABLE IF NOT EXISTS lcore_session_epochs ("
+                         "uid TEXT PRIMARY KEY, epoch INTEGER NOT NULL)")
+        atexit.register(self.close)
+
+    @property
+    def _conn(self):
+        # sqlite3 connections are not shareable across threads.
+        conn = getattr(self._local, 'conn', None)
+        if conn is None:
+            conn = self._sqlite3.connect(
+                self._path, timeout=self._busy_timeout / 1000.0)
+            conn.execute('PRAGMA journal_mode=WAL')
+            conn.execute('PRAGMA synchronous=NORMAL')
+            conn.execute('PRAGMA busy_timeout=%d' % self._busy_timeout)
+            self._local.conn = conn
+        return conn
+
+    def load(self, sid):
+        row = self._conn.execute(
+            'SELECT record, expires FROM lcore_sessions WHERE sid = ?',
+            (sid,)).fetchone()
+        if row is None:
+            return None
+        if row[1] <= time.time():
+            self.delete(sid)
+            return None
+        return json_loads(row[0])
+
+    def save(self, sid, record, ttl):
+        uid = record.get('uid')
+        with self._conn as conn:
+            conn.execute(
+                'INSERT OR REPLACE INTO lcore_sessions '
+                '(sid, uid, expires, record) VALUES (?, ?, ?, ?)',
+                (sid, None if uid is None else str(uid),
+                 time.time() + ttl, json_dumps(record)))
+        self._maybe_cleanup()
+
+    def merge(self, sid, ops, seen, ttl):
+        conn = self._conn
+        conn.execute('BEGIN IMMEDIATE')  # take the write lock before reading: no lost updates
+        try:
+            row = conn.execute('SELECT record, expires FROM lcore_sessions WHERE sid = ?',
+                               (sid,)).fetchone()
+            if row is None or row[1] <= time.time():
+                conn.execute('ROLLBACK')
+                return None
+            record = json_loads(row[0])
+            _apply_session_ops(record['data'], ops)
+            record['seen'] = seen
+            conn.execute('UPDATE lcore_sessions SET expires = ?, record = ? WHERE sid = ?',
+                         (time.time() + ttl, json_dumps(record), sid))
+            conn.execute('COMMIT')
+            return record
+        except BaseException:
+            if conn.in_transaction: conn.execute('ROLLBACK')
+            raise
+
+    def delete(self, sid):
+        with self._conn as conn:
+            cur = conn.execute('DELETE FROM lcore_sessions WHERE sid = ?', (sid,))
+        return cur.rowcount > 0
+
+    def list_user(self, user_key):
+        rows = self._conn.execute(
+            'SELECT sid, record FROM lcore_sessions '
+            'WHERE uid = ? AND expires > ?',
+            (str(user_key), time.time())).fetchall()
+        return [(row[0], json_loads(row[1])) for row in rows]
+
+    def revoke_user(self, user_key, except_sid=None):
+        # expires > ? matches list_user()'s definition of "live": without it,
+        # rows that expired but haven't been swept yet by _maybe_cleanup are
+        # deleted and counted anyway, so the returned count (surfaced to apps
+        # as "signed out of N devices") can be higher than list_user() ever
+        # reported as active.
+        now = time.time()
+        with self._conn as conn:
+            if except_sid is None:
+                cur = conn.execute(
+                    'DELETE FROM lcore_sessions WHERE uid = ? AND expires > ?',
+                    (str(user_key), now))
+            else:
+                cur = conn.execute(
+                    'DELETE FROM lcore_sessions '
+                    'WHERE uid = ? AND expires > ? AND sid != ?',
+                    (str(user_key), now, except_sid))
+        return cur.rowcount
+
+    def get_epoch(self, user_key):
+        row = self._conn.execute(
+            'SELECT epoch FROM lcore_session_epochs WHERE uid = ?',
+            (str(user_key),)).fetchone()
+        return row[0] if row else 0
+
+    def bump_epoch(self, user_key):
+        key = str(user_key)
+        with self._conn as conn:
+            conn.execute(
+                'INSERT INTO lcore_session_epochs (uid, epoch) VALUES (?, 1) '
+                'ON CONFLICT(uid) DO UPDATE SET epoch = epoch + 1', (key,))
+        self._forget_epoch(key)
+        return self.get_epoch(key)
+
+    def _maybe_cleanup(self):
+        now = time.time()
+        if not self._cleanup_every or now - self._last_cleanup < self._cleanup_every:
+            return
+        self._last_cleanup = now
+        with self._conn as conn:
+            conn.execute(
+                'DELETE FROM lcore_sessions WHERE rowid IN ('
+                'SELECT rowid FROM lcore_sessions WHERE expires <= ? '
+                'LIMIT ?)', (now, self._cleanup_batch))
+
+    def close(self):
+        conn = getattr(self._local, 'conn', None)
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
+            self._local.conn = None
+
+
+class RedisSessionBackend(SessionBackend):
+    """Redis-backed sessions for multi-server deployments.
+    uv add redis (or pip install redis), then pass backend=RedisSessionBackend()."""
+
+    # Add sid to the per-user index and extend the index's TTL, but never
+    # shrink it: a plain EXPIRE on every save() would reset the index's TTL
+    # to whatever ttl that particular save() used, so a short-lived save (or
+    # a plain touch()) after a long-lived one could expire the whole index
+    # while the long-lived session is still alive.
+    _INDEX_LUA = (
+        "redis.call('SADD', KEYS[1], ARGV[1])\n"
+        "local cur = redis.call('PTTL', KEYS[1])\n"
+        "if cur < tonumber(ARGV[2]) then\n"
+        "  redis.call('PEXPIRE', KEYS[1], ARGV[2])\n"
+        "end\n"
+    )
+
+    def __init__(self, redis_url='redis://localhost:6379/0',
+                 prefix='lcore:sess:',
+                 socket_connect_timeout=2,
+                 health_check_interval=30):
+        self._prefix = prefix
+        self._r = _make_redis_client('RedisSessionBackend', redis_url,
+                                      socket_connect_timeout,
+                                      health_check_interval)
+        self._index_script = self._r.register_script(self._INDEX_LUA)
+        atexit.register(self.close)
+
+    def _skey(self, sid):
+        return '%s%s' % (self._prefix, sid)
+
+    def _ukey(self, user_key):
+        return '%su:%s' % (self._prefix, user_key)
+
+    def _ekey(self, user_key):
+        return '%se:%s' % (self._prefix, user_key)
+
+    def load(self, sid):
+        blob = self._r.get(self._skey(sid))
+        return json_loads(blob) if blob else None
+
+    def save(self, sid, record, ttl):
+        px = max(1, int(ttl * 1000))  # milliseconds: fractional TTLs work like the other backends
+        uid = record.get('uid')
+        skey = self._skey(sid)
+        pipe = self._r.pipeline(transaction=False)  # one round trip: read the old record, write the new
+        pipe.get(skey)
+        pipe.set(skey, json_dumps(record), px=px)
+        old = pipe.execute()[0]
+        if old:  # session moved to another user: drop it from the old user's index
+            try:
+                old_uid = json_loads(old).get('uid')
+            except (ValueError, AttributeError):
+                old_uid = None
+            if old_uid is not None and old_uid != uid:
+                self._r.srem(self._ukey(old_uid), sid)
+        if uid is not None:
+            # Own round trip: the Lua script reads the index's current TTL
+            # before deciding whether to extend it.
+            self._index_script(keys=[self._ukey(uid)], args=[sid, px])
+
+    def merge(self, sid, ops, seen, ttl):
+        from redis.exceptions import WatchError
+        skey, px = self._skey(sid), max(1, int(ttl * 1000))
+        with self._r.pipeline() as pipe:
+            for _ in range(20):  # optimistic lock: retry if another request wrote meanwhile
+                try:
+                    pipe.watch(skey)
+                    blob = pipe.get(skey)
+                    if not blob:
+                        pipe.unwatch()
+                        return None
+                    record = json_loads(blob)
+                    _apply_session_ops(record['data'], ops)
+                    record['seen'] = seen
+                    pipe.multi()
+                    pipe.set(skey, json_dumps(record), px=px)
+                    pipe.execute()
+                    break
+                except WatchError:
+                    continue
+            else:
+                record = self.load(sid)  # heavy contention: fall back to a plain write
+                if record is None: return None
+                _apply_session_ops(record['data'], ops)
+                record['seen'] = seen
+                self.save(sid, record, ttl)
+                return record
+        uid = record.get('uid')
+        if uid is not None:
+            self._index_script(keys=[self._ukey(uid)], args=[sid, px])
+        return record
+
+    def delete(self, sid):
+        # No GET-then-SREM here: the per-user index already tolerates dead
+        # members (list_user/revoke_user prune anything whose session key is
+        # gone), so a plain DEL is one round trip instead of two, with no
+        # wasted deserialization of the record just to find its uid.
+        return bool(self._r.delete(self._skey(sid)))
+
+    def unindex(self, sid, user_key):
+        self._r.srem(self._ukey(user_key), sid)
+
+    def list_user(self, user_key):
+        ukey = self._ukey(user_key)
+        sids = list(self._r.smembers(ukey))
+        if not sids:
+            return []
+        blobs = self._r.mget([self._skey(sid) for sid in sids])
+        live, stale = [], []
+        for sid, blob in zip(sids, blobs):
+            if blob is None:
+                stale.append(sid)
+            else:
+                live.append((sid, json_loads(blob)))
+        if stale:
+            self._r.srem(ukey, *stale)
+        return live
+
+    def revoke_user(self, user_key, except_sid=None):
+        ukey = self._ukey(user_key)
+        sids = [sid for sid in self._r.smembers(ukey) if sid != except_sid]
+        if not sids:
+            return 0
+        pipe = self._r.pipeline()
+        pipe.delete(*[self._skey(sid) for sid in sids])
+        pipe.srem(ukey, *sids)
+        return int(pipe.execute()[0] or 0)
+
+    def get_epoch(self, user_key):
+        value = self._r.get(self._ekey(user_key))
+        return int(value) if value else 0
+
+    def bump_epoch(self, user_key):
+        # Epoch keys carry no TTL: they must outlive every session they guard.
+        epoch = int(self._r.incr(self._ekey(user_key)))
+        self._forget_epoch(user_key)
+        return epoch
+
+    def close(self):
+        _close_redis(self._r)
+
+
+class Session:
+    """Dict-like view over a server-side session record.
+
+    Reads are free. The record is only written back to the backend when
+    something actually changes, so anonymous browsing costs no writes and
+    sets no cookie.
+    """
+
+    __slots__ = ('_backend', '_sid', '_record', '_new', '_dirty', '_destroyed', '_ops', '_full')
+
+    def __init__(self, backend, sid, record, is_new=False):
+        self._backend = backend
+        self._sid = sid
+        self._record = record
+        self._new = is_new
+        self._dirty = False
+        self._destroyed = False
+        self._ops = []        # key changes this request, merged into the stored record on save
+        self._full = is_new   # True: whole record must be written (new sid, user change)
+
+    @property
+    def sid(self):
+        return self._sid
+
+    @property
+    def is_new(self):
+        return self._new
+
+    @property
+    def modified(self):
+        return self._dirty
+
+    @property
+    def user_id(self):
+        return self._record.get('uid')
+
+    @property
+    def created_at(self):
+        return self._record.get('created')
+
+    @property
+    def last_seen(self):
+        return self._record.get('seen')
+
+    @property
+    def data(self):
+        """The raw underlying dict. Mutating it in place, or mutating a
+        nested container fetched via session[key]/session.data[key], does
+        NOT mark the session dirty and will not be persisted. Assign through
+        session[key] = value (or update()/pop()/setdefault()/clear()) so the
+        change is tracked."""
+        return self._record['data']
+
+    def __getitem__(self, key):
+        return self._record['data'][key]
+
+    def __setitem__(self, key, value):
+        self._record['data'][key] = value
+        self._ops.append(('s', key, value))
+        self._dirty = True
+
+    def __delitem__(self, key):
+        del self._record['data'][key]
+        self._ops.append(('d', key))
+        self._dirty = True
+
+    def __contains__(self, key):
+        return key in self._record['data']
+
+    def __iter__(self):
+        return iter(self._record['data'])
+
+    def __len__(self):
+        return len(self._record['data'])
+
+    def __repr__(self):
+        return '<Session %s%s keys=%d>' % (
+            self._sid[:8], '' if self.user_id is None else ' uid=%s' % self.user_id,
+            len(self._record['data']))
+
+    def get(self, key, default=None):
+        return self._record['data'].get(key, default)
+
+    def keys(self):
+        return self._record['data'].keys()
+
+    def values(self):
+        return self._record['data'].values()
+
+    def items(self):
+        return self._record['data'].items()
+
+    def pop(self, key, *default):
+        # Dirty only on an actual removal: request.session.pop('flash', None)
+        # is a common read-mostly idiom (checking for and clearing a
+        # one-shot flash message), and marking every miss dirty would cost a
+        # backend write and a fresh Set-Cookie on every request that merely
+        # checks, defeating "reads are free".
+        data = self._record['data']
+        if key in data:
+            self._ops.append(('d', key))
+            self._dirty = True
+        return data.pop(key, *default)
+
+    def setdefault(self, key, default=None):
+        data = self._record['data']
+        if key not in data:
+            self._ops.append(('s', key, default))
+            self._dirty = True
+        return data.setdefault(key, default)
+
+    def update(self, *args, **kwargs):
+        changes = dict(*args, **kwargs)
+        self._record['data'].update(changes)
+        self._ops.extend(('s', k, v) for k, v in changes.items())
+        self._dirty = True
+
+    def clear(self):
+        """Empty the session data but keep the session id."""
+        if self._record['data']:
+            self._ops.append(('c',))
+            self._dirty = True
+        self._record['data'].clear()
+
+    def regenerate(self):
+        """Issue a fresh session id, keeping the data.
+
+        Call on login and on any privilege change. Reusing the pre-login id is
+        session fixation: an attacker who plants a known id before login still
+        holds a valid session after it.
+        """
+        old_sid = self._sid
+        self._sid = _new_sid()
+        self._dirty = self._full = True
+        if old_sid:
+            self._backend.delete(old_sid)
+        return self._sid
+
+    def bind_user(self, user_id, regenerate=True):
+        """Attach this session to a user and stamp the user's current epoch.
+
+        Regenerates the session id by default. Pass regenerate=False only if
+        you have already regenerated it in this request.
+        """
+        new_uid = str(user_id)
+        if regenerate:
+            self.regenerate()
+        else:
+            old_uid = self._record.get('uid')
+            if old_uid is not None and old_uid != new_uid and self._sid:
+                # Reassigning an existing sid to a different user: the old
+                # user's index must not keep pointing at it.
+                self._backend.unindex(self._sid, old_uid)
+        self._record['uid'] = new_uid
+        self._record['epoch'] = self._backend.get_epoch(user_id)
+        self._dirty = self._full = True
+
+    def destroy(self):
+        """Delete the session server-side and clear the cookie. A real logout:
+        the id is dead everywhere, not just in this browser."""
+        if self._sid:
+            self._backend.delete(self._sid)
+        self._record = _blank_session_record()
+        self._destroyed = True
+        self._dirty = False
+
+    def list_sessions(self):
+        """Every live session for this session's user, for an account page."""
+        uid = self._record.get('uid')
+        if uid is None:
+            return []
+        return self._backend.list_user(uid)
+
+    def revoke_other_sessions(self):
+        """Sign out this user's other devices, keeping this one signed in."""
+        uid = self._record.get('uid')
+        if uid is None:
+            return 0
+        return self._backend.revoke_user(uid, except_sid=self._sid)
+
+    def revoke_all_sessions(self):
+        """Sign out everywhere including this browser. For password resets."""
+        uid = self._record.get('uid')
+        if uid is None:
+            return 0
+        removed = self._backend.revoke_all(uid)
+        self.destroy()
+        return removed
+
+
+class _SessionAccessor:
+    """Installed at environ['lcore.request.ext.session'] to back
+    request.session. BaseRequest.__getattr__ calls __get__ with one argument."""
+
+    __slots__ = ()
+
+    def __get__(self, req):
+        return _session_for(req.environ)
+
+
+_SESSION_ACCESSOR = _SessionAccessor()
+
+
+def _session_for(environ):
+    session = environ.get('lcore.session.obj')
+    if session is None:
+        middleware = environ.get('lcore.session.mw')
+        if middleware is None:
+            raise RuntimeError(
+                "No session middleware installed. Add "
+                "app.use(SessionMiddleware(backend=..., secret=...)).")
+        session = middleware._open(environ)
+        environ['lcore.session.obj'] = session
+    return session
+
+
+# Loads the session lazily and writes it back only when it changed.
+class SessionMiddleware(Middleware):
+    name = 'session'
+    order = 20
+    phase = 'post'
+
+    def __init__(self, backend=None, secret=None, cookie_name='lcore_session',
+                 ttl=14 * 24 * 3600, absolute_ttl=None, refresh_every=None,
+                 secure=False, httponly=True, samesite='Lax',
+                 path='/', domain=None, on_backend_error='unavailable'):
+        if on_backend_error not in ('unavailable', 'anonymous', 'raise'):
+            raise ValueError(
+                "on_backend_error must be 'unavailable', 'anonymous' or 'raise'")
+        self.on_backend_error = on_backend_error
+        if secret is None:
+            secret = hashlib.sha256(os.urandom(32)).hexdigest()
+            warnings.warn(
+                "SessionMiddleware: no secret= given, using a random "
+                "per-process secret. Every restart invalidates all sessions, "
+                "and under multi-worker deployment (e.g. gunicorn -w N) a "
+                "cookie signed by one worker is rejected by the others, so "
+                "users are logged out at random. Pass a fixed secret= (e.g. "
+                "from an environment variable).",
+                UserWarning, stacklevel=2)
+        self.backend = MemorySessionBackend() if backend is None else backend
+        self.secret = secret
+        self.cookie_name = cookie_name
+        self.ttl = ttl
+        self.absolute_ttl = absolute_ttl
+        # Idle TTL is refreshed at most this often, so a read-only request on an
+        # existing session does not cost a backend write.
+        self.refresh_every = ttl // 10 if refresh_every is None else refresh_every
+        self.secure = secure
+        self.httponly = httponly
+        self.samesite = samesite
+        self.path = path
+        self.domain = domain
+
+    def __call__(self, ctx, next_handler):
+        environ = ctx.request.environ
+        environ['lcore.session.mw'] = self
+        environ['lcore.request.ext.session'] = _SESSION_ACCESSOR
+        if 'session' in ctx.state or 'session' in ctx._lazy:
+            raise RuntimeError(
+                "SessionMiddleware: a dependency named 'session' is already "
+                "registered with app.inject(). It would silently shadow (or "
+                "be shadowed by) ctx.session since both share the same "
+                "context namespace. Rename the injected dependency.")
+        ctx.lazy('session', lambda: _session_for(environ))
+        try:
+            return next_handler(ctx)
+        finally:
+            # finally, not a plain return: redirect() and abort() raise
+            # HTTPResponse, and a login that redirects must still be saved.
+            self._persist(ctx, environ)
+
+    def _open(self, environ):
+        req = Request(environ)
+        sid = req.get_cookie(self.cookie_name, secret=self.secret)
+        if sid:
+            try:
+                record = self.backend.load(sid)
+            except Exception as exc:
+                self._backend_failed('load', exc)
+                record = None
+            if record is not None:
+                if self._is_valid(record):
+                    return Session(self.backend, sid, record, is_new=False)
+                self.backend.delete(sid)
+        record = _blank_session_record()
+        record['ip'] = req.remote_addr
+        record['ua'] = req.get_header('User-Agent')
+        return Session(self.backend, _new_sid(), record, is_new=True)
+
+    def _is_valid(self, record):
+        if self.absolute_ttl:
+            created = record.get('created') or 0
+            if time.time() - created > self.absolute_ttl:
+                return False
+        uid = record.get('uid')
+        if uid is not None:
+            # Cached: without it every authenticated request pays a second
+            # round trip on top of loading the session. Anonymous sessions
+            # skip the check entirely. Strictly less-than, not !=: epochs only
+            # increase, so a record stamped with a newer epoch than this
+            # worker's (briefly stale) cached value is still valid, not a
+            # mismatch to reject. Using != would delete a session stamped by
+            # bind_user() moments after another worker's revoke_all(), for as
+            # long as this worker's epoch cache lags behind.
+            if record.get('epoch', 0) < self.backend.cached_epoch(uid):
+                return False
+        return True
+
+    def _backend_failed(self, operation, exc):
+        """Apply the configured policy to a backend failure.
+
+        Sessions cannot fail open the way rate limiting does: ignoring the
+        store would mean ignoring revocation. So the default refuses the
+        request rather than quietly downgrading a signed-in user to anonymous
+        mid-checkout.
+        """
+        logging.getLogger('lcore.session').error(
+            'Session backend %s failed: %s', operation, exc, exc_info=True)
+        if self.on_backend_error == 'raise':
+            raise exc
+        if self.on_backend_error == 'unavailable':
+            raise HTTPError(503, 'Session store unavailable')
+
+    def _persist(self, ctx, environ):
+        session = environ.get('lcore.session.obj')
+        if session is None:
+            return
+        if session._destroyed:
+            ctx.response.delete_cookie(self.cookie_name, path=self.path,
+                                       domain=self.domain)
+            return
+        now = time.time()
+        if session._dirty:
+            session._record['seen'] = now
+            try:
+                if session._full:
+                    self.backend.save(session._sid, session._record, self.ttl)
+                elif self.backend.merge(session._sid, session._ops, now, self.ttl) is None:
+                    return  # revoked or expired meanwhile: do not resurrect it
+            except Exception as exc:
+                # Raised from a finally block on purpose. If the write failed
+                # there is nothing to set a cookie for, and a login that
+                # redirects must not report success it did not achieve.
+                self._backend_failed('save', exc)
+                return
+            self._set_cookie(ctx, session)
+        elif not session._new and self.refresh_every:
+            if now - (session._record.get('seen') or 0) >= self.refresh_every:
+                session._record['seen'] = now
+                try:
+                    self.backend.merge(session._sid, [], now, self.ttl)  # atomic, no stale overwrite
+                except Exception as exc:
+                    # A failed idle refresh is not worth failing the request:
+                    # the session is still valid until its existing TTL runs out.
+                    logging.getLogger('lcore.session').warning(
+                        'Session TTL refresh failed: %s', exc)
+                    return
+                self._set_cookie(ctx, session)
+
+    def _set_cookie(self, ctx, session):
+        ctx.response.set_cookie(
+            self.cookie_name, session._sid, secret=self.secret,
+            max_age=self.ttl, path=self.path, domain=self.domain,
+            secure=self.secure, httponly=self.httponly,
+            samesite=self.samesite)
+
+
+# Validates request.json / query params against a schema. Supports Optional[type].
+_TRUE = frozenset(('true', '1', 'yes', 'on'))
+_FALSE = frozenset(('false', '0', 'no', 'off', ''))
+
+
+def validate_request(body=None, query=None):
+    import dataclasses
+    import typing
+
+    def _is_optional(tp):
+        """Return (True, inner_type) if tp is Optional[X], else (False, tp)."""
+        origin = getattr(tp, '__origin__', None)
+        if origin is typing.Union:
+            args = getattr(tp, '__args__', [])
+            non_none = [a for a in args if a is not type(None)]
+            if len(non_none) == 1:
+                return True, non_none[0]
+        return False, tp
+
+    def _coerce(value, expected_type):
+        """Try to coerce *value* to *expected_type*.  Returns (success, result)."""
+        is_num = isinstance(value, (int, float)) and not isinstance(value, bool)
+        if expected_type is str:
+            if isinstance(value, str) or is_num:
+                return True, str(value).strip()
+            return False, value
+        if expected_type is int:
+            if isinstance(value, float):
+                return (True, int(value)) if value.is_integer() else (False, value)
+            if isinstance(value, str) or is_num:
+                try:
+                    return True, int(value)
+                except ValueError:
+                    pass
+            return False, value
+        if expected_type is float:
+            if isinstance(value, str) or is_num:
+                try:
+                    f = float(value)
+                    if f - f == 0: return True, f  # rejects nan and inf
+                except ValueError:
+                    pass
+            return False, value
+        if expected_type is bool:
+            if isinstance(value, bool):
+                return True, value
+            if isinstance(value, str) and value.lower() in _TRUE | _FALSE:
+                return True, value.lower() in _TRUE
+            if value in (0, 1) and is_num:
+                return True, bool(value)
+            return False, value
+        if expected_type in (list, dict, tuple, set):  # no 'abc' -> ['a','b','c']
+            return (True, value) if isinstance(value, expected_type) else (False, value)
+        if callable(expected_type):
+            try:
+                result = expected_type(value)
+                return True, result if result is not False else value
+            except Exception:
+                return False, value
+        return True, value
+
+    def _validate_dict_schema(data, schema):
+        errors = {}
+        validated = {}
+        for name, expected_type in schema.items():
+            is_opt, inner_type = _is_optional(expected_type)
+            if name not in data:
+                if not is_opt:
+                    errors[name] = '%s is required' % name
+                continue
+            if data[name] is None and is_opt:
+                validated[name] = None
+                continue
+            ok, result = _coerce(data[name], inner_type)
+            if not ok:
+                type_name = getattr(inner_type, '__name__', str(inner_type))
+                errors[name] = '%s must be %s' % (name, type_name)
+            else:
+                validated[name] = result
+        return errors, validated
+
+    def _validate_dataclass_schema(data, schema):
+        errors = {}
+        validated = {}
+        for field in dataclasses.fields(schema):
+            is_opt, inner_type = _is_optional(field.type)
+            if field.name not in data:
+                if not is_opt and field.default is dataclasses.MISSING \
+                   and field.default_factory is dataclasses.MISSING:
+                    errors[field.name] = '%s is required' % field.name
+                continue
+            if data[field.name] is None and is_opt:
+                validated[field.name] = None
+                continue
+            ok, result = _coerce(data[field.name], inner_type)
+            if not ok:
+                type_name = getattr(inner_type, '__name__', str(inner_type))
+                errors[field.name] = '%s must be %s' % (field.name, type_name)
+            else:
+                validated[field.name] = result
+        return errors, validated
+
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*a, **ka):
+            if body:
+                data = request.json
+                if data is None: data = request.environ['lcore.request.json'] = {}
+                if not isinstance(data, dict):
+                    raise HTTPError(400, 'Request body must be a JSON object',
+                                    content_type='application/json')
+                if isinstance(body, dict):
+                    errors, validated = _validate_dict_schema(data, body)
+                else:
+                    errors, validated = _validate_dataclass_schema(data, body)
+                if errors:
+                    raise HTTPError(422,
+                                    body=json_dumps({
+                                        'error': 'Validation failed',
+                                        'fields': errors,
+                                    }),
+                                    content_type='application/json')
+                data.update(validated)
+            if query:
+                errors = {}
+                if isinstance(query, dict):
+                    for name, expected_type in query.items():
+                        val = request.query.get(name)
+                        is_opt, inner = _is_optional(expected_type)
+                        if val is None:
+                            if not is_opt:
+                                errors[name] = '%s is required' % name
+                        else:
+                            ok, res = _coerce(val, inner)
+                            if not ok:
+                                errors[name] = '%s must be %s' % (name, getattr(inner, '__name__', inner))
+                            elif res != val:
+                                request.query.replace(name, res)  # handler sees the coerced value
+                else:
+                    for field in dataclasses.fields(query):
+                        val = request.query.get(field.name)
+                        is_opt, inner = _is_optional(field.type)
+                        if val is None:
+                            if not is_opt and field.default is dataclasses.MISSING \
+                               and field.default_factory is dataclasses.MISSING:
+                                errors[field.name] = '%s is required' % field.name
+                        else:
+                            ok, res = _coerce(val, inner)
+                            if not ok:
+                                errors[field.name] = '%s must be %s' % (field.name, getattr(inner, '__name__', inner))
+                            elif res != val:
+                                request.query.replace(field.name, res)
+                if errors:
+                    raise HTTPError(400,
+                                    body=json_dumps({
+                                        'error': 'Validation failed',
+                                        'fields': errors,
+                                    }),
+                                    content_type='application/json')
+            return func(*a, **ka)
+        return wrapper
+    return decorator
+
+# HTTP response objects that double as exceptions. Raise to bail out early.
+class HTTPResponse(Response, LcoreException):
+
+    def __init__(self, body='', status=None, headers=None, **more_headers):
+        super(HTTPResponse, self).__init__(body, status, headers, **more_headers)
+
+    def apply(self, other):
+        other._status_code = self._status_code
+        other._status_line = self._status_line
+        # Merge headers preserve headers the handler already set
+        for key, values in self._headers.items():
+            if key not in other._headers:
+                other._headers[key] = values
+        # Merge cookies preserve cookies the handler already set
+        if self._cookies:
+            if other._cookies is None:
+                other._cookies = SimpleCookie()
+            for k, v in self._cookies.items():
+                if k not in other._cookies:
+                    other._cookies[k] = v
+        other.body = self.body
+
+# Raise this. Triggers your error_handler if you registered one.
+class HTTPError(HTTPResponse):
+
+    default_status = 500
+
+    def __init__(self,
+                 status=None,
+                 body=None,
+                 exception=None,
+                 traceback=None,
+                 content_type=None, **more_headers):
+        self.exception = exception
+        self.traceback = traceback
+        if content_type and 'Content-Type' not in more_headers:
+            more_headers['Content-Type'] = content_type
+        super(HTTPError, self).__init__(body, status, **more_headers)
+
+class PluginError(LcoreException):
+    pass
+
+# Turns your dict returns into JSON with the right Content-Type
+class JSONPlugin:
+    name = 'json'
+    api = 2
+
+    def __init__(self, json_dumps=json_dumps):
+        self.json_dumps = json_dumps
+
+    def setup(self, app):
+        app.config._define('json.enable', default=True, validate=bool,
+                          help="Enable or disable automatic dict->json filter.")
+        app.config._define('json.ascii', default=False, validate=bool,
+                          help="Escape non-ASCII characters as \\uXXXX.")
+        app.config._define('json.indent', default=False, validate=bool,
+                          help="Add whitespace to make json more readable.")
+        app.config._define('json.dump_func', default=None,
+                          help="If defined, use this function to transform"
+                               " the value into json. The other options no longer"
+                               " apply.")
+
+    def apply(self, callback, route):
+        dumps = self.json_dumps
+        if not dumps: return callback
+        stock = dumps is json_dumps
+        cfg = route.app.config
+
+        dumpers = {}  # (ascii, indent) -> dump function, built once
+
+        def _build(ascii_, indent):
+            if getattr(dumps, '__module__', '') == 'json':  # stdlib: a prebuilt encoder skips per-call setup
+                return json.JSONEncoder(ensure_ascii=ascii_, indent=2 if indent else None).encode
+            return functools.partial(dumps, ensure_ascii=ascii_, **({'indent': 2} if indent else {}))
+
+        def _dump(rv):
+            fn = cfg.get('json.dump_func')
+            if fn: return fn(rv)
+            if not stock: return dumps(rv)
+            key = (bool(cfg.get('json.ascii')), bool(cfg.get('json.indent')))
+            d = dumpers.get(key)
+            if d is None: d = dumpers[key] = _build(*key)
+            return d(rv)
+
+        def _json_convert(rv):
+            if isinstance(rv, dict) or (isinstance(rv, list) and rv
+                                        and not isinstance(rv[0], (str, bytes))):
+                if not cfg.get('json.enable'): return rv
+                json_response = _dump(rv)
+                response.content_type = 'application/json'
+                return json_response
+            elif isinstance(rv, HTTPResponse) and isinstance(rv.body, dict):
+                if not cfg.get('json.enable'): return rv
+                rv.body = _dump(rv.body)
+                rv.content_type = 'application/json'
+            return rv
+
+        @functools.wraps(callback)
+        def wrapper(*a, **ka):
+            try:
+                rv = callback(*a, **ka)
+            except HTTPResponse as resp:
+                rv = resp
+
+            if inspect.iscoroutine(rv):
+                rv = _run_async(rv)
+            return _json_convert(rv)
+
+        return wrapper
+
+# Renders a template when route config has template='name.tpl'
+class TemplatePlugin:
+    name = 'template'
+    api = 2
+
+    def setup(self, app):
+        app.tpl = self
+
+    def apply(self, callback, route):
+        conf = route.config.get('template')
+        if isinstance(conf, (tuple, list)) and len(conf) == 2:
+            return view(conf[0], **conf[1])(callback)
+        elif isinstance(conf, str):
+            return view(conf)(callback)
+        else:
+            return callback
+
+# Enables `import lcore.ext.plugin_name` to auto-import `lcore_plugin_name`
+class _ImportRedirect:
+    def __init__(self, name, impmask):
+        self.name = name
+        self.impmask = impmask
+        self.module = sys.modules.setdefault(name, new_module(name))
+        self.module.__dict__.update({
+            '__file__': __file__,
+            '__path__': [],
+            '__all__': [],
+            '__loader__': self
+        })
+        sys.meta_path.append(self)
+
+    def find_spec(self, fullname, path, target=None):
+        if '.' not in fullname: return
+        if fullname.rsplit('.', 1)[0] != self.name: return
+        from importlib.util import spec_from_loader
+        return spec_from_loader(fullname, self)
+
+    def find_module(self, fullname, path=None):
+        if '.' not in fullname: return
+        if fullname.rsplit('.', 1)[0] != self.name: return
+        return self
+
+    def create_module(self, spec):
+        return self.load_module(spec.name)
+
+    def exec_module(self, module):
+        pass
+
+    def load_module(self, fullname):
+        if fullname in sys.modules: return sys.modules[fullname]
+        modname = fullname.rsplit('.', 1)[1]
+        realname = self.impmask % modname
+        __import__(realname)
+        module = sys.modules[fullname] = sys.modules[realname]
+        setattr(self.module, modname, module)
+        module.__loader__ = self
+        return module
+
+# Dict with multiple values per key. Last one wins on lookup.
+class MultiDict(DictMixin):
+
+    def __init__(self, *a, **k):
+        self.dict = dict((k, [v]) for (k, v) in dict(*a, **k).items())
+
+    def __len__(self):
+        return len(self.dict)
+
+    def __iter__(self):
+        return iter(self.dict)
+
+    def __contains__(self, key):
+        return key in self.dict
+
+    def __delitem__(self, key):
+        del self.dict[key]
+
+    def __getitem__(self, key):
+        return self.dict[key][-1]
+
+    def __setitem__(self, key, value):
+        self.append(key, value)
+
+    def keys(self):
+        return self.dict.keys()
+
+    def values(self):
+        return (v[-1] for v in self.dict.values())
+
+    def items(self):
+        return ((k, v[-1]) for k, v in self.dict.items())
+
+    def allitems(self):
+        return ((k, v) for k, vl in self.dict.items() for v in vl)
+
+    iterkeys = keys
+    itervalues = values
+    iteritems = items
+    iterallitems = allitems
+
+    def get(self, key, default=None, index=-1, type=None):
+        try:
+            val = self.dict[key][index]
+            return type(val) if type else val
+        except Exception:
+            pass
+        return default
+
+    def append(self, key, value):
+        self.dict.setdefault(key, []).append(value)
+
+    def replace(self, key, value):
+        self.dict[key] = [value]
+
+    def getall(self, key):
+        return self.dict.get(key) or []
+
+    getone = get
+    getlist = getall
+
+# MultiDict with attribute access so you can write form.field_name
+class FormsDict(MultiDict):
+
+    def decode(self, encoding=None):
+        copy = FormsDict()
+        for key, value in self.allitems():
+            copy[key] = value
+        return copy
+
+    def getunicode(self, name, default=None, encoding=None):
+        return self.get(name, default)
+
+    def __getattr__(self, name, default=str()):
+        if name.startswith('__') and name.endswith('__'):
+            return super(FormsDict, self).__getattr__(name)
+        return self.get(name, default=default)
+
+# Case-insensitive dict for HTTP headers
+class HeaderDict(MultiDict):
+
+    def __init__(self, *a, **ka):
+        self.dict = {}
+        if a or ka: self.update(*a, **ka)
+
+    def __contains__(self, key):
+        return _hkey(key) in self.dict
+
+    def __delitem__(self, key):
+        del self.dict[_hkey(key)]
+
+    def __getitem__(self, key):
+        return self.dict[_hkey(key)][-1]
+
+    def __setitem__(self, key, value):
+        self.dict[_hkey(key)] = [_hval(value)]
+
+    def append(self, key, value):
+        self.dict.setdefault(_hkey(key), []).append(_hval(value))
+
+    def replace(self, key, value):
+        self.dict[_hkey(key)] = [_hval(value)]
+
+    def getall(self, key):
+        return self.dict.get(_hkey(key)) or []
+
+    def get(self, key, default=None, index=-1):
+        return MultiDict.get(self, _hkey(key), default, index)
+
+    def filter(self, names):
+        for name in (_hkey(n) for n in names):
+            if name in self.dict:
+                del self.dict[name]
+
+# Read-only view of WSGI HTTP_* environ keys as headers
+class WSGIHeaderDict(DictMixin):
+    cgikeys = ('CONTENT_TYPE', 'CONTENT_LENGTH')
+
+    def __init__(self, environ):
+        self.environ = environ
+
+    def _ekey(self, key):
+        key = key.replace('-', '_').upper()
+        if key in self.cgikeys:
+            return key
+        return 'HTTP_' + key
+
+    def raw(self, key, default=None):
+        return self.environ.get(self._ekey(key), default)
+
+    def __getitem__(self, key):
+        return _wsgi_recode(self.environ[self._ekey(key)])
+
+    def __setitem__(self, key, value):
+        raise TypeError("%s is read-only." % self.__class__)
+
+    def __delitem__(self, key):
+        raise TypeError("%s is read-only." % self.__class__)
+
+    def __iter__(self):
+        for key in self.environ:
+            if key[:5] == 'HTTP_':
+                yield _hkey(key[5:])
+            elif key in self.cgikeys:
+                yield _hkey(key)
+
+    def keys(self):
+        return [x for x in self]
+
+    def __len__(self):
+        return len(self.keys())
+
+    def __contains__(self, key):
+        return self._ekey(key) in self.environ
+
+# Hierarchical config: overlays, dotted keys, .env loading, dataclass validation
+_BOOL_STRINGS = {'true': True, '1': True, 'yes': True, 'on': True,
+                 'false': False, '0': False, 'no': False, 'off': False}
+
+
+class ConfigDict(dict):
+
+    __slots__ = ('_meta', '_change_listener', '_overlays', '_virtual_keys', '_source', '__weakref__')
+
+    def __init__(self):
+        self._meta = {}
+        self._change_listener = []
+        self._overlays = []
+        self._source = None
+        self._virtual_keys = set()
+
+    def load_module(self, name, squash=True):
+        config_obj = load(name)
+        obj = {key: getattr(config_obj, key)
+               for key in dir(config_obj) if key.isupper()}
+
+        if squash:
+            self.load_dict(obj)
+        else:
+            self.update(obj)
+        return self
+
+    def load_config(self, filename, **options):
+        options.setdefault('allow_no_value', True)
+        options.setdefault('interpolation', configparser.ExtendedInterpolation())
+        conf = configparser.ConfigParser(**options)
+        conf.read(filename)
+        for section in conf.sections():
+            for key in conf.options(section):
+                value = conf.get(section, key)
+                if section not in ('lcore', 'ROOT'):
+                    key = section + '.' + key
+                self[key.lower()] = value
+        return self
+
+    def load_dict(self, source, namespace=''):
+        for key, value in source.items():
+            if isinstance(key, str):
+                nskey = (namespace + '.' + key).strip('.')
+                if isinstance(value, dict):
+                    self.load_dict(value, namespace=nskey)
+                else:
+                    self[nskey] = value
+            else:
+                raise TypeError('Key has type %r (not a string)' % type(key))
+        return self
+
+    def update(self, *a, **ka):
+        prefix = ''
+        if a and isinstance(a[0], str):
+            prefix = a[0].strip('.') + '.'
+            a = a[1:]
+        for key, value in dict(*a, **ka).items():
+            self[prefix + key] = value
+
+    def setdefault(self, key, value=None):
+        if key not in self:
+            self[key] = value
+        return self[key]
+
+    def __setitem__(self, key, value):
+        if not isinstance(key, str):
+            raise TypeError('Key has type %r (not a string)' % type(key))
+
+        self._virtual_keys.discard(key)
+
+        value = self.meta_get(key, 'filter', lambda x: x)(value)
+        if key in self and self[key] is value:
+            return
+
+        self._on_change(key, value)
+        dict.__setitem__(self, key, value)
+
+        for overlay in self._iter_overlays():
+            overlay._set_virtual(key, value)
+
+    def __delitem__(self, key):
+        if key not in self:
+            raise KeyError(key)
+        if key in self._virtual_keys:
+            raise KeyError("Virtual keys cannot be deleted: %s" % key)
+
+        if self._source and key in self._source:
+            dict.__delitem__(self, key)
+            self._set_virtual(key, self._source[key])
+        else:
+            self._on_change(key, None)
+            dict.__delitem__(self, key)
+            for overlay in self._iter_overlays():
+                overlay._delete_virtual(key)
+
+    def _set_virtual(self, key, value):
+        if key in self and key not in self._virtual_keys:
+            return
+
+        self._virtual_keys.add(key)
+        if key in self and self[key] is not value:
+            self._on_change(key, value)
+        dict.__setitem__(self, key, value)
+        for overlay in self._iter_overlays():
+            overlay._set_virtual(key, value)
+
+    def _delete_virtual(self, key):
+        if key not in self._virtual_keys:
+            return
+
+        if key in self:
+            self._on_change(key, None)
+        dict.__delitem__(self, key)
+        self._virtual_keys.discard(key)
+        for overlay in self._iter_overlays():
+            overlay._delete_virtual(key)
+
+    def _on_change(self, key, value):
+        for cb in self._change_listener:
+            if cb(self, key, value):
+                return True
+
+    def _add_change_listener(self, func):
+        self._change_listener.append(func)
+        return func
+
+    def meta_get(self, key, metafield, default=None):
+        return self._meta.get(key, {}).get(metafield, default)
+
+    def meta_set(self, key, metafield, value):
+        self._meta.setdefault(key, {})[metafield] = value
+
+    def meta_list(self, key):
+        return self._meta.get(key, {}).keys()
+
+    def _define(self, key, default=_UNSET, help=_UNSET, validate=_UNSET):
+        if default is not _UNSET:
+            self.setdefault(key, default)
+        if help is not _UNSET:
+            self.meta_set(key, 'help', help)
+        if validate is not _UNSET:
+            self.meta_set(key, 'validate', validate)
+
+    def _iter_overlays(self):
+        for ref in self._overlays:
+            overlay = ref()
+            if overlay is not None:
+                yield overlay
+
+    def _make_overlay(self):
+        self._overlays[:] = [ref for ref in self._overlays if ref() is not None]
+
+        overlay = ConfigDict()
+        overlay._meta = self._meta
+        overlay._source = self
+        self._overlays.append(weakref.ref(overlay))
+        for key in self:
+            overlay._set_virtual(key, self[key])
+        return overlay
+
+    def load_env(self, prefix='LCORE_', strip_prefix=True):
+        for key, value in os.environ.items():
+            if key.startswith(prefix):
+                conf_key = key[len(prefix):].lower().replace('__', '.') \
+                    if strip_prefix else key.lower()
+                self[conf_key] = value
+        return self
+
+    def load_json(self, filename):
+        with open(filename, 'r') as f:
+            data = json_loads(f.read())
+        return self.load_dict(data)
+
+    def load_dotenv(self, filename='.env'):
+        if not os.path.isfile(filename):
+            return self
+        with open(filename, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith('#') or '=' not in line:
+                    continue
+                key, _, value = line.partition('=')
+                key = key.strip()
+                if not re.match(r'^[A-Za-z_][A-Za-z0-9_]*$', key):
+                    continue
+                value = value.strip()
+                if len(value) >= 2 and value[0] == value[-1] and value[0] in ('"', "'"):
+                    value = value[1:-1]
+                os.environ.setdefault(key, value)
+        return self
+
+    def validate_config(self, schema):
+        import dataclasses
+        if not dataclasses.is_dataclass(schema):
+            raise TypeError('Schema must be a dataclass')
+        errors = []
+        for field in dataclasses.fields(schema):
+            key = field.name if field.name in self else field.name.replace('_', '.')
+            if key not in self and field.default is dataclasses.MISSING \
+               and field.default_factory is dataclasses.MISSING:
+                errors.append('Missing required config key: %s' % key)
+            elif key in self:
+                val = self[key]
+                if field.type in (int, float, bool, str) \
+                   and not isinstance(val, field.type):
+                    try:
+                        if field.type is bool:
+                            low = val.lower()
+                            if low not in _BOOL_STRINGS: raise ValueError(val)
+                            self[key] = _BOOL_STRINGS[low]
+                        else:
+                            self[key] = field.type(val)
+                    except (ValueError, AttributeError):
+                        errors.append('Config key %s: expected %s, got %s'
+                                      % (key, field.type.__name__,
+                                         type(val).__name__))
+        if errors:
+            raise ValueError('Config validation errors:\n' + '\n'.join(errors))
+        return self
+
+# Stack of app instances. default_app() gives you the top one.
+class AppStack(list):
+
+    def __call__(self):
+        return self.default
+
+    def push(self, value=None):
+        if not isinstance(value, Lcore):
+            value = Lcore()
+        self.append(value)
+        return value
+    new_app = push
+
+    @property
+    def default(self):
+        try:
+            return self[-1]
+        except IndexError:
+            return self.push()
+
+# Turns a file-like object into a WSGI iterable
+class WSGIFileWrapper:
+    def __init__(self, fp, buffer_size=1024 * 64):
+        self.fp, self.buffer_size = fp, buffer_size
+        for attr in 'fileno', 'close', 'read', 'readlines', 'tell', 'seek':
+            if hasattr(fp, attr): setattr(self, attr, getattr(fp, attr))
+
+    def __iter__(self):
+        buff, read = self.buffer_size, self.read
+        part = read(buff)
+        while part:
+            yield part.encode('utf8') if isinstance(part, str) else part  # text file-likes
+            part = read(buff)
+
+# Calls close() on the wrapped thing when iteration ends
+class _closeiter:
+
+    def __init__(self, iterator, close=None):
+        self.iterator = iterator
+        self.close_callbacks = makelist(close)
+
+    def __iter__(self):
+        return iter(self.iterator)
+
+    def close(self):
+        for func in self.close_callbacks:
+            func()
+
+def _try_close(obj):
+    try:
+        if hasattr(obj, 'close'):
+            obj.close()
+    except Exception:
+        logging.getLogger('lcore').debug("Error closing %r", obj, exc_info=True)
+
+# Finds files across search paths. Caches results.
+class ResourceManager:
+
+    def __init__(self, base='./', opener=open, cachemode='all'):
+        self.opener = opener
+        self.base = base
+        self.cachemode = cachemode
+
+        self.path = []
+        self.cache = {}
+
+    def add_path(self, path, base=None, index=None, create=False):
+        base = os.path.abspath(os.path.dirname(base or self.base))
+        path = os.path.abspath(os.path.join(base, os.path.dirname(path)))
+        path += os.sep
+        if path in self.path:
+            self.path.remove(path)
+        if create and not os.path.isdir(path):
+            os.makedirs(path)
+        if index is None:
+            self.path.append(path)
+        else:
+            self.path.insert(index, path)
+        self.cache.clear()
+        return os.path.exists(path)
+
+    def __iter__(self):
+        search = self.path[:]
+        while search:
+            path = search.pop()
+            if not os.path.isdir(path): continue
+            for name in os.listdir(path):
+                full = os.path.join(path, name)
+                if os.path.isdir(full): search.append(full)
+                else: yield full
+
+    def lookup(self, name):
+        if name not in self.cache or DEBUG:
+            for path in self.path:
+                fpath = os.path.join(path, name)
+                if os.path.isfile(fpath):
+                    if self.cachemode in ('all', 'found'):
+                        self.cache[name] = fpath
+                    return fpath
+            if self.cachemode == 'all':
+                self.cache[name] = None
+        return self.cache[name]
+
+    def open(self, name, mode='r', *args, **kwargs):
+        fname = self.lookup(name)
+        if not fname: raise IOError("Resource %r not found." % name)
+        return self.opener(fname, mode=mode, *args, **kwargs)
+
+# Your uploaded file, with a sanitized filename and a save() method
+class FileUpload:
+    def __init__(self, fileobj, name, filename, headers=None):
+        self.file = fileobj
+        self.name = name
+        self.raw_filename = filename
+        self.headers = HeaderDict(headers) if headers else HeaderDict()
+
+    content_type = HeaderProperty('Content-Type')
+    content_length = HeaderProperty('Content-Length', reader=int, default=-1)
+
+    def get_header(self, name, default=None):
+        return self.headers.get(name, default)
+
+    @cached_property
+    def filename(self):
+        fname = self.raw_filename
+        fname = normalize('NFKD', fname)
+        fname = fname.encode('ASCII', 'ignore').decode('ASCII')
+        fname = os.path.basename(fname.replace('\\', os.path.sep))
+        fname = re.sub(r'[^a-zA-Z0-9-_.\s]', '', fname).strip()
+        fname = re.sub(r'[-\s]+', '-', fname).strip('.-')
+        return fname[:255] or 'empty'
+
+    def _copy_file(self, fp, chunk_size=2 ** 16):
+        read, write, offset = self.file.read, fp.write, self.file.tell()
+        while 1:
+            buf = read(chunk_size)
+            if not buf: break
+            write(buf)
+        self.file.seek(offset)
+
+    def validate_content_type(self, allowed_types):
+        """Raise 415 if Content-Type isn't in *allowed_types*.
+        Checks the header only. For real security, also sniff the magic bytes."""
+        ct = (self.content_type or '').split(';')[0].strip().lower()
+        allowed = {t.lower() for t in allowed_types}
+        if ct not in allowed:
+            raise HTTPError(415, "Unsupported media type: '%s'. "
+                            "Allowed: %s" % (ct, ', '.join(sorted(allowed))))
+
+    def validate_extension(self, allowed_extensions):
+        """Raise 415 if the file extension isn't in *allowed_extensions*."""
+        ext = os.path.splitext(self.filename)[1].lstrip('.').lower()
+        allowed = {e.lower().lstrip('.') for e in allowed_extensions}
+        if ext not in allowed:
+            raise HTTPError(415, "Unsupported file extension: '.%s'. "
+                            "Allowed: %s" % (ext, ', '.join(
+                                '.' + e for e in sorted(allowed))))
+
+    def save(self, destination, overwrite=False, chunk_size=2 ** 16):
+        if isinstance(destination, str):
+            if os.path.isdir(destination):
+                destination = os.path.join(destination, self.filename)
+            try:
+                fp = open(destination, 'wb' if overwrite else 'xb')
+            except FileExistsError:
+                raise IOError('File exists.')
+            with fp:
+                self._copy_file(fp, chunk_size)
+        else:
+            self._copy_file(destination, chunk_size)
+
+def pretty_error_page(exception, traceback_str=None):
+    if traceback_str is None:
+        traceback_str = format_exc()
+    status = getattr(exception, 'status_code', 500)
+    body = getattr(exception, 'body', None) or str(exception)
+    exc_type = type(exception).__name__
+    exc_repr = repr(exception)
+    page = (
+        '<!DOCTYPE html>\n'
+        '<html>\n'
+        '<head><title>%d %s</title>\n'
+        '<style>\n'
+        'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;'
+        'margin:0;padding:0;background:#1a1a2e;color:#e0e0e0;}\n'
+        '.container{width:auto;margin:40px auto;padding:0 20px;}\n'
+        '.error-box{background:#16213e;border-left:4px solid #e94560;'
+        'border-radius:4px;padding:24px 32px;margin-bottom:24px;}\n'
+        '.error-box h1{color:#e94560;margin:0 0 8px 0;font-size:28px;}\n'
+        '.error-box p{color:#a0a0b8;margin:0;font-size:16px;}\n'
+        '.section{background:#16213e;border-radius:4px;padding:20px 28px;margin-bottom:16px;}\n'
+        '.section h2{color:#0f3460;margin:0 0 12px 0;font-size:18px;'
+        'border-bottom:1px solid #0f3460;padding-bottom:8px;}\n'
+        'pre{background:#0a0a1a;color:#53d769;padding:16px;border-radius:4px;'
+        'overflow-x:auto;font-size:13px;line-height:1.5;margin:0;}\n'
+        '.meta{display:flex;gap:24px;flex-wrap:wrap;}\n'
+        '.meta-item{background:#0f3460;border-radius:4px;padding:8px 16px;font-size:13px;}\n'
+        '.meta-item span{color:#e94560;font-weight:bold;}\n'
+        '</style></head>\n'
+        '<body><div class="container">\n'
+        '<div class="error-box"><h1>%d %s</h1><p>%s</p></div>\n'
+        '<div class="meta">'
+        '<div class="meta-item">Type: <span>%s</span></div>'
+        '<div class="meta-item">Status: <span>%d</span></div>'
+        '</div>\n'
+        '<div class="section"><h2>Exception</h2><pre>%s</pre></div>\n'
+        '<div class="section"><h2>Traceback</h2><pre>%s</pre></div>\n'
+        '</div></body></html>'
+    ) % (
+        status, html_escape(HTTP_CODES.get(status, 'Error')),
+        status, html_escape(HTTP_CODES.get(status, 'Error')),
+        html_escape(body),
+        html_escape(exc_type), status,
+        html_escape(exc_repr),
+        html_escape(traceback_str),
+    )
+    return page
+
+# Handy functions you'll reach for constantly
+
+def load_dotenv(path=None):
+    """Parse a .env file into os.environ. Called automatically by app.run().
+    Skips comments, empty lines, and keys already in the environment."""
+    if path is None:
+        path = os.path.join(os.getcwd(), '.env')
+    if not os.path.isfile(path):
+        return
+    with open(path) as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith('#') or '=' not in line:
+                continue
+            key, _, val = line.partition('=')
+            key = key.strip()
+            if not re.match(r'^[A-Za-z_][A-Za-z0-9_]*$', key):
+                continue
+            val = val.strip()
+            if len(val) >= 2 and val[0] == val[-1] and val[0] in ('"', "'"):
+                val = val[1:-1]
+            if key not in os.environ:
+                os.environ[key] = val
+
+def abort(code=500, text='Unknown Error.'):
+    raise HTTPError(code, text)
+
+# Bail out with a redirect. 303 for HTTP/1.1, 302 otherwise.
+def redirect(url, code=None):
+    if not code:
+        code = 303 if request.get('SERVER_PROTOCOL') == "HTTP/1.1" else 302
+    res = response.copy(cls=HTTPResponse)
+    res.status = code
+    res.body = ""
+    try:
+        res.set_header('Location', urljoin(request.url, url))
+    except ValueError:
+        raise HTTPError(400, 'Invalid redirect URL')
+    raise res
+
+def _rangeiter(fp, offset, limit, bufsize=1024 * 1024):
+    fp.seek(offset)
+    while limit > 0:
+        part = fp.read(min(limit, bufsize))
+        if not part:
+            break
+        limit -= len(part)
+        yield part
+
+# Serve a file with ETag, Range, Last-Modified, and download support
+def static_file(filename, root,
+                mimetype=True,
+                download=False,
+                charset='UTF-8',
+                etag=None,
+                headers=None):
+
+    if '\0' in filename:
+        return HTTPError(404, "File does not exist.")
+    root = os.path.join(os.path.realpath(root), '')
+    filename = os.path.realpath(os.path.join(root, filename.strip('/\\')))
+    headers = headers.copy() if headers else {}
+    getenv = request.environ.get
+
+    # Path traversal: reject anything outside root
+    if not filename.startswith(root):
+        return HTTPError(403, "Access denied.")
+    if not os.path.isfile(filename):
+        return HTTPError(404, "File does not exist.")
+    
+    if request.method == 'HEAD':
+        body = ''
+    else:
+        try:
+            body = open(filename, 'rb')
+        except (IOError, OSError):
+            return HTTPError(403, "Permission denied.")
+
+    # Symlink escape check via the opened fd (TOCTOU-free on Linux).
+    try:
+        fd_path = '/proc/self/fd/%d' % body.fileno()
+        real = os.path.realpath(fd_path) if os.path.exists(fd_path) \
+               else os.path.realpath(filename)
+    except (IOError, OSError, AttributeError):
+        real = os.path.realpath(filename)
+    if not real.startswith(root):
+        _try_close(body)
+        return HTTPError(403, "Access denied.")
+
+    stats = os.fstat(body.fileno()) if hasattr(body, 'fileno') else os.stat(filename)
+
+    if mimetype is True:
+        name = download if isinstance(download, str) else filename
+        mimetype, encoding = mimetypes.guess_type(name)
+        if encoding == 'gzip':
+            mimetype = 'application/gzip'
+        elif encoding:
+            mimetype = 'application/x-' + encoding
+
+    if charset and mimetype and 'charset=' not in mimetype \
+       and (mimetype[:5] == 'text/' or mimetype == 'application/javascript'):
+        mimetype += '; charset=%s' % charset
+
+    if mimetype:
+        headers['Content-Type'] = mimetype
+
+    if download is True:
+        download = os.path.basename(filename)
+
+    if download:
+        download = os.path.basename(download).replace('"', '')
+        download = download.replace('\r', '').replace('\n', '')
+        headers['Content-Disposition'] = 'attachment; filename="%s"' % download
+
+    headers['Content-Length'] = clen = stats.st_size
+    headers['Last-Modified'] = email.utils.formatdate(stats.st_mtime, usegmt=True)
+    headers['Date'] = email.utils.formatdate(time.time(), usegmt=True)
+
+    if etag is None:
+        etag = '%d:%d:%d:%d:%s' % (stats.st_dev, stats.st_ino, stats.st_mtime,
+                                   clen, filename)
+        etag = hashlib.sha256(tob(etag)).hexdigest()
+
+    if etag:
+        if not etag.startswith(('"', 'W/')): etag = '"%s"' % etag
+        headers['ETag'] = etag
+        check = getenv('HTTP_IF_NONE_MATCH')
+        tags = [t.strip()[2:] if t.strip().startswith('W/') else t.strip()
+                for t in (check or '').split(',')]
+        if etag in tags or '*' in tags:
+            _try_close(body)
+            return HTTPResponse(status=304, **headers)
+
+    # If-None-Match takes precedence over If-Modified-Since (RFC 7232 3.3)
+    ims = None if (etag and getenv('HTTP_IF_NONE_MATCH')) else getenv('HTTP_IF_MODIFIED_SINCE')
+    if ims:
+        ims = parse_date(ims.split(";")[0].strip())
+        if ims is not None and ims >= int(stats.st_mtime):
+            _try_close(body)
+            return HTTPResponse(status=304, **headers)
+
+    if request.method == 'HEAD':
+        _try_close(body)
+        return HTTPResponse(status=200, **headers)
+
+    headers["Accept-Ranges"] = "bytes"
+    range_header = getenv('HTTP_RANGE')
+    if range_header and range_header[:6] == 'bytes=':  # other units are ignored (RFC 7233)
+        ranges = list(parse_range_header(range_header, clen))
+        if not ranges:
+            _try_close(body)
+            return HTTPError(416, "Requested Range Not Satisfiable",
+                             **{'Content-Range': 'bytes */%d' % clen})
+        offset, end = ranges[0]
+        rlen = end - offset
+        headers["Content-Range"] = "bytes %d-%d/%d" % (offset, end - 1, clen)
+        headers["Content-Length"] = str(rlen)
+        if body: body = _closeiter(_rangeiter(body, offset, rlen), body.close)
+        return HTTPResponse(body, status=206, **headers)
+    return HTTPResponse(body, **headers)
+
+def debug(mode=True):
+    global DEBUG
+    if mode: warnings.simplefilter('default')
+    DEBUG = bool(mode)
+
+# HTTP date formatting and header parsing
+
+def http_date(value):
+    if isinstance(value, str):
+        return value
+    if isinstance(value, datetime):
+        value = value.utctimetuple()
+    elif isinstance(value, datedate):
+        value = value.timetuple()
+    if not isinstance(value, (int, float)):
+        value = calendar.timegm(value)
+    return email.utils.formatdate(value, usegmt=True)
+
+def parse_date(ims):
+    try:
+        ts = email.utils.parsedate_tz(ims)
+        return calendar.timegm(ts[:8] + (0, )) - (ts[9] or 0)
+    except (TypeError, ValueError, IndexError, OverflowError):
+        return None
+
+# Parse Basic auth header -> (user, pass) or None
+def parse_auth(header):
+    try:
+        method, data = header.split(None, 1)
+        if method.lower() == 'basic':
+            user, pwd = touni(base64.b64decode(tob(data))).split(':', 1)
+            return user, pwd
+    except (KeyError, ValueError):
+        return None
+
+def parse_range_header(header, maxlen=0):
+    if not header or header[:6] != 'bytes=': return
+    ranges = [r.split('-', 1) for r in header[6:].split(',') if '-' in r]
+    for start, end in ranges:
+        try:
+            if not start:
+                start, end = max(0, maxlen - int(end)), maxlen
+            elif not end:
+                start, end = int(start), maxlen
+            else:
+                start, end = int(start), min(int(end) + 1, maxlen)
+            if 0 <= start < end <= maxlen:
+                yield start, end
+        except ValueError:
+            pass
+
+_hsplit = re.compile('(?:(?:"((?:[^"\\\\]|\\\\.)*)")|([^;,=]+))([;,=]?)').findall
+
+def _parse_http_header(h):
+    values = []
+    if '"' not in h:
+        for value in h.split(','):
+            parts = value.split(';')
+            values.append((parts[0].strip(), {}))
+            for attr in parts[1:]:
+                if '=' not in attr: continue
+                name, value = attr.split('=', 1)
+                values[-1][1][name.strip().lower()] = value.strip()
+    else:
+        lop, key, attrs = ',', None, {}
+        for quoted, plain, tok in _hsplit(h):
+            value = plain.strip() if plain else quoted.replace('\\"', '"')
+            if lop == ',':
+                attrs = {}
+                values.append((value, attrs))
+            elif lop == ';':
+                if tok == '=':
+                    key = value
+                else:
+                    attrs[value.strip().lower()] = ''
+            elif lop == '=' and key:
+                attrs[key.strip().lower()] = value
+                key = None
+            lop = tok
+    return values
+
+def _parse_qsl(qs, encoding="utf8", max_fields=1000):
+    r = []
+    for pair in qs.split('&'):
+        if not pair: continue
+        if len(r) >= max_fields:
+            raise HTTPError(413, "Too many form fields (limit: %d)" % max_fields)
+        nv = pair.split('=', 1)
+        if len(nv) != 2: nv.append('')
+        key = urlunquote(nv[0].replace('+', ' '), encoding)
+        value = urlunquote(nv[1].replace('+', ' '), encoding)
+        r.append((key, value))
+    return r
+
+# Timing-safe string comparison (prevents timing attacks on signatures)
+def _lscmp(a, b):
+    try:
+        return hmac.compare_digest(tob(a), tob(b))
+    except TypeError:
+        return False
+
+def cookie_encode(data, key, digestmod=None):
+    depr(0, 0, "cookie_encode() will be removed soon.",
+                "Do not use this API directly.")
+    digestmod = digestmod or hashlib.sha256
+    msg = base64.b64encode(tob(json_dumps(data)))
+    sig = base64.b64encode(hmac.new(tob(key), msg, digestmod=digestmod).digest())
+    return b'!' + sig + b'?' + msg
+
+def cookie_decode(data, key, digestmod=None):
+    depr(0, 0, "cookie_decode() will be removed soon.",
+                "Do not use this API directly.")
+    data = tob(data)
+    if cookie_is_encoded(data):
+        sig, msg = data.split(b'?', 1)
+        digestmod = digestmod or hashlib.sha256
+        hashed = hmac.new(tob(key), msg, digestmod=digestmod).digest()
+        if _lscmp(sig[1:], base64.b64encode(hashed)):
+            return json_loads(base64.b64decode(msg))
+    return None
+
+def cookie_is_encoded(data):
+    depr(0, 0, "cookie_is_encoded() will be removed soon.",
+                "Do not use this API directly.")
+    return bool(data.startswith(b'!') and b'?' in data)
+
+def html_escape(string):
+    return string.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')\
+                 .replace('"', '&quot;').replace("'", '&#039;')
+
+def html_quote(string):
+    return '"%s"' % html_escape(string).replace('\n', '&#10;') \
+        .replace('\r', '&#13;').replace('\t', '&#9;')
+
+def yieldroutes(func):
+    path = '/' + func.__name__.replace('__', '/').lstrip('/')
+    sig = inspect.signature(func, follow_wrapped=False)
+    for p in sig.parameters.values():
+        if p.kind == p.POSITIONAL_ONLY:
+            raise ValueError("Invalid signature for yieldroutes: %s" % sig)
+        if p.kind in (p.POSITIONAL_OR_KEYWORD, p.KEYWORD_ONLY):
+            if p.default != p.empty:
+                yield path
+            path += "/<%s>" % p.name
+    yield path
+
+def path_shift(script_name, path_info, shift=1):
+    if shift == 0: return script_name, path_info
+    pathlist = path_info.strip('/').split('/')
+    scriptlist = script_name.strip('/').split('/')
+    if pathlist and pathlist[0] == '': pathlist = []
+    if scriptlist and scriptlist[0] == '': scriptlist = []
+    if 0 < shift <= len(pathlist):
+        moved = pathlist[:shift]
+        scriptlist = scriptlist + moved
+        pathlist = pathlist[shift:]
+    elif 0 > shift >= -len(scriptlist):
+        moved = scriptlist[shift:]
+        pathlist = moved + pathlist
+        scriptlist = scriptlist[:shift]
+    else:
+        empty = 'SCRIPT_NAME' if shift < 0 else 'PATH_INFO'
+        raise AssertionError("Cannot shift. Nothing left from %s" % empty)
+    new_script_name = '/' + '/'.join(scriptlist)
+    new_path_info = '/' + '/'.join(pathlist)
+    if path_info.endswith('/') and pathlist: new_path_info += '/'
+    return new_script_name, new_path_info
+
+# Decorator: gate a route behind HTTP Basic auth
+def auth_basic(check, realm="private", text="Access denied"):
+
+    def decorator(func):
+
+        @functools.wraps(func)
+        def wrapper(*a, **ka):
+            user, password = request.auth or (None, None)
+            if user is None or not check(user, password):
+                err = HTTPError(401, text)
+                quoted = realm.replace('\\', '\\\\').replace('"', '\\"')
+                err.add_header('WWW-Authenticate', 'Basic realm="%s"' % quoted)
+                return err
+            return func(*a, **ka)
+
+        return wrapper
+
+    return decorator
+
+
+# PBKDF2-SHA256 with 600k iterations. Production-grade out of the box.
+
+def hash_password(password, iterations=600000):
+    """Hash a password with PBKDF2-SHA256 and a random salt."""
+    salt = os.urandom(32)
+    dk = hashlib.pbkdf2_hmac('sha256', tob(password), salt, iterations)
+    return 'pbkdf2:sha256:%d$%s$%s' % (iterations, salt.hex(), dk.hex())
+
+
+def verify_password(password, hash_string):
+    """Check a password against a hash. Timing-safe comparison."""
+    try:
+        if not isinstance(hash_string, str):
+            return False
+        method, rest = hash_string.split(':', 1)
+        algo, rest = rest.split(':', 1)
+        iters_s, salt_hex, hash_hex = rest.split('$', 2)
+        iters = int(iters_s)
+        # The hash string is untrusted: bound the work and the algorithm.
+        if algo not in ('sha256', 'sha512') or not 1 <= iters <= 10_000_000:
+            return False
+        dk = hashlib.pbkdf2_hmac(algo, tob(password), bytes.fromhex(salt_hex), iters)
+        return hmac.compare_digest(dk, bytes.fromhex(hash_hex))
+    except (ValueError, TypeError):
+        return False
+
+
+# In-process test client. No server needed.
+
+class TestResponse:
+    """Parsed response from TestClient."""
+    __test__ = False  # not a pytest test class
+
+    __slots__ = ('status', 'headers', 'body', 'raw_headers')
+
+    def __init__(self, status, headers, body, raw_headers=None):
+        self.status = status
+        self.headers = headers
+        self.body = body
+        self.raw_headers = raw_headers if raw_headers is not None else list(headers.items())
+
+    def get_all(self, name):
+        """All values of a header that can repeat, e.g. Set-Cookie."""
+        name = name.lower()
+        return [v for k, v in self.raw_headers if k.lower() == name]
+
+    @property
+    def status_code(self):
+        return int(self.status.split(' ', 1)[0])
+
+    @property
+    def text(self):
+        return self.body.decode('utf-8', errors='replace')
+
+    @property
+    def json(self):
+        return json_lds(self.body)
+
+
+class TestClient:
+    """Calls your app directly. No HTTP, no server, no tears."""
+    __test__ = False  # not a pytest test class
+
+    def __init__(self, app, cookies=True, follow_redirects=False):
+        self.app = app
+        self.follow_redirects = follow_redirects
+        # Cookie jar: Set-Cookie responses are replayed on later requests,
+        # like a browser. Pass cookies=False to disable.
+        self.cookies = {} if cookies else None
+
+    def _store_cookies(self, resp):
+        for line in resp.get_all('Set-Cookie'):
+            c = SimpleCookie()
+            c.load(line)
+            for name, m in c.items():
+                if m.value == '' or m['max-age'] == '0':
+                    self.cookies.pop(name, None)
+                else:
+                    self.cookies[name] = m.value
+
+    def request(self, method, path, body=b'', headers=None,
+                query_string='', content_type=None, json=None):
+        if json is not None:
+            body = tob(json_dumps(json))
+            content_type = content_type or 'application/json'
+        resp = self._send(method, path, body, headers, query_string, content_type)
+        for _ in range(10):  # redirect limit
+            loc = resp.headers.get('Location')
+            if not (self.follow_redirects and loc and resp.status_code in (301, 302, 303, 307, 308)):
+                break
+            u = urlparse(loc)  # same-app only; host is ignored
+            keep = resp.status_code in (307, 308)
+            resp = self._send(method if keep else 'GET', u.path or '/',
+                              body if keep else b'', headers, u.query,
+                              content_type if keep else None)
+        return resp
+
+    def _send(self, method, path, body, headers, query_string, content_type):
+        environ = {
+            'REQUEST_METHOD': method.upper(),
+            'PATH_INFO': path,
+            'SERVER_NAME': 'localhost',
+            'SERVER_PORT': '80',
+            'SERVER_PROTOCOL': 'HTTP/1.1',
+            'wsgi.input': BytesIO(body),
+            'wsgi.errors': StringIO(),
+            'wsgi.url_scheme': 'http',
+            'QUERY_STRING': query_string,
+            'CONTENT_LENGTH': str(len(body)),
+            'HTTP_HOST': 'localhost',
+        }
+        if content_type:
+            environ['CONTENT_TYPE'] = content_type
+        if self.cookies:
+            environ['HTTP_COOKIE'] = '; '.join('%s=%s' % kv for kv in self.cookies.items())
+        if headers:
+            for key, value in headers.items():
+                k = key.upper().replace('-', '_')
+                if k not in ('CONTENT_TYPE', 'CONTENT_LENGTH'):
+                    k = 'HTTP_' + k
+                environ[k] = value
+        status_line = [None]
+        response_headers = [None]
+
+        def start_response(status, headers, exc_info=None):
+            status_line[0] = status
+            response_headers[0] = headers
+
+        chunks = self.app(environ, start_response)
+        body_out = b''.join(chunks)
+        if hasattr(chunks, 'close'):
+            chunks.close()
+        resp = TestResponse(status_line[0], dict(response_headers[0]), body_out,
+                            list(response_headers[0]))
+        if self.cookies is not None:
+            self._store_cookies(resp)
+        return resp
+
+    def get(self, path, **kw):
+        return self.request('GET', path, **kw)
+
+    def post(self, path, **kw):
+        return self.request('POST', path, **kw)
+
+    def put(self, path, **kw):
+        return self.request('PUT', path, **kw)
+
+    def patch(self, path, **kw):
+        return self.request('PATCH', path, **kw)
+
+    def delete(self, path, **kw):
+        return self.request('DELETE', path, **kw)
+
+    def head(self, path, **kw):
+        return self.request('HEAD', path, **kw)
+
+    def options(self, path, **kw):
+        return self.request('OPTIONS', path, **kw)
+
+
+# Module-level route/get/post/etc. delegate to the default app
+
+def make_default_app_wrapper(name):
+    def wrapper(*a, **ka):
+        return getattr(app(), name)(*a, **ka)
+
+    return wrapper
+
+route = make_default_app_wrapper('route')
+get = make_default_app_wrapper('get')
+post = make_default_app_wrapper('post')
+put = make_default_app_wrapper('put')
+delete = make_default_app_wrapper('delete')
+patch = make_default_app_wrapper('patch')
+error = make_default_app_wrapper('error')
+mount = make_default_app_wrapper('mount')
+hook = make_default_app_wrapper('hook')
+install = make_default_app_wrapper('install')
+uninstall = make_default_app_wrapper('uninstall')
+url = make_default_app_wrapper('get_url')
+use = make_default_app_wrapper('use')
+
+# Streaming multipart/form-data parser. Spills to disk for large parts.
+
+class MultipartError(HTTPError):
+    def __init__(self, msg):
+        HTTPError.__init__(self, 400, "MultipartError: " + msg)
+
+# Reads multipart streams part by part, enforcing memory and disk limits
+class _MultipartParser:
+    def __init__(
+        self,
+        stream,
+        boundary,
+        content_length=-1,
+        disk_limit=2 ** 30,
+        mem_limit=2 ** 20,
+        memfile_limit=2 ** 18,
+        buffer_size=2 ** 16,
+        charset="latin1",
+    ):
+        self.stream = stream
+        self.boundary = boundary
+        self.content_length = content_length
+        self.disk_limit = disk_limit
+        self.memfile_limit = memfile_limit
+        self.mem_limit = min(mem_limit, self.disk_limit)
+        self.buffer_size = min(buffer_size, self.mem_limit)
+        self.charset = charset
+
+        if not boundary:
+            raise MultipartError("No boundary.")
+
+        if self.buffer_size - 6 < len(boundary):
+            raise MultipartError("Boundary does not fit into buffer_size.")
+
+    def _lineiter(self):
+        read = self.stream.read
+        maxread, maxbuf = self.content_length, self.buffer_size
+        partial = b""
+
+        while True:
+            chunk = read(maxbuf if maxread < 0 else min(maxbuf, maxread))
+            maxread -= len(chunk)
+            if not chunk:
+                if partial:
+                    yield partial, b''
+                break
+
+            if partial:
+                chunk = partial + chunk
+
+            scanpos = 0
+            while True:
+                i = chunk.find(b'\r\n', scanpos)
+                if i >= 0:
+                    yield chunk[scanpos:i], b'\r\n'
+                    scanpos = i + 2
+                else:
+                    partial = chunk[scanpos:] if scanpos else chunk
+                    break
+
+            if len(partial) > maxbuf:
+                yield partial[:-1], b""
+                partial = partial[-1:]
+
+    def parse(self):
+
+        lines, line = self._lineiter(), ""
+        separator = b"--" + tob(self.boundary)
+        terminator = separator + b"--"
+        mem_used, disk_used = 0, 0
+        is_tail = False
+        for line, nl in lines:
+            if line in (separator, terminator):
+                break
+        else:
+            raise MultipartError("Stream does not contain boundary")
+
+        if line == terminator:
+            for _ in lines:
+                raise MultipartError("Found data after empty multipart stream")
+            return
+
+        part_options = {
+            "buffer_size": self.buffer_size,
+            "memfile_limit": self.memfile_limit,
+            "charset": self.charset,
+        }
+        part = _MultipartPart(**part_options)
+
+        for line, nl in lines:
+            if not is_tail and (line == separator or line == terminator):
+                part.finish()
+                if part.is_buffered():
+                    mem_used += part.size
+                else:
+                    disk_used += part.size
+                yield part
+                if line == terminator:
+                    break
+                part = _MultipartPart(**part_options)
+            else:
+                is_tail = not nl
+                try:
+                    part.feed(line, nl)
+                    if part.is_buffered():
+                        if part.size + mem_used > self.mem_limit:
+                            raise MultipartError("Memory limit reached.")
+                    elif part.size + disk_used > self.disk_limit:
+                        raise MultipartError("Disk limit reached.")
+                except MultipartError:
+                    part.close()
+                    raise
+        else:
+            part.close()
+
+        if line != terminator:
+            raise MultipartError("Unexpected end of multipart stream.")
+
+# One part from a multipart stream. Keeps small stuff in memory, spills large to disk.
+class _MultipartPart:
+    def __init__(self, buffer_size=2 ** 16, memfile_limit=2 ** 18, charset="latin1"):
+        self.headerlist = []
+        self.headers = None
+        self.file = False
+        self.size = 0
+        self._buf = b""
+        self.disposition = None
+        self.name = None
+        self.filename = None
+        self.content_type = None
+        self.charset = charset
+        self.memfile_limit = memfile_limit
+        self.buffer_size = buffer_size
+
+    def feed(self, line, nl=""):
+        if self.file:
+            return self.write_body(line, nl)
+        return self.write_header(line, nl)
+
+    def write_header(self, line, nl):
+        line = str(line, self.charset)
+
+        if not nl:
+            raise MultipartError("Unexpected end of line in header.")
+
+        if not line.strip():
+            self.finish_header()
+        elif line[0] in " \t" and self.headerlist:
+            name, value = self.headerlist.pop()
+            self.headerlist.append((name, value + line.strip()))
+        else:
+            if ":" not in line:
+                raise MultipartError("Syntax error in header: No colon.")
+
+            name, value = line.split(":", 1)
+            self.headerlist.append((name.strip(), value.strip()))
+
+    def write_body(self, line, nl):
+        if not line and not nl:
+            return
+
+        self.size += len(line) + len(self._buf)
+        self.file.write(self._buf + line)
+        self._buf = nl
+
+        if self.content_length > 0 and self.size > self.content_length:
+            raise MultipartError("Size of body exceeds Content-Length header.")
+
+        if self.size > self.memfile_limit and isinstance(self.file, BytesIO):
+            self.file, old = NamedTemporaryFile(mode="w+b"), self.file
+            old.seek(0)
+
+            copied, maxcopy, chunksize = 0, self.size, self.buffer_size
+            read, write = old.read, self.file.write
+            while copied < maxcopy:
+                chunk = read(min(chunksize, maxcopy - copied))
+                write(chunk)
+                copied += len(chunk)
+
+    def finish_header(self):
+        self.file = BytesIO()
+        self.headers = HeaderDict(self.headerlist)
+        content_disposition = self.headers.get("Content-Disposition")
+        content_type = self.headers.get("Content-Type")
+
+        if not content_disposition:
+            raise MultipartError("Content-Disposition header is missing.")
+
+        self.disposition, self.options = _parse_http_header(content_disposition)[0]
+        self.name = self.options.get("name")
+        if "filename" in self.options:
+            self.filename = self.options.get("filename")
+            if self.filename[1:3] == ":\\" or self.filename[:2] == "\\\\":
+                self.filename = self.filename.split("\\")[-1]
+            self.filename = os.path.basename(self.filename.replace('\\', '/'))
+
+        self.content_type, options = _parse_http_header(content_type)[0] if content_type else (None, {})
+        self.charset = options.get("charset") or self.charset
+
+        try:
+            self.content_length = int(self.headers.get("Content-Length", "-1"))
+            codecs.lookup(self.charset)
+        except (ValueError, LookupError):
+            raise MultipartError("Invalid part header.")
+
+    def finish(self):
+        if not self.file:
+            raise MultipartError("Incomplete part: Header section not closed.")
+        self.file.seek(0)
+
+    def is_buffered(self):
+        return isinstance(self.file, BytesIO)
+
+    @property
+    def value(self):
+        try:
+            return str(self.raw, self.charset)
+        except (UnicodeError, LookupError):
+            raise MultipartError("Invalid field encoding.")
+
+    @property
+    def raw(self):
+        pos = self.file.tell()
+        self.file.seek(0)
+
+        try:
+            return self.file.read()
+        finally:
+            self.file.seek(pos)
+
+    def close(self):
+        if self.file:
+            self.file.close()
+            self.file = False
+
+# Server adapters. One class per WSGI server. Only the chosen one gets imported.
+
+class ServerAdapter:
+    quiet = False
+
+    def __init__(self, host='127.0.0.1', port=8080, **options):
+        self.options = options
+        self.host = host
+        self.port = int(port)
+
+    def run(self, handler):
+        pass
+
+    @property
+    def _listen_url(self):
+        if self.host.startswith("unix:"):
+            return self.host
+        elif ':' in self.host:
+            return "http://[%s]:%d/" % (self.host, self.port)
+        else:
+            return "http://%s:%d/" % (self.host, self.port)
+
+    def __repr__(self):
+        args = ', '.join('%s=%r' % kv for kv in self.options.items())
+        return "%s(%s)" % (self.__class__.__name__, args)
+
+class CGIServer(ServerAdapter):
+    quiet = True
+
+    def run(self, handler):
+        from wsgiref.handlers import CGIHandler
+
+        def fixed_environ(environ, start_response):
+            environ.setdefault('PATH_INFO', '')
+            return handler(environ, start_response)
+
+        CGIHandler().run(fixed_environ)
+
+class FlupFCGIServer(ServerAdapter):
+    def run(self, handler):
+        import flup.server.fcgi
+        self.options.setdefault('bindAddress', (self.host, self.port))
+        flup.server.fcgi.WSGIServer(handler, **self.options).run()
+
+class WSGIRefServer(ServerAdapter):
+    def run(self, app):
+        from wsgiref.simple_server import make_server
+        from wsgiref.simple_server import WSGIRequestHandler, WSGIServer
+        import socket
+
+        class FixedHandler(WSGIRequestHandler):
+            def log_message(other, format, *args):
+                if not self.quiet:
+                    return WSGIRequestHandler.log_message(other, format, *args)
+
+        handler_cls = self.options.get('handler_class', FixedHandler)
+        server_cls = self.options.get('server_class', WSGIServer)
+
+        if ':' in self.host:
+            if getattr(server_cls, 'address_family') == socket.AF_INET:
+
+                class server_cls(server_cls):
+                    address_family = socket.AF_INET6
+
+        self.srv = make_server(self.host, self.port, app, server_cls,
+                               handler_cls)
+        self.port = self.srv.server_port
+        try:
+            self.srv.serve_forever()
+        except KeyboardInterrupt:
+            self.srv.server_close()
+            raise
+
+class CherryPyServer(ServerAdapter):
+    def run(self, handler):
+        depr(0, 0, "The wsgi server part of cherrypy was split into a new "
+                    "project called 'cheroot'.", "Use the 'cheroot' server "
+                    "adapter instead of cherrypy.")
+        from cherrypy import wsgiserver
+
+        self.options['bind_addr'] = (self.host, self.port)
+        self.options['wsgi_app'] = handler
+
+        certfile = self.options.get('certfile')
+        if certfile:
+            del self.options['certfile']
+        keyfile = self.options.get('keyfile')
+        if keyfile:
+            del self.options['keyfile']
+
+        server = wsgiserver.CherryPyWSGIServer(**self.options)
+        if certfile:
+            server.ssl_certificate = certfile
+        if keyfile:
+            server.ssl_private_key = keyfile
+
+        try:
+            server.start()
+        finally:
+            server.stop()
+
+class CherootServer(ServerAdapter):
+    def run(self, handler):
+        from cheroot import wsgi
+        from cheroot.ssl import builtin
+        self.options['bind_addr'] = (self.host, self.port)
+        self.options['wsgi_app'] = handler
+        certfile = self.options.pop('certfile', None)
+        keyfile = self.options.pop('keyfile', None)
+        chainfile = self.options.pop('chainfile', None)
+        server = wsgi.Server(**self.options)
+        if certfile and keyfile:
+            server.ssl_adapter = builtin.BuiltinSSLAdapter(
+                certfile, keyfile, chainfile)
+        try:
+            server.start()
+        finally:
+            server.stop()
+
+class WaitressServer(ServerAdapter):
+    def run(self, handler):
+        from waitress import serve
+        serve(handler, host=self.host, port=self.port, _quiet=self.quiet, **self.options)
+
+class PasteServer(ServerAdapter):
+    def run(self, handler):
+        from paste import httpserver
+        from paste.translogger import TransLogger
+        handler = TransLogger(handler, setup_console_handler=(not self.quiet))
+        httpserver.serve(handler,
+                         host=self.host,
+                         port=str(self.port), **self.options)
+
+class MeinheldServer(ServerAdapter):
+    def run(self, handler):
+        from meinheld import server
+        server.listen((self.host, self.port))
+        server.run(handler)
+
+class FapwsServer(ServerAdapter):
+
+    def run(self, handler):
+        depr(0, 0, "fapws3 is not maintained and support will be dropped.")
+        import fapws._evwsgi as evwsgi
+        from fapws import base, config
+        port = self.port
+        if float(config.SERVER_IDENT[-2:]) > 0.4:
+            port = str(port)
+        evwsgi.start(self.host, port)
+        if 'LCORE_CHILD' in os.environ and not self.quiet:
+            _stderr("WARNING: Auto-reloading does not work with Fapws3.")
+            _stderr("         (Fapws3 breaks python thread support)")
+        evwsgi.set_base_module(base)
+
+        def app(environ, start_response):
+            environ['wsgi.multiprocess'] = False
+            return handler(environ, start_response)
+
+        evwsgi.wsgi_cb(('', app))
+        evwsgi.run()
+
+class TornadoServer(ServerAdapter):
+
+    def run(self, handler):
+        import tornado.wsgi, tornado.httpserver, tornado.ioloop
+        container = tornado.wsgi.WSGIContainer(handler)
+        server = tornado.httpserver.HTTPServer(container)
+        server.listen(port=self.port, address=self.host)
+        tornado.ioloop.IOLoop.instance().start()
+
+class AppEngineServer(ServerAdapter):
+    quiet = True
+
+    def run(self, handler):
+        depr(0, 0, "AppEngineServer no longer required",
+             "Configure your application directly in your app.yaml")
+        from google.appengine.ext.webapp import util
+        module = sys.modules.get('__main__')
+        if module and not hasattr(module, 'main'):
+            module.main = lambda: util.run_wsgi_app(handler)
+        util.run_wsgi_app(handler)
+
+class TwistedServer(ServerAdapter):
+
+    def run(self, handler):
+        from twisted.web import server, wsgi
+        from twisted.python.threadpool import ThreadPool
+        from twisted.internet import reactor
+        thread_pool = ThreadPool()
+        thread_pool.start()
+        reactor.addSystemEventTrigger('after', 'shutdown', thread_pool.stop)
+        factory = server.Site(wsgi.WSGIResource(reactor, thread_pool, handler))
+        reactor.listenTCP(self.port, factory, interface=self.host)
+        if not reactor.running:
+            reactor.run()
+
+class DieselServer(ServerAdapter):
+
+    def run(self, handler):
+        depr(0, 0, "Diesel is not tested or supported and will be removed.")
+        from diesel.protocols.wsgi import WSGIApplication
+        app = WSGIApplication(handler, port=self.port)
+        app.run()
+
+class GeventServer(ServerAdapter):
+
+    def run(self, handler):
+        from gevent import pywsgi, local
+        if not isinstance(threading.local(), local.local):
+            msg = "Lcore requires gevent.monkey.patch_all() (before import)"
+            raise RuntimeError(msg)
+        if self.quiet:
+            self.options['log'] = None
+        address = (self.host, self.port)
+        server = pywsgi.WSGIServer(address, handler, **self.options)
+        if 'LCORE_CHILD' in os.environ:
+            import signal
+            signal.signal(signal.SIGINT, lambda s, f: server.stop())
+        server.serve_forever()
+
+class GunicornServer(ServerAdapter):
+
+    def run(self, handler):
+        from gunicorn.app.base import BaseApplication
+
+        if self.host.startswith("unix:"):
+            config = {'bind': self.host}
+        else:
+            config = {'bind': "%s:%d" % (self.host, self.port)}
+
+        config.update(self.options)
+
+        class GunicornApplication(BaseApplication):
+            def load_config(self):
+                for key, value in config.items():
+                    self.cfg.set(key, value)
+
+            def load(self):
+                return handler
+
+        GunicornApplication().run()
+
+class EventletServer(ServerAdapter):
+    def run(self, handler):
+        from eventlet import wsgi, listen, patcher
+        if not patcher.is_monkey_patched(os):
+            msg = "Lcore requires eventlet.monkey_patch() (before import)"
+            raise RuntimeError(msg)
+        socket_args = {}
+        for arg in ('backlog', 'family'):
+            try:
+                socket_args[arg] = self.options.pop(arg)
+            except KeyError:
+                pass
+        address = (self.host, self.port)
+        try:
+            wsgi.server(listen(address, **socket_args), handler,
+                        log_output=(not self.quiet))
+        except TypeError:
+            wsgi.server(listen(address), handler)
+
+class BjoernServer(ServerAdapter):
+
+    def run(self, handler):
+        from bjoern import run
+        run(handler, self.host, self.port, reuse_port=True)
+
+class AsyncioServerAdapter(ServerAdapter):
+    def get_event_loop(self):
+        pass
+
+class AiohttpServer(AsyncioServerAdapter):
+
+    def get_event_loop(self):
+        import asyncio
+        return asyncio.new_event_loop()
+
+    def run(self, handler):
+        import asyncio
+        from aiohttp_wsgi.wsgi import serve
+        self.loop = self.get_event_loop()
+        asyncio.set_event_loop(self.loop)
+
+        if 'LCORE_CHILD' in os.environ:
+            import signal
+            signal.signal(signal.SIGINT, lambda s, f: self.loop.stop())
+
+        serve(handler, host=self.host, port=self.port)
+
+class AiohttpUVLoopServer(AiohttpServer):
+    def get_event_loop(self):
+        import uvloop
+        return uvloop.new_event_loop()
+
+# Tries every server it can import, falls back to wsgiref
+class AutoServer(ServerAdapter):
+    adapters = [WaitressServer, PasteServer, TwistedServer, CherryPyServer,
+                CherootServer, WSGIRefServer]
+
+    def run(self, handler):
+        for sa in self.adapters:
+            try:
+                return sa(self.host, self.port, **self.options).run(handler)
+            except ImportError:
+                pass
+
+# String -> adapter class. Used by run(server='...').
+server_names = {
+    'cgi': CGIServer,
+    'flup': FlupFCGIServer,
+    'wsgiref': WSGIRefServer,
+    'waitress': WaitressServer,
+    'cherrypy': CherryPyServer,
+    'cheroot': CherootServer,
+    'paste': PasteServer,
+    'fapws3': FapwsServer,
+    'tornado': TornadoServer,
+    'gae': AppEngineServer,
+    'twisted': TwistedServer,
+    'diesel': DieselServer,
+    'meinheld': MeinheldServer,
+    'gunicorn': GunicornServer,
+    'eventlet': EventletServer,
+    'gevent': GeventServer,
+    'bjoern': BjoernServer,
+    'aiohttp': AiohttpServer,
+    'uvloop': AiohttpUVLoopServer,
+    'auto': AutoServer,
+}
+
+# Module loading. Give it "pkg.mod:App" and it gives you back the App.
+
+def load(target):
+    # No **namespace: it existed only as the globals dict for the eval() this
+    # function used to do. The eval is gone, replaced by the getattr chain
+    # below, so the parameter could not affect anything.
+    module, target = target.split(":", 1) if ':' in target else (target, None)
+    if module not in sys.modules: __import__(module)
+    if not target: return sys.modules[module]
+    obj = sys.modules[module]
+    for part in target.split('.'):
+        if not part.isidentifier() or part.startswith('__'):
+            raise AttributeError("Invalid attribute name: %r" % part)
+        obj = getattr(obj, part)
+    return obj
+
+def load_app(target):
+    if target.endswith('.py'):
+        target = target[:-3].replace(os.sep, '.').replace('/', '.')
+    global NORUN
+    NORUN, nr_old = True, NORUN
+    tmp = default_app.push()
+    try:
+        rv = load(target)
+        if callable(rv):
+            return rv
+        # Search the loaded module for a Lcore app instance
+        if hasattr(rv, '__dict__'):
+            for obj in rv.__dict__.values():
+                if isinstance(obj, Lcore):
+                    return obj
+        return tmp
+    finally:
+        default_app.remove(tmp)
+        NORUN = nr_old
+
+_debug = debug
+
+_shutdown_hooks = []
+
+# Register cleanup that runs when the server stops
+def on_shutdown(func):
+    _shutdown_hooks.append(func)
+    return func
+
+def _run_shutdown_hooks():
+    while _shutdown_hooks:  # drain: each hook runs once, newest first
+        hook = _shutdown_hooks.pop()
+        try:
+            result = hook()
+            if inspect.iscoroutine(result):
+                _run_async(result)
+        except Exception:
+            logging.getLogger('lcore').warning(
+                "Error in shutdown hook %r", hook, exc_info=True)
+
+# The big red button. Starts a WSGI server with reloader, debug, plugins, etc.
+def run(app=None,
+        server='wsgiref',
+        host='127.0.0.1',
+        port=8080,
+        interval=1,
+        reloader=False,
+        quiet=False,
+        plugins=None,
+        debug=None,
+        config=None,
+        dev_server_ok=False, **kargs):
+    if NORUN: return
+    load_dotenv()
+    if reloader and not os.environ.get('LCORE_CHILD'):
+        import subprocess
+        fd, lockfile = tempfile.mkstemp(prefix='lcore.', suffix='.lock')
+        environ = os.environ.copy()
+        environ['LCORE_CHILD'] = 'true'
+        environ['LCORE_LOCKFILE'] = lockfile
+        args = [sys.executable] + sys.argv
+        if getattr(sys.modules.get('__main__'), '__package__', None):
+            args[1:1] = ["-m", sys.modules['__main__'].__package__]
+
+        try:
+            os.close(fd)
+            while os.path.exists(lockfile):
+                p = subprocess.Popen(args, env=environ)
+                while p.poll() is None:
+                    os.utime(lockfile, None)
+                    time.sleep(interval)
+                if p.returncode == 3:
+                    continue
+                sys.exit(p.returncode)
+        except KeyboardInterrupt:
+            pass
+        finally:
+            if os.path.exists(lockfile):
+                os.unlink(lockfile)
+        return
+
+    try:
+        import signal
+        def _sigterm_handler(signum, frame):
+            raise KeyboardInterrupt()
+        if threading.current_thread() is threading.main_thread():
+            signal.signal(signal.SIGTERM, _sigterm_handler)
+
+        if debug is not None: _debug(debug)
+        app = app or default_app()
+        if isinstance(app, str):
+            app = load_app(app)
+        if not callable(app):
+            raise ValueError("Application is not callable: %r" % app)
+
+        if debug and isinstance(app, Lcore) and not getattr(app, '_docs_paths', None):
+            app.enable_docs()
+
+        for plugin in plugins or []:
+            if isinstance(plugin, str):
+                plugin = load(plugin)
+            app.install(plugin)
+
+        if config:
+            app.config.update(config)
+
+        if server in server_names:
+            server = server_names.get(server)
+        if isinstance(server, str):
+            try:
+                server = load(server)
+            except ImportError:
+                raise ValueError("Unknown or unsupported server: %r" % server)
+        if isinstance(server, type):
+            server = server(host=host, port=port, **kargs)
+        if not isinstance(server, ServerAdapter):
+            raise ValueError("Unknown or unsupported server: %r" % server)
+
+        if isinstance(server, WSGIRefServer) and not (debug or dev_server_ok) \
+                and server.host not in ('127.0.0.1', 'localhost', '::1'):
+            raise RuntimeError(
+                "Refusing to serve the wsgiref development server on %s. Use "
+                "server='gunicorn' or 'waitress' for production, or pass "
+                "dev_server_ok=True (or debug=True) to override." % server.host)
+        server.quiet = server.quiet or quiet
+        if not server.quiet:
+            _stderr("Lcore v%s server starting up (using %s)..." %
+                    (__version__, repr(server)))
+            _stderr("Listening on %s" % server._listen_url)
+            if isinstance(server, WSGIRefServer):
+                _stderr("Warning: wsgiref is a development server. In production use "
+                        "server='gunicorn' or 'waitress'.")
+            _stderr("Hit Ctrl-C to quit.\n")
+
+        if reloader:
+            lockfile = os.environ.get('LCORE_LOCKFILE')
+            bgcheck = FileCheckerThread(lockfile, interval)
+            with bgcheck:
+                server.run(app)
+            if bgcheck.status == 'reload':
+                sys.exit(3)
+        else:
+            server.run(app)
+    except KeyboardInterrupt:
+        pass
+    except OSError as E:
+        if E.errno != errno.EADDRINUSE: raise
+        _stderr("Error: port %s is already in use." % port)
+        sys.exit(1)
+    except (SystemExit, MemoryError):
+        raise
+    except Exception:
+        if not reloader: raise
+        if not getattr(server, 'quiet', quiet):
+            print_exc()
+        time.sleep(interval)
+        sys.exit(3)
+    finally:
+        _run_shutdown_hooks()
+        if hasattr(app, 'close'):
+            app.close()
+
+# Auto-reload on file changes during development
+
+class FileCheckerThread(threading.Thread):
+
+    def __init__(self, lockfile, interval):
+        threading.Thread.__init__(self)
+        self.daemon = True
+        self.lockfile, self.interval = lockfile, interval
+        self.status = None
+
+    def run(self):
+        exists = os.path.exists
+        mtime = lambda p: os.stat(p).st_mtime
+        files = {}
+
+        for module in list(sys.modules.values()):
+            path = getattr(module, '__file__', '') or ''
+            if path[-4:] in ('.pyo', '.pyc'): path = path[:-1]
+            if path and exists(path): files[path] = mtime(path)
+
+        while not self.status:
+            if not exists(self.lockfile)\
+               or mtime(self.lockfile) < time.time() - self.interval - 5:
+                self.status = 'error'
+                thread.interrupt_main()
+            for path, lmtime in list(files.items()):
+                if not exists(path) or mtime(path) > lmtime:
+                    self.status = 'reload'
+                    thread.interrupt_main()
+                    break
+            time.sleep(self.interval)
+
+    def __enter__(self):
+        self.start()
+
+    def __exit__(self, exc_type, *_):
+        if not self.status: self.status = 'exit'
+        self.join()
+        return exc_type is not None and issubclass(exc_type, KeyboardInterrupt)
+
+# Uses watchdog if installed, else polls like it's 1999
+class WatchdogReloader:
+
+    def __init__(self, app, paths=None, interval=1, callback=None):
+        self.app = app
+        self.paths = paths or ['.']
+        self.interval = interval
+        self.callback = callback or self._default_reload
+        self._observer = None
+
+    def _default_reload(self, changed_path):
+        _stderr("File changed: %s reloading..." % changed_path)
+        self.app.reset()
+
+    def start(self):
+        try:
+            from watchdog.observers import Observer
+            from watchdog.events import FileSystemEventHandler
+        except ImportError:
+            _stderr("watchdog not installed, falling back to polling reloader")
+            return self._start_polling()
+
+        reloader = self
+
+        class _Handler(FileSystemEventHandler):
+            def on_modified(self, event):
+                if event.is_directory:
+                    return
+                if event.src_path.endswith(('.py', '.html', '.tpl', '.json', '.yaml', '.yml')):
+                    reloader.callback(event.src_path)
+
+        self._observer = Observer()
+        handler = _Handler()
+        for path in self.paths:
+            if os.path.isdir(path):
+                self._observer.schedule(handler, path, recursive=True)
+        self._observer.daemon = True
+        self._observer.start()
+        return self
+
+    def _start_polling(self):
+        files = {}
+        for path in self.paths:
+            for dirpath, _, filenames in os.walk(path):
+                for fn in filenames:
+                    if fn.endswith(('.py', '.html', '.tpl', '.json', '.yaml', '.yml')):
+                        fp = os.path.join(dirpath, fn)
+                        try:
+                            files[fp] = os.stat(fp).st_mtime
+                        except OSError:
+                            pass
+
+        reloader = self
+
+        def _poll():
+            while True:
+                time.sleep(reloader.interval)
+                for fp, old_mtime in list(files.items()):
+                    try:
+                        new_mtime = os.stat(fp).st_mtime
+                    except OSError:
+                        continue
+                    if new_mtime > old_mtime:
+                        files[fp] = new_mtime
+                        reloader.callback(fp)
+
+        t = threading.Thread(target=_poll, daemon=True)
+        t.start()
+        return self
+
+    def stop(self):
+        if self._observer:
+            self._observer.stop()
+            self._observer.join(timeout=2)
+
+    def __enter__(self):
+        self.start()
+        return self
+
+    def __exit__(self, *_):
+        self.stop()
+
+
+# Async version. asyncio.sleep in a loop. Not glamorous, works fine.
+class AsyncReloader:
+
+    def __init__(self, app, paths=None, interval=1.0, callback=None):
+        self.app = app
+        self.paths = paths or ['.']
+        self.interval = interval
+        self.callback = callback or self._default_reload
+        self._task = None
+        self._files = {}
+
+    def _default_reload(self, changed_path):
+        _stderr("File changed: %s reloading..." % changed_path)
+        self.app.reset()
+
+    def _scan(self):
+        for path in self.paths:
+            for dirpath, _, filenames in os.walk(path):
+                for fn in filenames:
+                    if fn.endswith(('.py', '.html', '.tpl', '.json', '.yaml', '.yml')):
+                        yield os.path.join(dirpath, fn)
+
+    async def _watch(self):
+        for fp in self._scan():
+            try:
+                self._files[fp] = os.stat(fp).st_mtime
+            except OSError:
+                pass
+        while True:
+            await asyncio.sleep(self.interval)
+            for fp in self._scan():
+                try:
+                    mtime = os.stat(fp).st_mtime
+                except OSError:
+                    continue
+                old = self._files.get(fp)
+                if old is None:
+                    self._files[fp] = mtime
+                    self.callback(fp)
+                elif mtime > old:
+                    self._files[fp] = mtime
+                    self.callback(fp)
+
+    def start(self, loop=None):
+        loop = loop or asyncio.get_event_loop()
+        self._task = loop.create_task(self._watch())
+        return self
+
+    def stop(self):
+        if self._task:
+            self._task.cancel()
+
+# Template engine. SimpleTemplate built in; adapters for Mako, Jinja2, Cheetah.
+
+class TemplateError(LcoreException):
+    pass
+
+class BaseTemplate:
+    extensions = ['tpl', 'html', 'thtml', 'stpl']
+    settings = {}
+    defaults = {}
+
+    def __init__(self,
+                 source=None,
+                 name=None,
+                 lookup=None,
+                 encoding='utf8', **settings):
+        self.name = name
+        self.source = source.read() if hasattr(source, 'read') else source
+        self.filename = source.filename if hasattr(source, 'filename') else None
+        self.lookup = [os.path.abspath(x) for x in lookup] if lookup else []
+        self.encoding = encoding
+        self.settings = self.settings.copy()
+        self.settings.update(settings)
+        if not self.source and self.name:
+            self.filename = self.search(self.name, self.lookup)
+            if not self.filename:
+                raise TemplateError('Template %s not found.' % repr(name))
+        if not self.source and not self.filename:
+            raise TemplateError('No template specified.')
+        self.prepare(**self.settings)
+
+    @classmethod
+    def search(cls, name, lookup=None):
+        if not lookup:
+            raise TemplateError("Empty template lookup path.")
+
+        if os.path.isabs(name):
+            raise TemplateError("Absolute template names are not allowed: use a name relative to the lookup path.")
+
+        for spath in lookup:
+            spath = os.path.abspath(spath) + os.sep
+            fname = os.path.abspath(os.path.join(spath, name))
+            if not fname.startswith(spath): continue
+            if os.path.isfile(fname): return fname
+            for ext in cls.extensions:
+                if os.path.isfile('%s.%s' % (fname, ext)):
+                    return '%s.%s' % (fname, ext)
+
+    @classmethod
+    def global_config(cls, key, *args):
+        if args:
+            cls.settings = cls.settings.copy()
+            cls.settings[key] = args[0]
+        else:
+            return cls.settings[key]
+
+    def prepare(self, **options):
+        raise NotImplementedError
+
+    def render(self, *args, **kwargs):
+        raise NotImplementedError
+
+class MakoTemplate(BaseTemplate):
+    def prepare(self, **options):
+        from mako.template import Template
+        from mako.lookup import TemplateLookup
+        options.update({'input_encoding': self.encoding})
+        options.setdefault('format_exceptions', bool(DEBUG))
+        lookup = TemplateLookup(directories=self.lookup, **options)
+        if self.source:
+            self.tpl = Template(self.source, lookup=lookup, **options)
+        else:
+            self.tpl = Template(uri=self.name,
+                                filename=self.filename,
+                                lookup=lookup, **options)
+
+    def render(self, *args, **kwargs):
+        for dictarg in args:
+            kwargs.update(dictarg)
+        _defaults = self.defaults.copy()
+        _defaults.update(kwargs)
+        return self.tpl.render(**_defaults)
+
+class CheetahTemplate(BaseTemplate):
+    def prepare(self, **options):
+        from Cheetah.Template import Template
+        self.context = threading.local()
+        self.context.vars = {}
+        options['searchList'] = [self.context.vars]
+        if self.source:
+            self.tpl = Template(source=self.source, **options)
+        else:
+            self.tpl = Template(file=self.filename, **options)
+
+    def render(self, *args, **kwargs):
+        for dictarg in args:
+            kwargs.update(dictarg)
+        self.context.vars.update(self.defaults)
+        self.context.vars.update(kwargs)
+        out = str(self.tpl)
+        self.context.vars.clear()
+        return out
+
+class Jinja2Template(BaseTemplate):
+    def prepare(self, filters=None, tests=None, globals=None, **kwargs):
+        from jinja2 import Environment, FunctionLoader
+        self.env = Environment(loader=FunctionLoader(self.loader), **kwargs)
+        if filters: self.env.filters.update(filters)
+        if tests: self.env.tests.update(tests)
+        if globals: self.env.globals.update(globals)
+        if self.source:
+            self.tpl = self.env.from_string(self.source)
+        else:
+            self.tpl = self.env.get_template(self.name)
+
+    def render(self, *args, **kwargs):
+        for dictarg in args:
+            kwargs.update(dictarg)
+        _defaults = self.defaults.copy()
+        _defaults.update(kwargs)
+        return self.tpl.render(**_defaults)
+
+    def loader(self, name):
+        if name == self.filename:
+            fname = name
+        else:
+            fname = self.search(name, self.lookup)
+        if not fname: return
+        with open(fname, "rb") as f:
+            return (f.read().decode(self.encoding), fname, lambda: False)
+
+# Zero-dependency template engine. % python blocks, {{ inline expressions }}.
+class SimpleTemplate(BaseTemplate):
+    def prepare(self,
+                escape_func=html_escape,
+                noescape=False,
+                syntax=None, **ka):
+        self.cache = {}
+        enc = self.encoding
+        self._str = lambda x: touni(x, enc)
+        self._escape = lambda x: escape_func(touni(x, enc))
+        self.syntax = syntax
+        if noescape:
+            self._str, self._escape = self._escape, self._str
+
+    @cached_property
+    def co(self):
+        return compile(self.code, self.filename or '<string>', 'exec')
+
+    @cached_property
+    def code(self):
+        source = self.source
+        if not source:
+            with open(self.filename, 'rb') as f:
+                source = f.read()
+        try:
+            source, encoding = touni(source), 'utf8'
+        except UnicodeError:
+            raise TemplateError('Unsupported template encoding: use utf-8.')
+        parser = StplParser(source, encoding=encoding, syntax=self.syntax)
+        code = parser.translate()
+        self.encoding = parser.encoding
+        return code
+
+    def _rebase(self, _env, _name=None, **kwargs):
+        _env['_rebase'] = (_name, kwargs)
+
+    def _include(self, _env, _name=None, **kwargs):
+        env = _env.copy()
+        env.update(kwargs)
+        if _name not in self.cache:
+            self.cache[_name] = self.__class__(name=_name, lookup=self.lookup, syntax=self.syntax)
+        return self.cache[_name].execute(env['_stdout'], env)
+
+    def execute(self, _stdout, kwargs):
+        env = self.defaults.copy()
+        env.update(kwargs)
+        env.update({
+            '_stdout': _stdout,
+            '_printlist': _stdout.extend,
+            'include': functools.partial(self._include, env),
+            'rebase': functools.partial(self._rebase, env),
+            '_rebase': None,
+            '_str': self._str,
+            '_escape': self._escape,
+            'get': env.get,
+            'setdefault': env.setdefault,
+            'defined': env.__contains__
+        })
+        exec(self.co, env)
+        if env.get('_rebase'):
+            subtpl, rargs = env.pop('_rebase')
+            rargs['base'] = ''.join(_stdout)
+            del _stdout[:]
+            return self._include(env, subtpl, **rargs)
+        return env
+
+    def render(self, *args, **kwargs):
+        env = {}
+        stdout = []
+        for dictarg in args:
+            env.update(dictarg)
+        env.update(kwargs)
+        self.execute(stdout, env)
+        return ''.join(stdout)
+
+class StplSyntaxError(TemplateError):
+    pass
+
+# Compiles template source to Python bytecode. The real workhorse.
+class StplParser:
+    _re_cache = {}
+
+    _re_tok = r'''(
+        [urbURB]*
+        (?:  ''(?!')
+            |""(?!")
+            |'{6}
+            |"{6}
+            |'(?:[^\\']|\\.)+?'
+            |"(?:[^\\"]|\\.)+?"
+            |'{3}(?:[^\\]|\\.|\n)+?'{3}
+            |"{3}(?:[^\\]|\\.|\n)+?"{3}
+        )
+    )'''
+
+    _re_inl = _re_tok.replace(r'|\n', '')
+    _re_tok += r'''
+        |(\#.*)
+        |([\[\{\(])
+        |([\]\}\)])
+        |^([\ \t]*(?:if|for|while|with|try|def|class)\b)
+        |^([\ \t]*(?:elif|else|except|finally)\b)
+        |((?:^|;)[\ \t]*end[\ \t]*(?=(?:%(block_close)s[\ \t]*)?\r?$|;|\#))
+        |(%(block_close)s[\ \t]*(?=\r?$))
+        |(\r?\n)
+    '''
+
+    _re_split = r'''(?m)^[ \t]*(\\?)((%(line_start)s)|(%(block_start)s))'''
+    _re_inl = r'''%%(inline_start)s((?:%s|[^'"\n])*?)%%(inline_end)s''' % _re_inl
+    _re_tok = '(?mx)' + _re_tok
+    _re_inl = '(?mx)' + _re_inl
+
+    default_syntax = '<% %> % {{ }}'
+
+    def __init__(self, source, syntax=None, encoding='utf8'):
+        self.source, self.encoding = touni(source, encoding), encoding
+        self.set_syntax(syntax or self.default_syntax)
+        self.code_buffer, self.text_buffer = [], []
+        self.lineno, self.offset = 1, 0
+        self.indent, self.indent_mod = 0, 0
+        self.paren_depth = 0
+
+    def get_syntax(self):
+        return self._syntax
+
+    def set_syntax(self, syntax):
+        self._syntax = syntax
+        self._tokens = syntax.split()
+        if syntax not in self._re_cache:
+            names = 'block_start block_close line_start inline_start inline_end'
+            etokens = map(re.escape, self._tokens)
+            pattern_vars = dict(zip(names.split(), etokens))
+            patterns = (self._re_split, self._re_tok, self._re_inl)
+            patterns = [re.compile(p % pattern_vars) for p in patterns]
+            self._re_cache[syntax] = patterns
+        self.re_split, self.re_tok, self.re_inl = self._re_cache[syntax]
+
+    syntax = property(get_syntax, set_syntax)
+
+    def translate(self):
+        if self.offset: raise RuntimeError('Parser is a one time instance.')
+        while True:
+            m = self.re_split.search(self.source, pos=self.offset)
+            if m:
+                text = self.source[self.offset:m.start()]
+                self.text_buffer.append(text)
+                self.offset = m.end()
+                if m.group(1):
+                    line, sep, _ = self.source[self.offset:].partition('\n')
+                    self.text_buffer.append(
+                        self.source[m.start():m.start(1)] + m.group(2) + line + sep)
+                    self.offset += len(line + sep)
+                    continue
+                self.flush_text()
+                self.offset += self.read_code(self.source[self.offset:],
+                                              multiline=bool(m.group(4)))
+            else:
+                break
+        self.text_buffer.append(self.source[self.offset:])
+        self.flush_text()
+        return ''.join(self.code_buffer)
+
+    def read_code(self, pysource, multiline):
+        code_line, comment = '', ''
+        offset = 0
+        while True:
+            m = self.re_tok.search(pysource, pos=offset)
+            if not m:
+                code_line += pysource[offset:]
+                offset = len(pysource)
+                self.write_code(code_line.strip(), comment)
+                break
+            code_line += pysource[offset:m.start()]
+            offset = m.end()
+            _str, _com, _po, _pc, _blk1, _blk2, _end, _cend, _nl = m.groups()
+            if self.paren_depth > 0 and (_blk1 or _blk2):
+                code_line += _blk1 or _blk2
+                continue
+            if _str:
+                code_line += _str
+            elif _com:
+                comment = _com
+                if multiline and _com.strip().endswith(self._tokens[1]):
+                    multiline = False
+            elif _po:
+                self.paren_depth += 1
+                code_line += _po
+            elif _pc:
+                if self.paren_depth > 0:
+                    self.paren_depth -= 1
+                code_line += _pc
+            elif _blk1:
+                code_line = _blk1
+                self.indent += 1
+                self.indent_mod -= 1
+            elif _blk2:
+                code_line = _blk2
+                self.indent_mod -= 1
+            elif _cend:
+                if multiline: multiline = False
+                else: code_line += _cend
+            elif _end:
+                self.indent -= 1
+                self.indent_mod += 1
+            else:
+                self.write_code(code_line.strip(), comment)
+                self.lineno += 1
+                code_line, comment, self.indent_mod = '', '', 0
+                if not multiline:
+                    break
+
+        return offset
+
+    def flush_text(self):
+        text = ''.join(self.text_buffer)
+        del self.text_buffer[:]
+        if not text: return
+        parts, pos, nl = [], 0, '\\\n' + '  ' * self.indent
+        for m in self.re_inl.finditer(text):
+            prefix, pos = text[pos:m.start()], m.end()
+            if prefix:
+                parts.append(nl.join(map(repr, prefix.splitlines(True))))
+            if prefix.endswith('\n'): parts[-1] += nl
+            parts.append(self.process_inline(m.group(1).strip()))
+        if pos < len(text):
+            prefix = text[pos:]
+            lines = prefix.splitlines(True)
+            if lines[-1].endswith('\\\\\n'): lines[-1] = lines[-1][:-3]
+            elif lines[-1].endswith('\\\\\r\n'): lines[-1] = lines[-1][:-4]
+            parts.append(nl.join(map(repr, lines)))
+        code = '_printlist((%s,))' % ', '.join(parts)
+        self.lineno += code.count('\n') + 1
+        self.write_code(code)
+
+    @staticmethod
+    def process_inline(chunk):
+        if chunk[0] == '!': return '_str(%s)' % chunk[1:]
+        return '_escape(%s)' % chunk
+
+    def write_code(self, line, comment=''):
+        code = '  ' * (self.indent + self.indent_mod)
+        code += line.lstrip() + comment + '\n'
+        self.code_buffer.append(code)
+
+_TEMPLATES_MAX = 512  # max compiled templates kept in the in-process cache
+
+# Render a template. Caches compiled templates; evicts oldest when cache fills.
+def template(*args, **kwargs):
+    tpl = args[0] if args else None
+    for dictarg in args[1:]:
+        kwargs.update(dictarg)
+    adapter = kwargs.pop('template_adapter', SimpleTemplate)
+    lookup = kwargs.pop('template_lookup', TEMPLATE_PATH)
+    tplid = (id(lookup), tpl)
+    if tplid not in TEMPLATES or DEBUG:
+        settings = kwargs.pop('template_settings', {})
+        if isinstance(tpl, adapter):
+            TEMPLATES[tplid] = tpl
+            if settings: TEMPLATES[tplid].prepare(**settings)
+        elif "\n" in tpl or "{" in tpl or "%" in tpl or '$' in tpl:
+            TEMPLATES[tplid] = adapter(source=tpl, lookup=lookup, **settings)
+        else:
+            TEMPLATES[tplid] = adapter(name=tpl, lookup=lookup, **settings)
+        # Evict oldest half of the cache when the size ceiling is reached.
+        # This prevents unbounded memory growth in long-running processes,
+        # especially when template names are user-influenced.
+        if len(TEMPLATES) > _TEMPLATES_MAX:
+            evict = list(TEMPLATES.keys())[:_TEMPLATES_MAX // 2]
+            for k in evict:
+                TEMPLATES.pop(k, None)
+    if not TEMPLATES[tplid]:
+        abort(500, 'Template (%s) not found' % tpl)
+    return TEMPLATES[tplid].render(kwargs)
+
+mako_template = functools.partial(template, template_adapter=MakoTemplate)
+cheetah_template = functools.partial(template,
+                                     template_adapter=CheetahTemplate)
+jinja2_template = functools.partial(template, template_adapter=Jinja2Template)
+
+# Decorator: handler returns a dict, it gets rendered through a template
+def view(tpl_name, **defaults):
+
+    def decorator(func):
+
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            result = func(*args, **kwargs)
+            if isinstance(result, (dict, DictMixin)):
+                tplvars = defaults.copy()
+                tplvars.update(result)
+                return template(tpl_name, **tplvars)
+            elif result is None:
+                return template(tpl_name, **defaults)
+            return result
+
+        return wrapper
+
+    return decorator
+
+mako_view = functools.partial(view, template_adapter=MakoTemplate)
+cheetah_view = functools.partial(view, template_adapter=CheetahTemplate)
+jinja2_view = functools.partial(view, template_adapter=Jinja2Template)
+
+# Module-level configuration and shared state
+
+TEMPLATE_PATH = ['./', './views/']
+TEMPLATES = {}   # (lookup_id, name) -> compiled template
+DEBUG = False
+NORUN = False    # stays True while load_app() is doing its thing
+
+HTTP_CODES = httplib.responses.copy()
+HTTP_CODES[418] = "I'm a teapot"
+HTTP_CODES[428] = "Precondition Required"
+HTTP_CODES[429] = "Too Many Requests"
+HTTP_CODES[431] = "Request Header Fields Too Large"
+HTTP_CODES[451] = "Unavailable For Legal Reasons"
+HTTP_CODES[511] = "Network Authentication Required"
+_HTTP_STATUS_LINES = dict((k, '%d %s' % (k, v))
+                          for (k, v) in HTTP_CODES.items())
+
+ERROR_PAGE_TEMPLATE = """
+%%try:
+    %%from %s import DEBUG, request
+    <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+    <html>
+        <head>
+            <title>Error: {{e.status}}</title>
+            <style type="text/css">
+              html {background-color: #eee; font-family: sans-serif;}
+              body {background-color: #fff; border: 1px solid #ddd;
+                    padding: 15px; margin: 15px;}
+              pre {background-color: #eee; border: 1px solid #ddd; padding: 5px;}
+            </style>
+        </head>
+        <body>
+            <h1>Error: {{e.status}}</h1>
+            <p>Sorry, the requested URL <tt>{{request.url}}</tt>
+               caused an error:</p>
+            <pre>{{e.body}}</pre>
+            %%if DEBUG and e.exception:
+              <h2>Exception:</h2>
+              %%try:
+                %%exc = repr(e.exception)
+              %%except:
+                %%exc = '<unprintable %%s object>' %% type(e.exception).__name__
+              %%end
+              <pre>{{exc}}</pre>
+            %%end
+            %%if DEBUG and e.traceback:
+              <h2>Traceback:</h2>
+              <pre>{{e.traceback}}</pre>
+            %%end
+        </body>
+    </html>
+%%except ImportError:
+    <b>ImportError:</b> Could not generate the error page. Please add lcore to
+    the import path.
+%%end
+""" % __name__
+
+# Thread-local globals. Rebound per request. Import these in your handlers.
+request = LocalRequest()
+response = LocalResponse()
+ctx = LocalContext.__new__(LocalContext)
+local = threading.local()
+
+apps = app = default_app = AppStack()
+
+ext = _ImportRedirect('lcore.ext' if __name__ == '__main__' else
+                      __name__ + ".ext", 'lcore_%s').module
+
+# python -m lcore or lcore command entry point
+
+def _main(argv):
+    args, parser = _cli_parse(argv)
+
+    def _cli_error(cli_msg):
+        parser.print_help()
+        _stderr('\nError: %s\n' % cli_msg)
+        sys.exit(1)
+
+    if args.version:
+        print(__version__)
+        sys.exit(0)
+    if args.docs:
+        import webbrowser
+        webbrowser.open('https://lcore.lusansapkota.com.np')
+        print("Opening documentation in browser...")
+        sys.exit(0)
+    if not args.app:
+        _cli_error("No application entry point specified.")
+
+    sys.path.insert(0, '.')
+    sys.modules.setdefault('lcore', sys.modules['__main__'])
+
+    host, port = (args.bind or 'localhost'), 8080
+    if ':' in host and host.rfind(']') < host.rfind(':'):
+        host, port = host.rsplit(':', 1)
+    host = host.strip('[]')
+
+    config = ConfigDict()
+
+    for cfile in args.conf or []:
+        try:
+            if cfile.endswith('.json'):
+                with open(cfile, 'rb') as fp:
+                    config.load_dict(json_loads(fp.read()))
+            else:
+                config.load_config(cfile)
+        except configparser.Error as parse_error:
+            _cli_error(parse_error)
+        except IOError:
+            _cli_error("Unable to read config file %r" % cfile)
+        except (UnicodeError, TypeError, ValueError) as error:
+            _cli_error("Unable to parse config file %r: %s" % (cfile, error))
+
+    for cval in args.param or []:
+        if '=' in cval:
+            config.update((cval.split('=', 1),))
+        else:
+            config[cval] = True
+
+    try:
+        port = int(port)
+        if not 0 <= port <= 65535: raise ValueError
+    except ValueError:
+        _cli_error("Invalid port: %r" % (port,))
+    target = args.app
+    if not args.reload:  # the reloader's parent must not import the app
+        try:
+            target = load_app(target)
+        except (ImportError, AttributeError) as error:
+            _cli_error("Cannot load %r: %s" % (args.app, error))
+
+    run(target,
+        host=host,
+        port=port,
+        server=args.server,
+        reloader=args.reload,
+        plugins=args.plugin,
+        debug=args.debug,
+        config=config)
+
+def main():
+    _main(sys.argv)
+
+if __name__ == '__main__':
+    main()
