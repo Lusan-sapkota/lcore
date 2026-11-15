@@ -348,7 +348,6 @@ def test_request_id_header_injection_live(live):
     assert b'\r\nInjected' not in out
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: RequestIDMiddleware echoes attacker-supplied X-Request-ID of any length/charset (lcore.py:2273)")
 def test_request_id_unbounded_length_echo(client):
     # an attacker-chosen id is reflected verbatim: huge ids should not be reflected
     app = mk(RequestIDMiddleware()); app.get('/')(lambda: 'x')

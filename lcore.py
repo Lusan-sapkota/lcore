@@ -2274,13 +2274,17 @@ class MiddlewarePipeline:
         return run(ctx)
 
 # Slaps an X-Request-ID on every request/response
+_REQ_ID_OK = re.compile(r'[A-Za-z0-9._-]{1,128}\Z').match
+
+
 class RequestIDMiddleware(Middleware):
     name = 'request_id'
     order = 1
 
     def __call__(self, ctx, next_handler):
-        req_id = ctx.request.get_header('X-Request-ID',
-                                         str(uuid.uuid4()))
+        req_id = ctx.request.get_header('X-Request-ID')
+        if not req_id or not _REQ_ID_OK(req_id):  # never echo unbounded or odd input
+            req_id = str(uuid.uuid4())
         ctx.request_id = req_id
         result = next_handler(ctx)
         ctx.response.set_header('X-Request-ID', req_id)
