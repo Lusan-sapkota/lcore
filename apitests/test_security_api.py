@@ -418,7 +418,6 @@ def test_hash_invalid_iterations_raises(it):
         hash_password('x', it)
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: verify_password trusts the iteration count inside the stored hash: a crafted hash with huge iterations burns CPU for minutes (DoS) (lcore.py:5190)")
 def test_verify_huge_iterations_dos_bounded():
     t = time.time()
     res = [None]
@@ -427,7 +426,6 @@ def test_verify_huge_iterations_dos_bounded():
     assert not th.is_alive(), 'still hashing after 2s: unbounded iterations accepted'
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: verify_password honours any hashlib algo named in the hash string, incl. non-sha256 / weak ones (md5, sha1) (lcore.py:5190)")
 def test_verify_rejects_weak_algo():
     import hashlib
     salt = b'0' * 16

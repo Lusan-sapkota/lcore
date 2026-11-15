@@ -5281,9 +5281,11 @@ def verify_password(password, hash_string):
         method, rest = hash_string.split(':', 1)
         algo, rest = rest.split(':', 1)
         iters_s, salt_hex, hash_hex = rest.split('$', 2)
-        dk = hashlib.pbkdf2_hmac(
-            algo, tob(password), bytes.fromhex(salt_hex), int(iters_s)
-        )
+        iters = int(iters_s)
+        # The hash string is untrusted: bound the work and the algorithm.
+        if algo not in ('sha256', 'sha512') or not 1 <= iters <= 10_000_000:
+            return False
+        dk = hashlib.pbkdf2_hmac(algo, tob(password), bytes.fromhex(salt_hex), iters)
         return hmac.compare_digest(dk, bytes.fromhex(hash_hex))
     except (ValueError, TypeError):
         return False
