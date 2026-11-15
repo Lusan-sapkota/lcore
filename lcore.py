@@ -1309,7 +1309,7 @@ class Lcore:
         if isinstance(out, (tuple, list)) and isinstance(out[0], (bytes, str)):
             out = out[0][0:0].join(out)
         if isinstance(out, str):
-            out = out.encode(response.charset)
+            out = out.encode(response.charset, 'surrogateescape')
         if isinstance(out, bytes):
             if 'Content-Length' not in response:
                 response['Content-Length'] = len(out)
@@ -1351,7 +1351,7 @@ class Lcore:
         elif isinstance(first, bytes):
             new_iter = itertools.chain([first], iout)
         elif isinstance(first, str):
-            encoder = lambda x: x.encode(response.charset)
+            encoder = lambda x: x.encode(response.charset, 'surrogateescape')
             new_iter = map(encoder, itertools.chain([first], iout))
         else:
             _try_close(out)
@@ -1390,7 +1390,7 @@ class Lcore:
             environ['wsgi.errors'].flush()
             headers = [('Content-Type', 'text/html; charset=UTF-8')]
             start_response('500 INTERNAL SERVER ERROR', headers, sys.exc_info())
-            return [tob(err)]
+            return [err.encode('utf8', 'replace')]
 
     def __call__(self, environ, start_response):
         return self.wsgi(environ, start_response)
@@ -1672,7 +1672,7 @@ class BaseRequest:
             port = env.get('SERVER_PORT')
             if port and port != ('80' if http == 'http' else '443'):
                 host += ':' + port
-        path = urlquote(self.fullpath)
+        path = urlquote(self.fullpath, errors='surrogateescape')
         return UrlSplitResult(http, host, path, env.get('QUERY_STRING'), '')
 
     @property

@@ -506,7 +506,6 @@ def test_encoded_slash_does_not_cross_segments_live(live):
     assert st == 404
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: invalid UTF-8 percent bytes surrogate-escape into PATH_INFO; echoing it returns 500 instead of a clean 4xx/replacement")
 def test_invalid_utf8_percent_live(live):
     a = mk()
 
@@ -1464,7 +1463,6 @@ def test_handler_signature_mismatch_is_500(client):
     assert client(a).get('/u/1').status_code == 500
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: invalid-UTF-8 %xx in path + any error page -> Request.url urlquote hits surrogate -> wsgi() fallback tob() raises -> exception escapes to the server")
 @pytest.mark.parametrize('path', ['/%e9', '/%ff/x', '/ok%ff'])
 def test_invalid_utf8_in_unknown_path_is_clean_404_live(live, path):
     a = mk()
@@ -1475,7 +1473,6 @@ def test_invalid_utf8_in_unknown_path_is_clean_404_live(live, path):
     assert lv.request('GET', '/ok')[0] == 200
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: wsgi() critical-error fallback does tob(err) on a path containing surrogates and raises from inside the except block")
 def test_wsgi_critical_fallback_survives_surrogate_path():
     a = mk()
     a.route('/ok')(lambda: 'ok')
