@@ -35,3 +35,12 @@ All 449 tests should pass. The test suite uses only `unittest` from the standard
 
 - **No new dependencies.** Lcore imports only from Python's standard library. This is a hard constraint do not add third-party imports to `lcore.py` or `tests/`.
 - **Keep it in one file.** Framework additions go in `lcore.py`. The demo backend (`backend/`) is exempt from this rule.
+
+## Releasing
+
+Releases are published by `.github/workflows/release.yml` when a version tag is pushed. It runs the tests on Python 3.8, 3.11 and 3.13, builds the package, publishes to PyPI with trusted publishing (no API token), then creates the GitHub release using the matching `CHANGELOG.md` section as the notes.
+
+1. Set the same version in `lcore.py` (`__version__`) and `pyproject.toml`, and add a `## [x.y.z]` section to `CHANGELOG.md`.
+2. Merge to `main`, then tag and push: `git tag vx.y.z && git push origin vx.y.z`.
+
+The workflow fails before publishing if the tag, `lcore.py`, `pyproject.toml` and the changelog disagree. PyPI must have a trusted publisher for this repository (workflow `release.yml`, environment `pypi`).
