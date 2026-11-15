@@ -147,6 +147,29 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
+  // Previous / next page links
+  var pages = $$('.sidebar-link:not(.sub)').filter(function (a) { return /^[a-z-]+\.html$/.test(a.getAttribute('href')); });
+  var at = pages.findIndex(function (a) { return a.getAttribute('href') === page; });
+  var mainEl = $('main.content');
+  if (mainEl && at > -1 && !document.body.classList.contains('index-page')) {
+    var pager = document.createElement('nav');
+    pager.className = 'pager';
+    pager.setAttribute('aria-label', 'Previous and next page');
+    [[at - 1, 'Previous'], [at + 1, 'Next']].forEach(function (p) {
+      var a = pages[p[0]];
+      if (!a) return;
+      var el = document.createElement('a');
+      el.className = 'pager-' + p[1].toLowerCase();
+      el.href = a.getAttribute('href');
+      var small = document.createElement('small');
+      small.textContent = p[1];
+      el.appendChild(small);
+      el.appendChild(document.createTextNode(a.textContent));
+      pager.appendChild(el);
+    });
+    if (pager.children.length) mainEl.appendChild(pager);
+  }
+
   // Scrollable tables
   $$('.content table').forEach(function (table) {
     if (table.parentNode.closest('.table-wrap, .comparison-container')) return;
@@ -206,21 +229,28 @@ document.addEventListener('DOMContentLoaded', function () {
     }).join('') : '<li class="search-empty">No results for “' + esc(input.value) + '”</li>';
     input.setAttribute('aria-activedescendant', hits.length ? 'sr0' : '');
   }
-  function move(d) {
-    if (!hits.length) return;
+  function pick(i, scroll) {
     var items = $$('a', list);
+    if (!items.length) return;
     items[sel].removeAttribute('aria-selected');
-    sel = (sel + d + items.length) % items.length;
+    sel = (i + items.length) % items.length;
     items[sel].setAttribute('aria-selected', 'true');
-    items[sel].scrollIntoView({ block: 'nearest' });
+    if (scroll) items[sel].scrollIntoView({ block: 'nearest' });
     input.setAttribute('aria-activedescendant', items[sel].id);
   }
+  function move(d) { pick(sel + d, true); }
+  // Hover moves the single selection so two rows are never highlighted at once
+  list.addEventListener('mousemove', function (e) {
+    var a = e.target.closest('a');
+    if (a) pick($$('a', list).indexOf(a), false);
+  });
   function open() { if (!dlg.open) { dlg.showModal(); input.value = ''; render(); input.focus(); } }
   if (btn) btn.addEventListener('click', open);
   input.addEventListener('input', render);
   input.addEventListener('keydown', function (e) {
     if (e.key === 'ArrowDown') { e.preventDefault(); move(1); }
     else if (e.key === 'ArrowUp') { e.preventDefault(); move(-1); }
+    else if (e.key === 'Escape') dlg.close();
     else if (e.key === 'Enter' && hits[sel]) {
       var a = $$('a', list)[sel];
       dlg.close();

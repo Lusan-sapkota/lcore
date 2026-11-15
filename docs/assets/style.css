@@ -143,7 +143,7 @@ kbd { font-family: var(--font-sans); font-size: 12px; padding: 1px 7px; border: 
 }
 .sidebar {
   position: sticky; top: var(--header-height); align-self: start;
-  height: calc(100vh - var(--header-height)); overflow-y: auto;
+  height: calc(100vh - var(--header-height)); height: calc(100dvh - var(--header-height)); overflow-y: auto; border-right: 1px solid var(--border-light);
   padding: 24px 12px 40px 24px; font-size: 15px; scrollbar-width: thin;
 }
 .sidebar-section { margin-bottom: 20px; }
@@ -166,6 +166,8 @@ details[open] > .sidebar-title::after { transform: rotate(45deg); }
 .sidebar-link.sub { font-size: 14px; padding: 6px 14px; color: var(--text-dim); }
 
 .content { min-width: 0; padding: 40px 48px 96px; max-width: 920px; width: 100%; }
+.content :is(h1, h2, h3) { text-wrap: balance; }
+.content p { text-wrap: pretty; }
 .content h1 { font-size: 44px; line-height: 1.15; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 12px; }
 .content h2 {
   font-size: 30px; line-height: 1.25; font-weight: 700; letter-spacing: -0.01em;
@@ -187,7 +189,7 @@ details[open] > .sidebar-title::after { transform: rotate(45deg); }
 code { font-family: var(--font-mono); font-size: 0.875em; }
 :not(pre) > code {
   background: var(--bg-code); border: 1px solid var(--border-light);
-  padding: 1px 7px; border-radius: 999px; color: var(--text); white-space: nowrap;
+  padding: 1px 7px; border-radius: 999px; color: var(--text); overflow-wrap: anywhere;
 }
 .content :is(td, th, li, p) code { white-space: normal; overflow-wrap: anywhere; }
 pre {
@@ -349,6 +351,13 @@ pre code { background: none; border: 0; padding: 0; color: var(--text); font-siz
 .site-footer { padding: 40px 0 56px; text-align: center; font-size: 14px; color: var(--text-dim); border-top: 1px solid var(--border-light); }
 .site-footer p { max-width: none; color: var(--text-dim); }
 
+/* ── Prev / next ── */
+.pager { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-top: 64px; }
+.pager a { display: block; padding: 16px 20px; border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-weight: 600; font-size: 18px; transition: border-color .15s, background .15s; }
+.pager a:hover { border-color: var(--accent); background: var(--accent-bg); text-decoration: none; color: var(--text); }
+.pager small { display: block; font-size: 13px; font-weight: 500; color: var(--text-dim); }
+.pager-next { text-align: end; }
+
 /* ── On this page ── */
 .toc {
   position: sticky; top: var(--header-height); align-self: start; max-height: calc(100vh - var(--header-height));
@@ -369,9 +378,11 @@ pre code { background: none; border: 0; padding: 0; color: var(--text); font-siz
 .search-dialog[open] { display: flex; flex-direction: column; }
 .search-dialog::backdrop { background: rgba(10,12,16,0.6); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
 .search-input { width: 100%; border: 0; border-bottom: 1px solid var(--border-light); background: transparent; color: var(--text); font: inherit; font-size: 18px; padding: 18px 22px; outline: none; }
-.search-results { overflow-y: auto; padding: 8px; list-style: none; }
+.search-results { overflow-y: auto; padding: 8px; list-style: none; display: grid; gap: 4px; }
 .search-results a { display: block; padding: 10px 14px; border-radius: 10px; color: var(--text); min-height: 44px; }
-.search-results a:hover, .search-results a[aria-selected="true"] { background: var(--accent-bg); text-decoration: none; }
+.search-results li { min-width: 0; }
+.search-results a { text-decoration: none; }
+.search-results a[aria-selected="true"] { background: var(--accent-bg); }
 .search-results a[aria-selected="true"] { box-shadow: inset 3px 0 0 var(--accent); }
 .sr-title { font-weight: 600; }
 .sr-page { font-size: 12px; color: var(--accent); margin-left: 8px; font-weight: 500; }
@@ -385,7 +396,9 @@ pre code { background: none; border: 0; padding: 0; color: var(--text); font-siz
   .toc { display: none; }
 }
 @media (max-width: 1100px) {
-  .perf-container { grid-template-columns: minmax(0, 1fr); grid-template-areas: "t" "b" "n"; } .header-nav a:nth-child(n+3) { display: none; } }
+  .perf-container { grid-template-columns: minmax(0, 1fr); grid-template-areas: "t" "b" "n"; }
+}
+@media (max-width: 1100px) { .header-nav a:nth-child(n+3) { display: none; } }
 @media (max-width: 900px) {
   :root { --header-height: 56px; }
   .header-nav { display: none; }
