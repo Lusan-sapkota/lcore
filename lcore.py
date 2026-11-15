@@ -3078,7 +3078,9 @@ def rate_limit(limit, per=60, max_buckets=10000, backend=None, single_process=Fa
             "Pass backend=RedisRateLimitBackend() for cross-worker enforcement.",
             UserWarning, stacklevel=2)
     # Delegate to the backend's atomic consume()
-    if isinstance(backend, RateLimitBackend):
+    if backend is not None and not hasattr(backend, 'consume'):
+        raise TypeError("rate_limit backend needs a consume(key, limit, per) method")
+    if backend is not None:
         def decorator(func):
             @functools.wraps(func)
             def wrapper(*a, **ka):

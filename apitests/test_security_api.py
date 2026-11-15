@@ -216,7 +216,6 @@ def test_rl_abstract_backend_cannot_instantiate():
         RateLimitBackend()
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: backend= object that is not a RateLimitBackend subclass is silently ignored (falls back to in-process buckets, no warning) (lcore.py:3014)")
 def test_rl_duck_typed_backend_is_honoured(client):
     class Duck:
         def __init__(self): self.n = 0
