@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tutorial: Build a Notes API - Lcore Documentation</title>
+  <meta name="description" content="Step-by-step Lcore tutorial: build and test a notes JSON API with routes, validation, route groups, middleware, sessions, rate limiting and error handlers.">
+  <meta name="keywords" content="Python,WSGI,microservice,framework,web,API,REST,Lcore,tutorial,notes API">
+  <meta name="author" content="Lusan Sapkota">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://lcore.lusansapkota.com.np/tutorial.html">
+  <meta property="og:title" content="Tutorial: Build a Notes API - Lcore Documentation">
+  <meta property="og:description" content="Step-by-step Lcore tutorial: build and test a notes JSON API with routes, validation, route groups, middleware, sessions, rate limiting and error handlers.">
+  <meta property="og:image" content="https://lcore.lusansapkota.com.np/lcore.png">
+  <meta property="og:url" content="https://lcore.lusansapkota.com.np/tutorial.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Lcore Framework">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Tutorial: Build a Notes API - Lcore Documentation">
+  <meta name="twitter:description" content="Step-by-step Lcore tutorial: build and test a notes JSON API with routes, validation, route groups, middleware, sessions, rate limiting and error handlers.">
+  <meta name="twitter:image" content="https://lcore.lusansapkota.com.np/lcore.png">
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="shortcut icon" href="lcore.png" type="image/x-icon">
+<!--chrome:head-->
+  <meta name="theme-color" content="#23272f">
+  <meta name="color-scheme" content="dark light">
+  <script>(function(){var t;try{t=localStorage.getItem('lcore-theme')}catch(e){}if(t!=='light'&&t!=='dark')t=matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';document.documentElement.dataset.theme=t})()</script>
+  <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Lcore", "item": "https://lcore.lusansapkota.com.np/"}, {"@type": "ListItem", "position": 2, "name": "Tutorial: Build a Notes API", "item": "https://lcore.lusansapkota.com.np/tutorial.html"}]}</script>
+  <!--/chrome:head--></head>
+<body>
+  <!--chrome:header--><a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-side">
+        <button class="icon-btn menu-toggle" type="button" aria-label="Menu" aria-expanded="false" aria-controls="sidebar"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+        <a href="index.html" class="logo"><img src="lcore.png" alt="" class="logo-icon" width="30" height="30">Lcore</a>
+        <span class="version-badge">v0.0.6</span>
+      </div>
+      <button class="search-btn" type="button" aria-label="Search docs"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Search</span><kbd>Ctrl K</kbd></button>
+      <div class="header-side header-end">
+        <nav class="header-nav" aria-label="Primary">
+          <a href="getting-started.html">Guide</a>
+          <a href="middleware.html">Middleware</a>
+          <a href="api-reference.html">API</a>
+          <a href="https://github.com/Lusan-sapkota/lcore/blob/main/CHANGELOG.md">Changelog</a>
+        </nav>
+        <div class="header-right">
+          <button class="icon-btn theme-toggle" type="button" aria-label="Toggle light/dark theme"><svg class="moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><svg class="sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
+          <a href="https://github.com/Lusan-sapkota/lcore" class="github-link" aria-label="GitHub"><svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span class="gh-label">GitHub</span></a>
+        </div>
+      </div>
+    </div>
+  </header><!--/chrome:header-->
+
+  <div class="doc-layout">
+    <!--chrome:sidebar--><aside class="sidebar" id="sidebar" aria-label="Documentation">
+      <nav aria-label="Docs">
+      <details class="sidebar-section" open>
+        <summary class="sidebar-title">Getting Started</summary>
+        <a href="getting-started.html" class="sidebar-link">Getting Started</a>
+        <div class="sidebar-subs" data-page="getting-started.html">
+          <a href="getting-started.html#installation" class="sidebar-link sub">Installation</a>
+          <a href="getting-started.html#first-app" class="sidebar-link sub">Your First App</a>
+          <a href="getting-started.html#concepts" class="sidebar-link sub">Core Concepts</a>
+          <a href="getting-started.html#configuration" class="sidebar-link sub">Configuration</a>
+          <a href="getting-started.html#running" class="sidebar-link sub">Running Your App</a>
+          <a href="getting-started.html#cli" class="sidebar-link sub">Command-Line Interface</a>
+          <a href="getting-started.html#project-structure" class="sidebar-link sub">Project Structure</a>
+        </div>
+        <a href="tutorial.html" class="sidebar-link active">Tutorial: Build a Notes API</a>
+        <div class="sidebar-subs open" data-page="tutorial.html">
+          <a href="tutorial.html#tutorial-setup" class="sidebar-link sub">Set up</a>
+          <a href="tutorial.html#tutorial-routes" class="sidebar-link sub">Routes and URL parameters</a>
+          <a href="tutorial.html#tutorial-validation" class="sidebar-link sub">Validate input</a>
+          <a href="tutorial.html#tutorial-groups" class="sidebar-link sub">Group routes under /api/v1</a>
+          <a href="tutorial.html#tutorial-middleware" class="sidebar-link sub">Add middleware</a>
+          <a href="tutorial.html#tutorial-auth" class="sidebar-link sub">Log in, and protect deleting</a>
+          <a href="tutorial.html#tutorial-errors" class="sidebar-link sub">Custom error responses</a>
+          <a href="tutorial.html#tutorial-full" class="sidebar-link sub">The finished app</a>
+          <a href="tutorial.html#tutorial-testing" class="sidebar-link sub">Test it without a server</a>
+          <a href="tutorial.html#tutorial-deploy" class="sidebar-link sub">Run it for real</a>
+        </div>
+      </details>
+      <details class="sidebar-section" open>
+        <summary class="sidebar-title">Core</summary>
+        <a href="routing.html" class="sidebar-link">Routing</a>
+        <div class="sidebar-subs" data-page="routing.html">
+          <a href="routing.html#basic-routing" class="sidebar-link sub">Basic Routing</a>
+          <a href="routing.html#http-methods" class="sidebar-link sub">HTTP Methods</a>
+          <a href="routing.html#dynamic-routes" class="sidebar-link sub">Dynamic Routes</a>
+          <a href="routing.html#async-routes" class="sidebar-link sub">Async Routes</a>
+          <a href="routing.html#route-filters" class="sidebar-link sub">Route Filters</a>
+          <a href="routing.html#route-groups" class="sidebar-link sub">Route Groups</a>
+          <a href="routing.html#error-routes" class="sidebar-link sub">Error Routes</a>
+          <a href="routing.html#url-building" class="sidebar-link sub">URL Building</a>
+          <a href="routing.html#route-inspection" class="sidebar-link sub">Route Inspection</a>
+        </div>
+        <a href="request-response.html" class="sidebar-link">Request &amp; Response</a>
+        <div class="sidebar-subs" data-page="request-response.html">
+          <a href="request-response.html#request-object" class="sidebar-link sub">The Request Object</a>
+          <a href="request-response.html#query-params" class="sidebar-link sub">Query Parameters</a>
+          <a href="request-response.html#form-data" class="sidebar-link sub">Form Data</a>
+          <a href="request-response.html#json-body" class="sidebar-link sub">JSON Body</a>
+          <a href="request-response.html#file-uploads" class="sidebar-link sub">File Uploads</a>
+          <a href="request-response.html#cookies" class="sidebar-link sub">Cookies</a>
+          <a href="request-response.html#headers" class="sidebar-link sub">Headers</a>
+          <a href="request-response.html#response-object" class="sidebar-link sub">The Response Object</a>
+          <a href="request-response.html#static-files" class="sidebar-link sub">Static Files</a>
+          <a href="request-response.html#redirects" class="sidebar-link sub">Redirects</a>
+        </div>
+        <a href="middleware.html" class="sidebar-link">Middleware &amp; Hooks</a>
+        <div class="sidebar-subs" data-page="middleware.html">
+          <a href="middleware.html#overview" class="sidebar-link sub">Overview</a>
+          <a href="middleware.html#built-in" class="sidebar-link sub">Built-in Middleware</a>
+          <a href="middleware.html#sessions" class="sidebar-link sub">Sessions</a>
+          <a href="middleware.html#custom" class="sidebar-link sub">Custom Middleware</a>
+          <a href="middleware.html#middleware-hooks" class="sidebar-link sub">Middleware Hooks</a>
+          <a href="middleware.html#hooks" class="sidebar-link sub">Lifecycle Hooks</a>
+          <a href="middleware.html#pipeline" class="sidebar-link sub">Middleware Pipeline</a>
+        </div>
+        <a href="plugins.html" class="sidebar-link">Plugins</a>
+        <div class="sidebar-subs" data-page="plugins.html">
+          <a href="plugins.html#overview" class="sidebar-link sub">Overview</a>
+          <a href="plugins.html#built-in" class="sidebar-link sub">Built-in Plugins</a>
+          <a href="plugins.html#writing-plugins" class="sidebar-link sub">Writing Plugins</a>
+          <a href="plugins.html#plugin-api" class="sidebar-link sub">Plugin API</a>
+          <a href="plugins.html#skip-plugins" class="sidebar-link sub">Skipping Plugins</a>
+        </div>
+      </details>
+      <details class="sidebar-section" open>
+        <summary class="sidebar-title">Advanced</summary>
+        <a href="advanced.html" class="sidebar-link">Advanced Features</a>
+        <div class="sidebar-subs" data-page="advanced.html">
+          <a href="advanced.html#dependency-injection" class="sidebar-link sub">Dependency Injection</a>
+          <a href="advanced.html#mounting" class="sidebar-link sub">Module Mounting</a>
+          <a href="advanced.html#templates" class="sidebar-link sub">Templates</a>
+          <a href="advanced.html#request-context" class="sidebar-link sub">Request Context</a>
+          <a href="advanced.html#api-docs" class="sidebar-link sub">Built-in API Documentation</a>
+          <a href="advanced.html#security" class="sidebar-link sub">Security</a>
+          <a href="advanced.html#testing" class="sidebar-link sub">Testing</a>
+          <a href="advanced.html#background-tasks" class="sidebar-link sub">Background Tasks</a>
+          <a href="advanced.html#production" class="sidebar-link sub">Production Deployment</a>
+          <a href="advanced.html#request-timeouts" class="sidebar-link sub">Request Timeouts</a>
+          <a href="advanced.html#hot-reload" class="sidebar-link sub">Hot Reload</a>
+          <a href="advanced.html#server-adapters" class="sidebar-link sub">Server Adapters</a>
+        </div>
+      </details>
+      <details class="sidebar-section" open>
+        <summary class="sidebar-title">Reference</summary>
+        <a href="api-reference.html" class="sidebar-link">API Reference</a>
+        <div class="sidebar-subs" data-page="api-reference.html">
+          <a href="api-reference.html#lcore-class" class="sidebar-link sub">Lcore</a>
+          <a href="api-reference.html#request-class" class="sidebar-link sub">BaseRequest</a>
+          <a href="api-reference.html#response-class" class="sidebar-link sub">BaseResponse</a>
+          <a href="api-reference.html#request-context" class="sidebar-link sub">RequestContext</a>
+          <a href="api-reference.html#router-class" class="sidebar-link sub">Router</a>
+          <a href="api-reference.html#route-class" class="sidebar-link sub">Route</a>
+          <a href="api-reference.html#config-class" class="sidebar-link sub">ConfigDict</a>
+          <a href="api-reference.html#middleware-classes" class="sidebar-link sub">Middleware Classes</a>
+          <a href="api-reference.html#session-backends" class="sidebar-link sub">Session Backends</a>
+          <a href="api-reference.html#dependency-container" class="sidebar-link sub">DependencyContainer</a>
+          <a href="api-reference.html#exceptions" class="sidebar-link sub">Exceptions</a>
+          <a href="api-reference.html#data-structures" class="sidebar-link sub">Data Structures</a>
+          <a href="api-reference.html#utilities" class="sidebar-link sub">Utility Functions</a>
+          <a href="api-reference.html#security-utilities" class="sidebar-link sub">Security Utilities</a>
+          <a href="api-reference.html#test-client" class="sidebar-link sub">Test Client</a>
+          <a href="api-reference.html#background-task-pool" class="sidebar-link sub">BackgroundTaskPool</a>
+          <a href="api-reference.html#decorators" class="sidebar-link sub">Decorators</a>
+          <a href="api-reference.html#rate-limit-backends" class="sidebar-link sub">Rate Limit Backends</a>
+          <a href="api-reference.html#template-classes" class="sidebar-link sub">Template Classes</a>
+          <a href="api-reference.html#server-adapters" class="sidebar-link sub">Server Adapters</a>
+        </div>
+      </details>
+      <details class="sidebar-section" open>
+        <summary class="sidebar-title">Project</summary>
+        <a href="https://github.com/Lusan-sapkota/lcore/blob/main/CHANGELOG.md" class="sidebar-link">Changelog</a>
+        <a href="https://github.com/Lusan-sapkota/lcore" class="sidebar-link">GitHub</a>
+      </details>
+      </nav>
+    </aside><!--/chrome:sidebar-->
+
+    <main class="content" id="main">
+      <h1>Tutorial: Build a Notes API</h1>
+      <p class="page-desc">Build and test a small JSON API from scratch: routes, validation, middleware, sessions, error handling and tests. About 15 minutes, one file.</p>
+
+      <h2 id="tutorial-setup">Set up</h2>
+
+      <p>You need Python 3.8+ and nothing else. Create a folder, install Lcore and add an <code>app.py</code>:</p>
+
+      <pre><code class="language-bash">uv add lcore   # or: pip install lcore</code></pre>
+
+      <pre><code>from lcore import Lcore
+
+app = Lcore()
+
+
+@app.get('/ping')
+def ping():
+    return {'ok': True}
+
+
+if __name__ == '__main__':
+    app.run(host='127.0.0.1', port=8080)</code></pre>
+
+      <p>Run <code>python app.py</code> and open <code>http://127.0.0.1:8080/ping</code>. Returning a <code>dict</code> or <code>list</code> sends JSON automatically. See <a href="getting-started.html#running">Running Your App</a> for servers and hot reload.</p>
+
+      <h2 id="tutorial-routes">Routes and URL parameters</h2>
+
+      <p>Replace <code>app.py</code> with a notes store kept in a dict. <code>&lt;id:int&gt;</code> only matches digits and passes an <code>int</code> to your handler; <code>abort()</code> raises an HTTP error that Lcore turns into a response. Setting <code>response.status</code> changes the status code.</p>
+
+      <pre><code>from lcore import Lcore, request, response, abort
+
+app = Lcore()
+
+NOTES = {}
+next_id = 1
+
+
+@app.get('/notes')
+def list_notes():
+    return {'notes': list(NOTES.values())}
+
+
+@app.get('/notes/&lt;id:int&gt;')
+def get_note(id):
+    if id not in NOTES:
+        abort(404, 'No such note')
+    return NOTES[id]
+
+
+@app.post('/notes')
+def create_note():
+    global next_id
+    data = request.json_or({})
+    note = {'id': next_id, 'title': data.get('title', ''), 'body': data.get('body', '')}
+    NOTES[next_id] = note
+    next_id += 1
+    response.status = 201
+    return note</code></pre>
+
+      <p>More patterns (wildcards, regex filters, async handlers) are in <a href="routing.html">Routing</a>.</p>
+
+      <h2 id="tutorial-validation">Validate input</h2>
+
+      <p>Right now a request with no body creates an empty note. <code>@validate_request</code> checks the JSON body against a schema, coerces types, strips whitespace and answers <code>422</code> with a per-field <code>fields</code> map on failure. Put it under the route decorator and read the cleaned data from <code>request.json</code>:</p>
+
+      <pre><code>from lcore import validate_request
+
+
+@app.post('/notes')
+@validate_request(body={'title': str, 'body': str})
+def create_note():
+    global next_id
+    data = request.json
+    note = {'id': next_id, 'title': data['title'], 'body': data['body']}
+    ...</code></pre>
+
+      <p>Try <code>POST /notes</code> with <code>{"title": "x"}</code> and you get <code>{"error": "Validation failed", "fields": {"body": "body is required"}}</code>. Optional fields and query validation are covered in <a href="advanced.html#request-validation">Request Validation</a>.</p>
+
+      <h2 id="tutorial-groups">Group routes under /api/v1</h2>
+
+      <p>A route group adds a shared prefix. Register routes on the group object (<code>api</code>), not on <code>app</code>. The prefix applies only to routes registered through the group.</p>
+
+      <pre><code>with app.group('/api/v1') as api:
+
+    @api.get('/notes')
+    def list_notes():
+        ...
+
+    @api.get('/notes/&lt;id:int&gt;')
+    def get_note(id):
+        ...</code></pre>
+
+      <p>The routes are now <code>/api/v1/notes</code> and <code>/api/v1/notes/&lt;id&gt;</code>. Every route in the rest of this tutorial uses <code>@api</code>.</p>
+
+      <h2 id="tutorial-middleware">Add middleware</h2>
+
+      <p>Middleware wraps every request. These four give each response a request id, standard security headers and CORS for one browser origin, and give each client a signed session cookie:</p>
+
+      <pre><code>from lcore import (RequestIDMiddleware, SecurityHeadersMiddleware,
+                   CORSMiddleware, SessionMiddleware, MemorySessionBackend)
+
+app.use(RequestIDMiddleware())
+app.use(SecurityHeadersMiddleware())
+app.use(CORSMiddleware(allow_origins=['https://notes.example.com']))
+app.use(SessionMiddleware(backend=MemorySessionBackend(warn=False), secret='change-me'))</code></pre>
+
+      <div class="info-box warning">
+        <strong>Sessions need a real secret.</strong> Replace <code>change-me</code> with a long random value from your environment. <code>MemorySessionBackend</code> keeps sessions in process memory, so use <code>SQLiteSessionBackend</code> or <code>RedisSessionBackend</code> when you run more than one worker. See <a href="middleware.html#sessions">Sessions</a>.
+      </div>
+
+      <p>Everything built in is listed in <a href="middleware.html#built-in">Built-in Middleware</a>.</p>
+
+      <h2 id="tutorial-auth">Log in, and protect deleting</h2>
+
+      <p><code>hash_password</code> and <code>verify_password</code> use PBKDF2-SHA256 with a random salt and a timing-safe comparison. After a successful login, store the user in <code>request.session</code>; protected routes check it. Add a rate limit to the create route too:</p>
+
+      <pre><code>from lcore import hash_password, verify_password
+
+USERS = {'alice': hash_password('wonderland')}
+
+
+@api.post('/login')
+def login():
+    data = request.json_or({})
+    stored = USERS.get(data.get('user'))
+    if not stored or not verify_password(data.get('password', ''), stored):
+        abort(401, 'Bad credentials')
+    request.session['user'] = data['user']
+    return {'ok': True}
+
+
+@api.delete('/notes/&lt;id:int&gt;')
+def delete_note(id):
+    if not request.session.get('user'):
+        abort(401, 'Log in first')
+    if NOTES.pop(id, None) is None:
+        abort(404, 'No such note')
+    response.status = 204
+    return ''</code></pre>
+
+      <pre><code>from lcore import rate_limit
+
+
+@api.post('/notes')
+@rate_limit(30, per=60, single_process=True)
+@validate_request(body={'title': str, 'body': str})
+def create_note():
+    ...</code></pre>
+
+      <div class="info-box note">
+        <strong>Rate limiting behind a proxy.</strong> <code>rate_limit</code> keys on the client address. Behind a reverse proxy, add <code>ProxyFixMiddleware(trusted_proxies=[...])</code> or every client shares one bucket. <code>single_process=True</code> silences the in-process warning; use a shared backend such as <code>RedisRateLimitBackend</code> for multiple workers. See <a href="advanced.html#security">Security</a>.
+      </div>
+
+      <h2 id="tutorial-errors">Custom error responses</h2>
+
+      <p>Error handlers take the <code>HTTPError</code>; its <code>body</code> is the message you passed to <code>abort()</code>. Unmatched URLs also land here:</p>
+
+      <pre><code>@app.error(404)
+def not_found(err):
+    return {'error': err.body}</code></pre>
+
+      <p>Lcore already answers JSON errors to clients that send <code>Accept: application/json</code>; a handler like this is for when you want your own shape. More in <a href="routing.html#error-routes">Error Routes</a>.</p>
+
+      <h2 id="tutorial-full">The finished app</h2>
+
+      <p>Put it all together. This is the exact file the tests below run against:</p>
+
+      <pre><code>from lcore import (Lcore, request, response, abort, validate_request, rate_limit,
+                   RequestIDMiddleware, SecurityHeadersMiddleware, CORSMiddleware,
+                   SessionMiddleware, MemorySessionBackend, hash_password, verify_password)
+
+app = Lcore()
+
+app.use(RequestIDMiddleware())
+app.use(SecurityHeadersMiddleware())
+app.use(CORSMiddleware(allow_origins=['https://notes.example.com']))
+app.use(SessionMiddleware(backend=MemorySessionBackend(warn=False), secret='change-me'))
+
+NOTES = {}
+USERS = {'alice': hash_password('wonderland')}
+next_id = 1
+
+
+@app.error(404)
+def not_found(err):
+    return {'error': err.body}
+
+
+with app.group('/api/v1') as api:
+
+    @api.get('/notes')
+    def list_notes():
+        return {'notes': list(NOTES.values())}
+
+    @api.get('/notes/&lt;id:int&gt;')
+    def get_note(id):
+        if id not in NOTES:
+            abort(404, 'No such note')
+        return NOTES[id]
+
+    @api.post('/notes')
+    @rate_limit(30, per=60, single_process=True)
+    @validate_request(body={'title': str, 'body': str})
+    def create_note():
+        global next_id
+        data = request.json
+        note = {'id': next_id, 'title': data['title'], 'body': data['body']}
+        NOTES[next_id] = note
+        next_id += 1
+        response.status = 201
+        return note
+
+    @api.delete('/notes/&lt;id:int&gt;')
+    def delete_note(id):
+        if not request.session.get('user'):
+            abort(401, 'Log in first')
+        if NOTES.pop(id, None) is None:
+            abort(404, 'No such note')
+        response.status = 204
+        return ''
+
+    @api.post('/login')
+    def login():
+        data = request.json_or({})
+        stored = USERS.get(data.get('user'))
+        if not stored or not verify_password(data.get('password', ''), stored):
+            abort(401, 'Bad credentials')
+        request.session['user'] = data['user']
+        return {'ok': True}</code></pre>
+
+      <h2 id="tutorial-testing">Test it without a server</h2>
+
+      <p><code>TestClient</code> calls your WSGI app directly, keeps cookies between calls (so the login carries over) and needs no network. Save as <code>test_notes.py</code> next to <code>app.py</code> and run <code>pytest</code>:</p>
+
+      <pre><code>from lcore import TestClient
+from app import app
+
+
+def test_notes_flow():
+    c = TestClient(app)
+
+    r = c.post('/api/v1/notes', json={'title': 'Hi', 'body': 'First note'})
+    assert r.status_code == 201
+    assert r.json == {'id': 1, 'title': 'Hi', 'body': 'First note'}
+
+    assert c.get('/api/v1/notes/1').json['title'] == 'Hi'
+    assert c.get('/api/v1/notes/99').status_code == 404
+
+    r = c.post('/api/v1/notes', json={'title': 'No body'})
+    assert r.status_code == 422 and 'fields' in r.json
+
+    assert c.delete('/api/v1/notes/1').status_code == 401
+    c.post('/api/v1/login', json={'user': 'alice', 'password': 'wonderland'})
+    assert c.delete('/api/v1/notes/1').status_code == 204</code></pre>
+
+      <p>Lcore's own suite works the same way, and also drives real sockets for things <code>TestClient</code> cannot see. Look at <code>apitests/</code> in the repository for examples of both.</p>
+
+      <h2 id="tutorial-deploy">Run it for real</h2>
+
+      <p>The built-in server is for development. Install gunicorn (or waitress) and let <code>run()</code> hand off to it, or run it yourself with <code>gunicorn app:app</code>:</p>
+
+      <pre><code>app.run(server='gunicorn', host='0.0.0.0', port=8080)</code></pre>
+
+      <p>Put it behind a reverse proxy, add <code>ProxyFixMiddleware</code> and a shared session and rate-limit backend, and you have the production setup described in <a href="advanced.html#production">Production</a>.</p>
+
+      <div class="info-box tip">
+        <strong>Where next?</strong> Browse <a href="request-response.html">Request &amp; Response</a> for uploads and cookies, <a href="plugins.html">Plugins</a> for templates and custom hooks, and the <a href="api-reference.html">API Reference</a> for everything else.
+      </div>
+    </main>
+  </div>
+
+  <!--chrome:scripts--><script src="assets/highlight.min.js"></script>
+  <script src="assets/search-index.js"></script>
+  <script src="assets/site.js"></script><!--/chrome:scripts-->
+</body>
+</html>

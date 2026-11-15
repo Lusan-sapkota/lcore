@@ -1,3 +1,11 @@
+// Keep the sidebar scroll position across page loads (runs before first paint)
+(function () {
+  var sb = document.querySelector('.sidebar');
+  if (!sb) return;
+  try { sb.scrollTop = +sessionStorage.getItem('lcore-sb') || 0; } catch (e) {}
+  addEventListener('pagehide', function () { try { sessionStorage.setItem('lcore-sb', sb.scrollTop); } catch (e) {} });
+})();
+
 document.addEventListener('DOMContentLoaded', function () {
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };

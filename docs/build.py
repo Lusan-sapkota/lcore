@@ -6,8 +6,8 @@ from pathlib import Path
 
 DOCS = Path(__file__).parent
 VERSION = re.search(r"__version__ = '([^']+)'", (DOCS.parent / 'lcore.py').read_text()).group(1)
-PAGES = ['index', 'getting-started', 'routing', 'request-response', 'middleware', 'plugins', 'advanced', 'api-reference']
-GROUPS = [('Getting Started', ['getting-started']), ('Core', ['routing', 'request-response', 'middleware', 'plugins']),
+PAGES = ['index', 'getting-started', 'tutorial', 'routing', 'request-response', 'middleware', 'plugins', 'advanced', 'api-reference']
+GROUPS = [('Getting Started', ['getting-started', 'tutorial']), ('Core', ['routing', 'request-response', 'middleware', 'plugins']),
           ('Advanced', ['advanced']), ('Reference', ['api-reference'])]
 SITE = 'https://lcore.lusansapkota.com.np'
 GH = 'https://github.com/Lusan-sapkota/lcore'
@@ -79,14 +79,15 @@ def slug(s):
     return re.sub(r'[^a-z0-9]+', '-', s.lower()).strip('-')
 
 
-def sidebar(info):
+def sidebar(info, cur=''):
     out = ['<aside class="sidebar" id="sidebar" aria-label="Documentation">', '      <nav aria-label="Docs">']
     for title, pages in GROUPS:
         out.append(f'      <details class="sidebar-section" open>\n        <summary class="sidebar-title">{title}</summary>')
         for pg in pages:
             h = info[pg]
-            out.append(f'        <a href="{pg}.html" class="sidebar-link">{html.escape(h[0])}</a>')
-            out.append(f'        <div class="sidebar-subs" data-page="{pg}.html">')
+            on = pg == cur  # active state is baked in so nothing shifts after load
+            out.append(f'        <a href="{pg}.html" class="sidebar-link{" active" if on else ""}">{html.escape(h[0])}</a>')
+            out.append(f'        <div class="sidebar-subs{" open" if on else ""}" data-page="{pg}.html">')
             out += [f'          <a href="{pg}.html#{i}" class="sidebar-link sub">{html.escape(x)}</a>' for i, x in h[1]]
             out.append('        </div>')
         out.append('      </details>')
@@ -121,7 +122,6 @@ def main():
         index += [[f'{pg}.html', title, i, x, s] for t, i, x, s in hs if t != 'h1' and i]
     (DOCS / 'assets' / 'search-index.js').write_text('window.LCORE_INDEX=' + json.dumps(index, ensure_ascii=False, separators=(',', ':')) + ';\n')
 
-    sb = sidebar(info)
     for pg in (sys.argv[1:] and [a.removesuffix('.html') for a in sys.argv[1:]] or PAGES):
         f = DOCS / f'{pg}.html'; s = f.read_text()
         s = re.sub(r'\s*<link rel="preconnect" href="https://fonts[^>]*>|\s*<link href="https://fonts[^>]*>|\s*<link rel="stylesheet" href="assets/github(-dark)?\.min\.css"[^>]*>', '', s)
@@ -131,9 +131,9 @@ def main():
                 {'@type': 'ListItem', 'position': 2, 'name': info[pg][0], 'item': f'{SITE}/{pg}.html'}]}) + '</script>'
         s = region(s, 'head', '\n  <meta name="theme-color" content="#23272f">\n  <meta name="color-scheme" content="dark light">\n  ' + THEME_JS + crumbs + '\n  ', where='</head>')
         s = region(s, 'header', HEADER, fallback=r'<header class="site-header">.*?</header>', where='<body')
-        s = region(s, 'sidebar', sb, fallback=r'<aside class="sidebar">.*?</aside>')
+        s = region(s, 'sidebar', sidebar(info, pg), fallback=r'<aside class="sidebar">.*?</aside>')
         if pg == 'index' and '<!--chrome:sidebar-->' not in s:
-            s = s.replace('<main class="content"', f'<!--chrome:sidebar-->{sb}<!--/chrome:sidebar-->\n  <main class="content"', 1)
+            s = s.replace('<main class="content"', f'<!--chrome:sidebar-->{sidebar(info, pg)}<!--/chrome:sidebar-->\n  <main class="content"', 1)
         s = re.sub(r'<main class="content"(?! id)', '<main class="content" id="main"', s)
         s = region(s, 'scripts', '<script src="assets/highlight.min.js"></script>\n  <script src="assets/search-index.js"></script>\n  <script src="assets/site.js"></script>',  # sync: DOMContentLoaded needs these in order
                    fallback=r'<script src="assets/highlight\.min\.js"></script>\s*<script src="assets/script\.js"></script>')

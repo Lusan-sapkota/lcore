@@ -67,11 +67,24 @@
           <a href="getting-started.html#cli" class="sidebar-link sub">Command-Line Interface</a>
           <a href="getting-started.html#project-structure" class="sidebar-link sub">Project Structure</a>
         </div>
+        <a href="tutorial.html" class="sidebar-link">Tutorial: Build a Notes API</a>
+        <div class="sidebar-subs" data-page="tutorial.html">
+          <a href="tutorial.html#tutorial-setup" class="sidebar-link sub">Set up</a>
+          <a href="tutorial.html#tutorial-routes" class="sidebar-link sub">Routes and URL parameters</a>
+          <a href="tutorial.html#tutorial-validation" class="sidebar-link sub">Validate input</a>
+          <a href="tutorial.html#tutorial-groups" class="sidebar-link sub">Group routes under /api/v1</a>
+          <a href="tutorial.html#tutorial-middleware" class="sidebar-link sub">Add middleware</a>
+          <a href="tutorial.html#tutorial-auth" class="sidebar-link sub">Log in, and protect deleting</a>
+          <a href="tutorial.html#tutorial-errors" class="sidebar-link sub">Custom error responses</a>
+          <a href="tutorial.html#tutorial-full" class="sidebar-link sub">The finished app</a>
+          <a href="tutorial.html#tutorial-testing" class="sidebar-link sub">Test it without a server</a>
+          <a href="tutorial.html#tutorial-deploy" class="sidebar-link sub">Run it for real</a>
+        </div>
       </details>
       <details class="sidebar-section" open>
         <summary class="sidebar-title">Core</summary>
-        <a href="routing.html" class="sidebar-link">Routing</a>
-        <div class="sidebar-subs" data-page="routing.html">
+        <a href="routing.html" class="sidebar-link active">Routing</a>
+        <div class="sidebar-subs open" data-page="routing.html">
           <a href="routing.html#basic-routing" class="sidebar-link sub">Basic Routing</a>
           <a href="routing.html#http-methods" class="sidebar-link sub">HTTP Methods</a>
           <a href="routing.html#dynamic-routes" class="sidebar-link sub">Dynamic Routes</a>
@@ -496,18 +509,18 @@ def get_item(item_id):
       <!-- Route Groups -->
       <h2 id="route-groups">Route Groups</h2>
 
-      <p>Group routes under a common prefix using the <code>app.group()</code> context manager:</p>
+      <p>Group routes under a common prefix using the <code>app.group()</code> context manager. Register routes on the group object (<code>as api</code>); decorators on <code>app</code> are not prefixed:</p>
 
-      <pre><code>with app.group('/api/v1'):
-    @app.route('/users')
+      <pre><code>with app.group('/api/v1') as api:
+    @api.route('/users')
     def list_users():
         return {'users': []}
 
-    @app.route('/users/&lt;id:int&gt;')
+    @api.route('/users/&lt;id:int&gt;')
     def get_user(id):
         return {'id': id}
 
-    @app.route('/products')
+    @api.route('/products')
     def list_products():
         return {'products': []}
 
@@ -517,8 +530,8 @@ def get_item(item_id):
 #   /api/v1/products</code></pre>
 
       <p>Groups can share common configuration:</p>
-      <pre><code>with app.group('/admin', auth_required=True):
-    @app.route('/dashboard')
+      <pre><code>with app.group('/admin', auth_required=True) as admin:
+    @admin.route('/dashboard')
     def dashboard():
         return 'Admin Dashboard'</code></pre>
 
