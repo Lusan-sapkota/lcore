@@ -1859,7 +1859,7 @@ def _hkey(key):
     return key
 
 def _hval(value):
-    value = touni(value)
+    if value.__class__ is not str: value = touni(value)
     if '\n' in value or '\r' in value or '\0' in value:
         raise ValueError("Header value must not contain control characters: %r" % value)
     return value
@@ -2202,6 +2202,7 @@ class MiddlewarePipeline:
 
     def __init__(self):
         self._middleware = []
+        self._has_patterns = False
         self._sorted = False
         self._global_pre_chain = None
         self._global_post_chain = None
@@ -2230,9 +2231,9 @@ class MiddlewarePipeline:
         """Return (pre_chain, post_chain) tuples for the given path."""
         if not self._sorted:
             self._middleware.sort(key=lambda x: getattr(x[0], 'order', 50))
+            self._has_patterns = any(pat is not None for _, pat in self._middleware)
             self._sorted = True
-        has_patterns = any(pat is not None for _, pat in self._middleware)
-        if not has_patterns:
+        if not self._has_patterns:
             if self._global_pre_chain is None:
                 pre = tuple(m for m, _ in self._middleware
                            if getattr(m, 'phase', 'post') == 'pre')
@@ -2376,11 +2377,13 @@ class SecurityHeadersMiddleware(Middleware):
         if hsts:
             self.headers['Strict-Transport-Security'] = \
                 'max-age=%d; includeSubDomains' % hsts_max_age
+        self._items = tuple((_hkey(k), _hval(v)) for k, v in self.headers.items())
 
     def __call__(self, ctx, next_handler):
         result = next_handler(ctx)
-        for key, value in self.headers.items():
-            ctx.response.set_header(key, value)
+        hdrs = ctx.response._headers
+        for key, value in self._items:  # names and values were validated once in __init__
+            hdrs[key] = [value]
         return result
 
 # CSRF via double-submit cookie pattern. The cookie is HMAC-signed so sibling
