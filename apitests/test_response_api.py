@@ -1067,3 +1067,24 @@ def test_cookie_attribute_injection_via_semicolon(opt):
 def test_cookie_garbage_max_age_expires_rejected(opts):
     with pytest.raises(Exception):
         BaseResponse().set_cookie('a', 'b', **opts)
+
+
+def test_fast_error_page_matches_template_and_custom_templates_still_work():
+    import lcore
+    app = Lcore()
+
+    @app.get('/e')
+    def e(): lcore.abort(400, "it's <b>&\" bad \u00e9")
+
+    c = TestClient(app)
+    for url in ('/e?x=1&y=<z>', '/nope/%3Cscript%3E', '/e'):
+        lcore.DEBUG = False; fast = c.get(url).body
+        lcore.DEBUG = True; slow = c.get(url).body
+        lcore.DEBUG = False
+        assert fast == slow
+    saved = lcore.ERROR_PAGE_TEMPLATE
+    try:
+        lcore.ERROR_PAGE_TEMPLATE = 'custom {{e.status_code}} {{e.body}}'
+        assert c.get('/e').text == "custom 400 it&#039;s &lt;b&gt;&amp;&quot; bad \u00e9"
+    finally:
+        lcore.ERROR_PAGE_TEMPLATE = saved

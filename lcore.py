@@ -745,6 +745,31 @@ class _RouteGroup:
 
 
 # The thing you came for. Routes, middleware, plugins, config, WSGI all here.
+_fast_page = [None, None]  # [template it was derived from, format string]
+
+def _fast_error_page(url):
+    """'%(s)s %(u)s %(b)s' format string equal to what ERROR_PAGE_TEMPLATE renders
+    outside DEBUG. Derived by rendering the template once with sentinels (the
+    template reads the live request for the URL, so *url* is located by value),
+    so it cannot drift from the template. None if the derivation is ambiguous."""
+    if _fast_page[0] is not ERROR_PAGE_TEMPLATE:
+        class _E: status, body, exception, traceback = '@@S@@', '@@B@@', None, None
+        try:
+            out = template(ERROR_PAGE_TEMPLATE, e=_E, template_settings=dict(name='__ERROR_PAGE_TEMPLATE_FAST'))
+            u = html_escape(url)
+            ok = (out.count('@@S@@') == 2 and out.count('@@B@@') == 1 and out.count(u) == 1
+                  and '%' not in out.replace(u, ''))
+        except Exception:  # template needs more of `e` than we can fake: never use the fast path
+            _fast_page[:] = [ERROR_PAGE_TEMPLATE, None]
+            return None
+        if ok:
+            out = out.replace('@@S@@', '%(s)s').replace('@@B@@', '%(b)s').replace(u, '%(u)s')
+            _fast_page[:] = [ERROR_PAGE_TEMPLATE, out]
+        else:
+            return None  # not cached: retried on a later request
+    return _fast_page[1]
+
+
 def _prefers_json(environ):
     """True when Accept ranks application/json above text/html (q-weights honoured)."""
     rank = {}
@@ -1208,6 +1233,10 @@ class Lcore:
                 _HTTP_STATUS_LINES.get(res.status_code, res.status_line).split(' ', 1)[-1]
             response.set_header('Content-Type', 'application/json')
             return tob(json_dumps({'error': body, 'status': res.status_code}))
+        if not DEBUG and isinstance(res.body, str):
+            url = request.url
+            fast = _fast_error_page(url)
+            if fast: return tob(fast % {'s': html_escape(res.status), 'u': html_escape(url), 'b': html_escape(res.body)})
         return tob(template(ERROR_PAGE_TEMPLATE, e=res, template_settings=dict(name='__ERROR_PAGE_TEMPLATE')))
 
     # The request hot path. Bind, hook, route, middleware, respond.
