@@ -743,12 +743,19 @@ class _RouteGroup:
 
 # The thing you came for. Routes, middleware, plugins, config, WSGI all here.
 def _prefers_json(environ):
-    """True when Accept lists application/json ahead of text/html."""
-    accept = environ.get('HTTP_ACCEPT', '').lower()
-    j = accept.find('application/json')
-    if j < 0: return False
-    h = accept.find('text/html')
-    return h < 0 or j < h
+    """True when Accept ranks application/json above text/html (q-weights honoured)."""
+    rank = {}
+    for i, part in enumerate(environ.get('HTTP_ACCEPT', '').lower().split(',')):
+        kind, _, params = part.partition(';')
+        q = 1.0
+        for p in params.split(';'):
+            k, _, v = p.strip().partition('=')
+            if k == 'q':
+                try: q = float(v)
+                except ValueError: q = 0.0
+        rank.setdefault(kind.strip(), (-q, i))
+    if 'application/json' not in rank or rank['application/json'][0] == 0: return False
+    return 'text/html' not in rank or rank['application/json'] < rank['text/html']
 
 
 class Lcore:

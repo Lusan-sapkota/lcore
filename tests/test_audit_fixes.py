@@ -149,3 +149,13 @@ def test_csrf_cookie_secure_follows_scheme():
     seen = []
     app(env, lambda s, h, e=None: seen.extend(h))
     assert any(k == 'Set-Cookie' and 'Secure' in v for k, v in seen)
+
+
+def test_accept_q_weights():
+    from lcore import _prefers_json as p
+    h = lambda v: {'HTTP_ACCEPT': v}
+    assert p(h('application/json'))
+    assert not p(h('application/json;q=0, text/html'))
+    assert p(h('text/html;q=0.5, application/json'))
+    assert not p(h('text/html, application/json'))
+    assert not p(h('*/*')) and not p({})
