@@ -904,7 +904,6 @@ def test_get_url_inside_request_honours_script_name(client):
     assert env_c.get('/where').text == '/prefix/where'
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: Router.build/get_url do not percent-encode path values (space, '/', '?', '#' produce broken/ambiguous URLs)")
 @pytest.mark.parametrize('val,enc', [('a b', 'a%20b'), ('a/b', 'a%2Fb'), ('a?b', 'a%3Fb'), ('a#b', 'a%23b')])
 def test_build_quotes_path_values(val, enc):
     a = mk()

@@ -389,7 +389,10 @@ class Router:
                 pattern += '(?P<%s>%s)' % (key, mask)
                 keys.append(key)
                 if in_filter: filters.append((key, in_filter))
-                builder.append((key, out_filter or str))
+                if not out_filter:  # percent-encode raw values; :path keeps its slashes
+                    safe = '/' if mode == 'path' else ''
+                    out_filter = lambda x, safe=safe: urlquote(str(x), safe=safe)
+                builder.append((key, out_filter))
             elif key:
                 pattern += re.escape(key)
                 builder.append((None, key))
