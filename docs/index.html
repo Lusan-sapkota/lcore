@@ -117,7 +117,7 @@ app.run(host='0.0.0.0', port=8080)</code></pre>
     <!-- Performance -->
     <section class="features" id="performance">
       <h2>Performance</h2>
-      <p class="perf-subtitle">WSGI throughput benchmark  100,000 iterations × 3 runs per framework, best run recorded. Measures pure framework overhead.</p>
+      <p class="perf-subtitle">WSGI throughput benchmark  100,000 iterations × 3 runs per framework, best run recorded. Measures pure framework overhead. Measured November 2026 on Python 3.14 (Linux), version 0.0.6.</p>
 
       <div class="perf-container">
         <table>
@@ -125,13 +125,13 @@ app.run(host='0.0.0.0', port=8080)</code></pre>
             <tr><th>Test</th><th><strong>Lcore</strong></th><th>Flask 3.1.3</th><th>Bottle 0.13.4</th><th>Lcore vs Flask</th></tr>
           </thead>
           <tbody>
-            <tr><td>Plaintext</td><td><strong>116,794</strong></td><td>25,497</td><td>187,334</td><td><strong>4.6x</strong></td></tr>
-            <tr><td>JSON</td><td><strong>91,917</strong></td><td>22,757</td><td>138,299</td><td><strong>4.0x</strong></td></tr>
-            <tr><td>Route Params</td><td><strong>85,260</strong></td><td>21,267</td><td>125,331</td><td><strong>4.0x</strong></td></tr>
-            <tr><td>Middleware (2 layers)</td><td><strong>45,791</strong></td><td>20,673</td><td>114,821</td><td><strong>2.2x</strong></td></tr>
-            <tr><td>404 Miss</td><td><strong>33,841</strong></td><td>13,480</td><td>38,696</td><td><strong>2.5x</strong></td></tr>
-            <tr><td>Multi-Route (50 routes)</td><td><strong>93,183</strong></td><td>22,692</td><td>142,385</td><td><strong>4.1x</strong></td></tr>
-            <tr><td>POST JSON</td><td><strong>58,447</strong></td><td>17,808</td><td>95,209</td><td><strong>3.3x</strong></td></tr>
+            <tr><td>Plaintext</td><td><strong>162,873</strong></td><td>24,139</td><td>174,801</td><td><strong>6.7x</strong></td></tr>
+            <tr><td>JSON</td><td><strong>113,290</strong></td><td>21,433</td><td>127,035</td><td><strong>5.3x</strong></td></tr>
+            <tr><td>Route Params</td><td><strong>100,576</strong></td><td>20,066</td><td>114,101</td><td><strong>5.0x</strong></td></tr>
+            <tr><td>Middleware (2 layers)</td><td><strong>69,785</strong></td><td>19,350</td><td>109,021</td><td><strong>3.6x</strong></td></tr>
+            <tr><td>404 Miss</td><td><strong>70,699</strong></td><td>12,683</td><td>36,556</td><td><strong>5.6x</strong></td></tr>
+            <tr><td>Multi-Route (50 routes)</td><td><strong>117,173</strong></td><td>21,262</td><td>130,858</td><td><strong>5.5x</strong></td></tr>
+            <tr><td>POST JSON</td><td><strong>80,595</strong></td><td>16,872</td><td>89,132</td><td><strong>4.8x</strong></td></tr>
           </tbody>
         </table>
 
@@ -141,12 +141,12 @@ app.run(host='0.0.0.0', port=8080)</code></pre>
             <div class="perf-row">
               <span class="perf-label">Lcore</span>
               <div class="perf-track"><div class="perf-bar primary w-full"></div></div>
-              <span class="perf-value primary">116,794</span>
+              <span class="perf-value primary">162,873</span>
             </div>
             <div class="perf-row">
               <span class="perf-label">Flask</span>
-              <div class="perf-track"><div class="perf-bar muted w-22"></div></div>
-              <span class="perf-value muted">25,497</span>
+              <div class="perf-track"><div class="perf-bar muted w-14"></div></div>
+              <span class="perf-value muted">24,139</span>
             </div>
           </div>
 
@@ -155,12 +155,12 @@ app.run(host='0.0.0.0', port=8080)</code></pre>
             <div class="perf-row">
               <span class="perf-label">Lcore</span>
               <div class="perf-track"><div class="perf-bar primary w-full"></div></div>
-              <span class="perf-value primary">91,917</span>
+              <span class="perf-value primary">113,290</span>
             </div>
             <div class="perf-row">
               <span class="perf-label">Flask</span>
-              <div class="perf-track"><div class="perf-bar muted w-25"></div></div>
-              <span class="perf-value muted">22,757</span>
+              <div class="perf-track"><div class="perf-bar muted w-19"></div></div>
+              <span class="perf-value muted">21,433</span>
             </div>
           </div>
 
@@ -169,17 +169,17 @@ app.run(host='0.0.0.0', port=8080)</code></pre>
             <div class="perf-row">
               <span class="perf-label">Lcore</span>
               <div class="perf-track"><div class="perf-bar primary w-full"></div></div>
-              <span class="perf-value primary">45,791</span>
+              <span class="perf-value primary">69,785</span>
             </div>
             <div class="perf-row">
               <span class="perf-label">Flask</span>
-              <div class="perf-track"><div class="perf-bar muted w-45"></div></div>
-              <span class="perf-value muted">20,673</span>
+              <div class="perf-track"><div class="perf-bar muted w-28"></div></div>
+              <span class="perf-value muted">19,350</span>
             </div>
           </div>
         </div>
 
-        <p class="perf-note">Lcore is <strong>2.2x – 4.6x faster than Flask</strong> across all 7 test scenarios. Bottle is faster on raw throughput but lacks middleware, DI, security stack, and lifecycle hooks that Lcore provides out of the box. See the full <a href="#comparison">feature comparison</a>.</p>
+        <p class="perf-note">Lcore is <strong>3.6x – 6.7x faster than Flask</strong> across all 7 test scenarios, and 1.9x faster than Bottle on 404 misses. Bottle is faster on raw throughput elsewhere (Lcore reaches 64% – 93% of it) but lacks middleware, DI, security stack, and lifecycle hooks that Lcore provides out of the box. See the full <a href="#comparison">feature comparison</a>.</p>
       </div>
     </section>
 
@@ -254,7 +254,7 @@ app.run(host='0.0.0.0', port=8080)</code></pre>
             </tr>
             <tr>
               <td><strong>Lcore</strong></td>
-              <td>Single file, zero deps, 3 to 4x faster than Flask, with CORS, CSRF, security headers, rate limiting, PBKDF2 hashing, DI, 12 lifecycle hooks, and a test client all built in. Nothing to install beyond Lcore itself.</td>
+              <td>Single file, zero deps, about 5x faster than Flask, with CORS, CSRF, security headers, rate limiting, PBKDF2 hashing, DI, 12 lifecycle hooks, and a test client all built in. Nothing to install beyond Lcore itself.</td>
             </tr>
           </tbody>
         </table>

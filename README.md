@@ -68,11 +68,11 @@ Benchmarked with 100,000 iterations × 3 runs per framework (best run recorded),
 
 | Framework | JSON (req/s) | Plaintext (req/s) |
 |-----------|-------------|-------------------|
-| Lcore     | 91,917      | 116,794           |
-| Flask 3.1.3 | 22,757    | 25,497            |
-| Bottle 0.13.4 | 138,299  | 187,334           |
+| Lcore     | 113,290     | 162,873           |
+| Flask 3.1.3 | 21,433    | 24,139            |
+| Bottle 0.13.4 | 127,035  | 174,801           |
 
-Lcore processes **2.2x – 4.6x** more requests per second than Flask across 7 test scenarios (plaintext, JSON, route params, middleware stack, 404 miss, multi-route dispatch, POST JSON). See the [full benchmarks](https://lcore.lusansapkota.com.np/#performance) for details.
+Lcore processes **3.6x – 6.7x** more requests per second than Flask across 7 test scenarios (plaintext, JSON, route params, middleware stack, 404 miss, multi-route dispatch, POST JSON), and is 1.9x faster than Bottle on 404 misses. Bottle is faster on the other tests (Lcore reaches 64% – 93% of its throughput) but ships none of the middleware, security or DI. Measured November 2026, Python 3.14, v0.0.6. See the [full benchmarks](https://lcore.lusansapkota.com.np/#performance) for details.
 
 Run the benchmarks yourself:
 ```bash

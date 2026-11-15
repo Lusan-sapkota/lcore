@@ -488,6 +488,7 @@ pre code { background: none; border: none; padding: 0; color: var(--text); font-
 .w-16 { width: 16%; }
 .w-14 { width: 14%; }
 .w-22 { width: 22%; }
+.w-28 { width: 28%; }
 .w-25 { width: 25%; }
 .w-45 { width: 45%; }
 .perf-value { font-size: 12px; font-weight: 600; font-family: var(--font-mono); width: 72px; text-align: right; flex-shrink: 0; }

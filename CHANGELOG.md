@@ -31,7 +31,7 @@ All notable changes to Lcore will be documented here.
 - **`run()` raises `ValueError` for an unknown server name**; `on_shutdown` hooks run once; `trigger_hook` returns the list of results.
 - **A text field larger than the in-memory limit in a multipart POST is rejected (400)** instead of silently disappearing from `request.forms`.
 - **Signed cookies keep the type of their value** (dict, int...) instead of its `str()`.
-- **~10-15% lower per-request overhead** (cheaper context setup, cached header names, hook calls skipped when nobody listens, prebuilt JSON encoder).
+- **Faster than 0.0.5 on every path** (per-request latency, same machine, interleaved A/B): plaintext -39%, JSON -20%, two middleware layers -41%, POST JSON -27%, error pages -18% to -29%. From a cheaper context setup, cached header names, skipped hook calls, a `str`/`bytes` fast path, a single-pass header list, a precomputed middleware chain, a template-free default error page, and one-call small request bodies. Benchmark table in the README and docs updated.
 
 ### Fixed
 - **Invalid UTF-8 in a request path crashed the error page** (and the last-resort 500 handler). Now a clean 404.
