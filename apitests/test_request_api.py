@@ -675,7 +675,6 @@ def test_multipart_huge_part_spills_to_disk(client):
     assert r.status_code == 200 and r.json['files']['f'][0]['size'] == len(data)
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: request.max_body=0 ('unlimited') makes multipart disk_limit 0 so every multipart POST is 400")
 def test_multipart_with_unlimited_max_body(client):
     body = mp([('a', '1')], [('f', 'x.txt', b'data')])
     r = client(make_app(request__max_body=0)).post('/upload', body=body, content_type=MPCT)

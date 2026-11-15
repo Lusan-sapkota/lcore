@@ -1643,13 +1643,15 @@ class BaseRequest:
         boundary = options.get("boundary")
         if not boundary:
             raise MultipartError("Invalid content type header, missing boundary")
-        disk_limit = self.environ.get('lcore.body_max_size', 2 ** 30)
+        disk_limit = self.environ.get('lcore.body_max_size') or 2 ** 30  # 0 = unlimited
         parser = _MultipartParser(self.body, boundary, self.content_length,
             mem_limit=self.MEMFILE_MAX, memfile_limit=self.MEMFILE_MAX,
             disk_limit=disk_limit, charset=charset)
 
         for part in parser.parse():
-            if not part.filename and part.is_buffered():
+            if not part.filename:
+                if not part.is_buffered():  # a spilled text field would silently vanish from forms
+                    raise MultipartError("Form field too large.")
                 post[part.name] = part.value
             else:
                 post[part.name] = FileUpload(part.file, part.name,
