@@ -1000,7 +1000,6 @@ def test_proxyfix_empty_xff(client):
     assert _call(app, '127.0.0.1', '') == '127.0.0.1'
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: remote_addr returns empty string for X-Forwarded-For with empty entries (lcore.py:1743)")
 def test_proxyfix_xff_whitespace_and_empty_entries(client):
     app = addr_app(ProxyFixMiddleware(trusted_proxies=['10.0.0.1']))
     assert _call(app, '10.0.0.1', ' 5.5.5.5 ,, ') in ('5.5.5.5', '10.0.0.1', '')

@@ -1755,7 +1755,7 @@ class BaseRequest:
         trusted = self.environ.get('lcore.trusted_proxies')
         if proxy and trusted:
             # Walk X-Forwarded-For from right, skipping known proxies
-            addrs = [ip.strip() for ip in proxy.split(',')]
+            addrs = [ip.strip() for ip in proxy.split(',') if ip.strip()]
             if direct:
                 addrs.append(direct)
             # Walk backwards: skip trusted proxies to find the real client
