@@ -4913,6 +4913,8 @@ def static_file(filename, root,
                 etag=None,
                 headers=None):
 
+    if '\0' in filename:
+        return HTTPError(404, "File does not exist.")
     root = os.path.join(os.path.realpath(root), '')
     filename = os.path.realpath(os.path.join(root, filename.strip('/\\')))
     headers = headers.copy() if headers else {}

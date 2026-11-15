@@ -377,7 +377,6 @@ def test_sibling_prefix_dir_not_accessible(client, root):
     assert r.status_code in (403, 404)
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: NUL byte in filename -> ValueError from os.path.realpath/isfile propagates as 500 instead of 404/400")
 @pytest.mark.parametrize('p', ['hello.txt%00', 'a%00.txt', '%00'])
 def test_null_byte_in_filename(client, root, p):
     r = client(sapp(root)).get('/raw', query_string='p=' + p)
