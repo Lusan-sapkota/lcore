@@ -599,7 +599,6 @@ def test_v_query_repeated_param_uses_last_or_first(client):
     assert client(vapp()).get('/q', query_string='page=1&page=zzz').status_code in (200, 400)
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: validate_request(query=...) validates but does not coerce: handler still sees raw strings, unlike body= (lcore.py:4057)")
 def test_v_query_coerced_value_visible_to_handler(client):
     app = Lcore()
     @app.get('/')

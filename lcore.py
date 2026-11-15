@@ -4144,8 +4144,12 @@ def validate_request(body=None, query=None):
                         if val is None:
                             if not is_opt:
                                 errors[name] = '%s is required' % name
-                        elif not _coerce(val, inner)[0]:
-                            errors[name] = '%s must be %s' % (name, getattr(inner, '__name__', inner))
+                        else:
+                            ok, res = _coerce(val, inner)
+                            if not ok:
+                                errors[name] = '%s must be %s' % (name, getattr(inner, '__name__', inner))
+                            elif res != val:
+                                request.query.replace(name, res)  # handler sees the coerced value
                 else:
                     for field in dataclasses.fields(query):
                         val = request.query.get(field.name)
@@ -4154,8 +4158,12 @@ def validate_request(body=None, query=None):
                             if not is_opt and field.default is dataclasses.MISSING \
                                and field.default_factory is dataclasses.MISSING:
                                 errors[field.name] = '%s is required' % field.name
-                        elif not _coerce(val, inner)[0]:
-                            errors[field.name] = '%s must be %s' % (field.name, getattr(inner, '__name__', inner))
+                        else:
+                            ok, res = _coerce(val, inner)
+                            if not ok:
+                                errors[field.name] = '%s must be %s' % (field.name, getattr(inner, '__name__', inner))
+                            elif res != val:
+                                request.query.replace(field.name, res)
                 if errors:
                     raise HTTPError(400,
                                     body=json_dumps({
