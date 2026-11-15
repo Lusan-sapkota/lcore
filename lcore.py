@@ -4989,7 +4989,8 @@ def static_file(filename, root,
             _try_close(body)
             return HTTPResponse(status=304, **headers)
 
-    ims = getenv('HTTP_IF_MODIFIED_SINCE')
+    # If-None-Match takes precedence over If-Modified-Since (RFC 7232 3.3)
+    ims = None if (etag and getenv('HTTP_IF_NONE_MATCH')) else getenv('HTTP_IF_MODIFIED_SINCE')
     if ims:
         ims = parse_date(ims.split(";")[0].strip())
         if ims is not None and ims >= int(stats.st_mtime):

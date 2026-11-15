@@ -308,7 +308,6 @@ def test_if_modified_since_with_length_suffix(client, root):
     assert c.get('/f/hello.txt', headers={'If-Modified-Since': lm + '; length=20'}).status_code == 304
 
 
-@pytest.mark.xfail(strict=True, reason="BUG(minor): If-Modified-Since is honoured even when If-None-Match is present and does not match (RFC 7232 3.3: ignore IMS)")
 def test_if_none_match_mismatch_overrides_ims(client, root):
     c = client(sapp(root))
     lm = c.get('/f/hello.txt').headers['Last-Modified']
