@@ -115,3 +115,21 @@ class TestExceptionHandling(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+def test_accept_json_gets_json_errors():
+    from lcore import Lcore, TestClient, abort
+    app = Lcore()
+
+    @app.get('/e')
+    def e(): abort(400, 'bad field x')
+
+    @app.get('/boom')
+    def boom(): 1 / 0
+
+    c, h = TestClient(app), {'Accept': 'application/json'}
+    for path, code, msg in (('/e', 400, 'bad field x'), ('/nope', 404, None), ('/boom', 500, None)):
+        r = c.get(path, headers=h)
+        assert r.status_code == code and r.headers['Content-Type'] == 'application/json'
+        assert r.json['status'] == code and (msg is None or r.json['error'] == msg)
+    assert c.get('/e', headers={'Accept': 'text/html,application/json'}).headers['Content-Type'].startswith('text/html')

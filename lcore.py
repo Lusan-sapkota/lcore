@@ -742,6 +742,15 @@ class _RouteGroup:
 
 
 # The thing you came for. Routes, middleware, plugins, config, WSGI all here.
+def _prefers_json(environ):
+    """True when Accept lists application/json ahead of text/html."""
+    accept = environ.get('HTTP_ACCEPT', '').lower()
+    j = accept.find('application/json')
+    if j < 0: return False
+    h = accept.find('text/html')
+    return h < 0 or j < h
+
+
 class Lcore:
 
     @lazy_attribute
@@ -1184,16 +1193,11 @@ class Lcore:
         return decorator(callback) if callback else decorator
 
     def default_error_handler(self, res):
-        if self.config.get('error.format') == 'json':
-            body = json_dumps({
-                'error': _HTTP_STATUS_LINES.get(
-                    res.status_code, res.status_line.split(' ', 1)[1]
-                    if ' ' in res.status_line else 'Error'
-                ),
-                'status': res.status_code,
-            })
+        if self.config.get('error.format') == 'json' or _prefers_json(request.environ):
+            body = res.body if isinstance(res.body, str) and res.body else \
+                _HTTP_STATUS_LINES.get(res.status_code, res.status_line).split(' ', 1)[-1]
             response.set_header('Content-Type', 'application/json')
-            return tob(body)
+            return tob(json_dumps({'error': body, 'status': res.status_code}))
         return tob(template(ERROR_PAGE_TEMPLATE, e=res, template_settings=dict(name='__ERROR_PAGE_TEMPLATE')))
 
     # The request hot path. Bind, hook, route, middleware, respond.
