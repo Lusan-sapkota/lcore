@@ -4,7 +4,7 @@ All notable changes to Lcore will be documented here.
 
 ---
 
-## [Unreleased]
+## [0.0.6] — 2026-11-15
 
 ### Added
 - **JSON errors by content negotiation.** Any request with `Accept: application/json` (listed before `text/html`) gets `{"error": "<message>", "status": N}` for `HTTPError`, 404 and 500 alike; browsers still get the HTML page. `error.format = 'json'` still forces it, and its body now carries the real message instead of the status text.
