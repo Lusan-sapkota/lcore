@@ -19,19 +19,23 @@ THEME_JS = """<script>(function(){var t;try{t=localStorage.getItem('lcore-theme'
 HEADER = f"""<a class="skip-link" href="#main">Skip to content</a>
   <header class="site-header">
     <div class="header-inner">
-      <button class="icon-btn menu-toggle" type="button" aria-label="Menu" aria-expanded="false" aria-controls="sidebar"><svg {SVG}><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
-      <a href="index.html" class="logo"><img src="lcore.png" alt="" class="logo-icon" width="30" height="30">Lcore</a>
-      <span class="version-badge">v{VERSION}</span>
+      <div class="header-side">
+        <button class="icon-btn menu-toggle" type="button" aria-label="Menu" aria-expanded="false" aria-controls="sidebar"><svg {SVG}><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+        <a href="index.html" class="logo"><img src="lcore.png" alt="" class="logo-icon" width="30" height="30">Lcore</a>
+        <span class="version-badge">v{VERSION}</span>
+      </div>
       <button class="search-btn" type="button" aria-label="Search docs"><svg {SVG}><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Search</span><kbd>Ctrl K</kbd></button>
-      <nav class="header-nav" aria-label="Primary">
-        <a href="getting-started.html">Guide</a>
-        <a href="middleware.html">Middleware</a>
-        <a href="api-reference.html">API</a>
-        <a href="{GH}/blob/main/CHANGELOG.md">Changelog</a>
-      </nav>
-      <div class="header-right">
-        <button class="icon-btn theme-toggle" type="button" aria-label="Toggle light/dark theme"><svg class="moon" {SVG}><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><svg class="sun" {SVG}><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
-        <a href="{GH}" class="github-link" aria-label="GitHub">{GH_ICON}<span class="gh-label">GitHub</span></a>
+      <div class="header-side header-end">
+        <nav class="header-nav" aria-label="Primary">
+          <a href="getting-started.html">Guide</a>
+          <a href="middleware.html">Middleware</a>
+          <a href="api-reference.html">API</a>
+          <a href="{GH}/blob/main/CHANGELOG.md">Changelog</a>
+        </nav>
+        <div class="header-right">
+          <button class="icon-btn theme-toggle" type="button" aria-label="Toggle light/dark theme"><svg class="moon" {SVG}><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><svg class="sun" {SVG}><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
+          <a href="{GH}" class="github-link" aria-label="GitHub">{GH_ICON}<span class="gh-label">GitHub</span></a>
+        </div>
       </div>
     </div>
   </header>"""
