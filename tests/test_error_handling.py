@@ -159,3 +159,19 @@ def test_rate_limit_single_process_is_silent():
     with warnings.catch_warnings():
         warnings.simplefilter('error')
         rate_limit(5, single_process=True)
+
+
+def test_validate_request_returns_json_fields_and_rejects_empty_body():
+    from lcore import Lcore, TestClient, validate_request, request
+    app = Lcore()
+
+    @app.post('/u')
+    @validate_request(body={'name': str, 'age': int})
+    def u(): return request.json
+
+    c = TestClient(app)
+    r = c.post('/u', json={'name': 'x', 'age': 'z'})
+    assert r.status_code == 422 and r.json['fields'] == {'age': 'age must be int'}
+    r = c.post('/u', body=b'', content_type='application/json')
+    assert r.status_code == 422 and set(r.json['fields']) == {'name', 'age'}
+    assert c.post('/u', json={'name': ' x ', 'age': '3'}).json == {'name': 'x', 'age': 3}

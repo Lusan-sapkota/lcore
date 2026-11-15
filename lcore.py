@@ -1193,6 +1193,8 @@ class Lcore:
         return decorator(callback) if callback else decorator
 
     def default_error_handler(self, res):
+        if (res.content_type or '').startswith('application/json'):
+            return tob(res.body) if isinstance(res.body, str) else res.body  # handler already built JSON
         if self.config.get('error.format') == 'json' or _prefers_json(request.environ):
             body = res.body if isinstance(res.body, str) and res.body else \
                 _HTTP_STATUS_LINES.get(res.status_code, res.status_line).split(' ', 1)[-1]
@@ -4001,8 +4003,9 @@ def validate_request(body=None, query=None):
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*a, **ka):
-            if body and request.json is not None:
+            if body:
                 data = request.json
+                if data is None: data = request.environ['lcore.request.json'] = {}
                 if not isinstance(data, dict):
                     raise HTTPError(400, 'Request body must be a JSON object',
                                     content_type='application/json')
