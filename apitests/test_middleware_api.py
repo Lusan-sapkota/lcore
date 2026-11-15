@@ -657,7 +657,6 @@ def test_exactly_min_size_boundary(client):
     assert 'Content-Encoding' not in r.headers
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: CompressionMiddleware uses substring gzip in Accept-Encoding; ignores q=0 (lcore.py:2526)")
 def test_gzip_q0_means_refused(client):
     r = client(comp_app()).get('/', headers={'Accept-Encoding': 'gzip;q=0'})
     assert 'Content-Encoding' not in r.headers
@@ -668,7 +667,6 @@ def test_identity_only_not_compressed(client):
     assert 'Content-Encoding' not in r.headers
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: CompressionMiddleware substring match: x-gzipped-thing triggers gzip (lcore.py:2526)")
 def test_accept_encoding_substring_not_gzip(client):
     r = client(comp_app()).get('/', headers={'Accept-Encoding': 'x-gzipped-thing'})
     assert 'Content-Encoding' not in r.headers
@@ -679,7 +677,6 @@ def test_accept_encoding_list_and_qvalues(client):
     assert r.headers.get('Content-Encoding') == 'gzip'
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: CompressionMiddleware Accept-Encoding match is case-sensitive (lcore.py:2526)")
 def test_accept_encoding_case_insensitive(client):
     r = client(comp_app()).get('/', headers={'Accept-Encoding': 'GZIP'})
     assert r.headers.get('Content-Encoding') == 'gzip'
@@ -712,7 +709,6 @@ def test_compressible_types(client, ct):
     assert r.headers.get('Content-Encoding') == 'gzip'
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: image/svg+xml not in default compressible content_types (lcore.py:2517)")
 def test_svg_compressible(client):
     r = client(comp_app(ctype='image/svg+xml')).get('/', headers={'Accept-Encoding': 'gzip'})
     assert r.headers.get('Content-Encoding') == 'gzip'
@@ -823,7 +819,6 @@ def test_compression_error_response_body(client):
     assert b'x' * 1000 in body
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: Compression set_header(Vary) overwrites existing Vary (e.g. Cookie) (lcore.py:2547)")
 def test_compression_vary_merges_with_existing(client):
     app = mk(CompressionMiddleware())
     @app.get('/')
@@ -833,7 +828,6 @@ def test_compression_vary_merges_with_existing(client):
     assert 'Cookie' in r.headers['Vary'] and 'Accept-Encoding' in r.headers['Vary']
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: Vary: Accept-Encoding omitted when body below min_size (cache poisoning risk) (lcore.py:2540)")
 def test_compression_vary_set_when_not_compressed_small(client):
     # shared caches: Vary must be present whenever the response *could* vary
     r = client(comp_app(body='tiny')).get('/', headers={'Accept-Encoding': 'gzip'})

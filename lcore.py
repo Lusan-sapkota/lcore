@@ -2541,6 +2541,21 @@ class _ClosingIterator:
 
 
 # gzip for responses skips tiny bodies and already-encoded ones
+def _accepts_gzip(header):
+    """Parse Accept-Encoding tokens: case-insensitive, q=0 refuses, '*' allows."""
+    q = {}
+    for part in header.lower().split(','):
+        token, _, params = part.partition(';')
+        weight = 1.0
+        for p in params.split(';'):
+            k, _, v = p.strip().partition('=')
+            if k == 'q':
+                try: weight = float(v)
+                except ValueError: weight = 0.0
+        q[token.strip()] = weight
+    return q.get('gzip', q.get('*', 0)) > 0
+
+
 class CompressionMiddleware(Middleware):
     name = 'compression'
     order = 90
@@ -2554,8 +2569,16 @@ class CompressionMiddleware(Middleware):
         self.stream_threshold = stream_threshold
         self.content_types = content_types or (
             'text/', 'application/json', 'application/javascript',
-            'application/xml', 'application/xhtml+xml',
+            'application/xml', 'application/xhtml+xml', 'image/svg+xml',
         )
+
+    @staticmethod
+    def _add_vary(ctx):
+        vary = ctx.response.get_header('Vary')
+        if not vary:
+            ctx.response.set_header('Vary', 'Accept-Encoding')
+        elif 'accept-encoding' not in vary.lower():
+            ctx.response.set_header('Vary', vary + ', Accept-Encoding')
 
     def _should_compress(self, ctx):
         ct = ctx.response.get_header('Content-Type', '') or 'text/html'
@@ -2565,12 +2588,10 @@ class CompressionMiddleware(Middleware):
         result = next_handler(ctx)
         if isinstance(result, HTTPResponse):  # errors, redirects, static_file: keep status and headers
             return result
-        accept = ctx.request.get_header('Accept-Encoding', '')
-        if 'gzip' not in accept:
+        if not self._should_compress(ctx) or ctx.response.get_header('Content-Encoding'):
             return result
-        if not self._should_compress(ctx):
-            return result
-        if ctx.response.get_header('Content-Encoding'):
+        self._add_vary(ctx)  # the response now depends on Accept-Encoding, compressed or not
+        if not _accepts_gzip(ctx.request.get_header('Accept-Encoding', '')):
             return result
         # An ordinary bytes or str body is compressed in a single call with a
         # known Content-Length, exactly as before streaming support existed.
@@ -2588,7 +2609,6 @@ class CompressionMiddleware(Middleware):
         compressed = gzip.compress(body, compresslevel=self.level)
         ctx.response.set_header('Content-Encoding', 'gzip')
         ctx.response.set_header('Content-Length', str(len(compressed)))
-        ctx.response.set_header('Vary', 'Accept-Encoding')
         return compressed
 
     def _compress_iterable(self, ctx, result):
@@ -2620,7 +2640,6 @@ class CompressionMiddleware(Middleware):
         # Too big to buffer. The compressed length is unknown until the body
         # ends, so any Content-Length already set would now be a lie.
         ctx.response.set_header('Content-Encoding', 'gzip')
-        ctx.response.set_header('Vary', 'Accept-Encoding')
         if 'Content-Length' in ctx.response:
             del ctx.response['Content-Length']
         return _ClosingIterator(
