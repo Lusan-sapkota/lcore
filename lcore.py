@@ -6045,7 +6045,7 @@ def load(target):
     if not target: return sys.modules[module]
     obj = sys.modules[module]
     for part in target.split('.'):
-        if not part.isidentifier():
+        if not part.isidentifier() or part.startswith('__'):
             raise AttributeError("Invalid attribute name: %r" % part)
         obj = getattr(obj, part)
     return obj

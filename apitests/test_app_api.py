@@ -2006,3 +2006,9 @@ def test_post_body_roundtrip_live(live):
     payload = os.urandom(70000)
     st, h, b = live(a).request('POST', '/e', body=payload, headers={'Content-Type': 'application/octet-stream'})
     assert b == payload
+
+
+def test_load_rejects_dunder_attributes():
+    import pytest, lcore
+    with pytest.raises(AttributeError):
+        lcore.load('lcore:Lcore.__init__')
