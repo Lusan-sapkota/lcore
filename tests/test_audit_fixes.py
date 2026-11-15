@@ -68,3 +68,14 @@ def test_default_body_limit_and_override():
     assert c.post('/j', body=big, content_type='application/json').status_code == 413
     app.config['request.max_body'] = 0
     assert c.post('/j', body=big, content_type='application/json').status_code == 200
+
+
+def test_redirect_with_line_break_is_400():
+    app = Lcore()
+
+    @app.get('/r')
+    def r(): redirect(request.query.u)
+
+    c = TestClient(app)
+    assert c.get('/r', query_string='u=%0d%0aSet-Cookie:x=1').status_code == 400
+    assert c.get('/r', query_string='u=/ok').headers['Location'] == 'http://localhost/ok'

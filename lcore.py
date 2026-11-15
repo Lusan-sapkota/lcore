@@ -4852,7 +4852,10 @@ def redirect(url, code=None):
     res = response.copy(cls=HTTPResponse)
     res.status = code
     res.body = ""
-    res.set_header('Location', urljoin(request.url, url))
+    try:
+        res.set_header('Location', urljoin(request.url, url))
+    except ValueError:
+        raise HTTPError(400, 'Invalid redirect URL')
     raise res
 
 def _rangeiter(fp, offset, limit, bufsize=1024 * 1024):
