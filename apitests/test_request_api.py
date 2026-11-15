@@ -396,14 +396,10 @@ def _read_all(lv, payload):
     return data
 
 
-CHUNK_BUG = pytest.mark.xfail(strict=True, reason="BUG: _iter_chunked discards bytes over-read past the chunk end (header_buf = buff missing); any chunked body delivered in one read fails with 400")
-
-
 def _chunk_body(parts, ext=b''):
     return _chunked(parts, ext)
 
 
-@CHUNK_BUG
 @pytest.mark.parametrize('parts', [[b'hello'], [b'a', b'bb', b'ccc'], [b'x' * 100, b'y' * 150000]])
 def test_chunked_inprocess_roundtrip(client, parts):
     r = client(make_app(request__max_body=0)).post(
@@ -411,7 +407,6 @@ def test_chunked_inprocess_roundtrip(client, parts):
     assert r.status_code == 200 and r.body == b''.join(parts)
 
 
-@CHUNK_BUG
 def test_chunked_inprocess_extension(client):
     r = client(make_app()).post('/echo', body=_chunk_body([b'abcdef'], b';name=val'),
                                 headers={'Transfer-Encoding': 'chunked'})
@@ -455,7 +450,6 @@ def _live_chunked(lv, parts, path=b'/echo', ext=b''):
     return data
 
 
-@CHUNK_BUG
 @pytest.mark.parametrize('parts', [[b'hello'], [b'a', b'bb', b'ccc']])
 def test_live_chunked_echo(live, parts):
     raw = _live_chunked(live(make_app(request__max_body=0)), parts)
@@ -495,7 +489,6 @@ def test_live_chunked_over_limit_413(live):
     assert b' 413 ' in raw.split(b'\r\n', 1)[0], raw[:100]
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: chunked body over limit sent as several chunks hits the over-read bug and returns 400 not 413")
 def test_chunked_over_limit_413_multi_chunk(client):
     r = client(make_app(request__max_body=1000)).post(
         '/echo', body=_chunk_body([b'x' * 600, b'y' * 600]), headers={'Transfer-Encoding': 'chunked'})

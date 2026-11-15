@@ -1577,6 +1577,7 @@ class BaseRequest:
                     raise HTTPError(413, 'Request body exceeds size limit')
                 yield part
                 maxread -= len(part)
+            header_buf = buff  # bytes over-read past this chunk belong to the next one
             # Consume trailing \r\n after chunk body
             while len(header_buf) < 2:
                 chunk = read(2 - len(header_buf))
