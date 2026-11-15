@@ -133,3 +133,19 @@ def test_xss_protection_header_disabled():
     def i(): return 'x'
 
     assert TestClient(app).get('/').headers['X-Xss-Protection'] == '0'
+
+
+def test_csrf_cookie_secure_follows_scheme():
+    app = Lcore(); app.use(CSRFMiddleware(secret='s'))
+
+    @app.get('/')
+    def i(): return 'x'
+
+    c = TestClient(app, cookies=False)
+    assert 'Secure' not in c.get('/').headers['Set-Cookie']
+    from lcore import request as _r
+    env = {'REQUEST_METHOD': 'GET', 'PATH_INFO': '/', 'wsgi.url_scheme': 'https', 'SERVER_NAME': 'x',
+           'SERVER_PORT': '443', 'wsgi.input': __import__('io').BytesIO(), 'wsgi.errors': __import__('io').StringIO()}
+    seen = []
+    app(env, lambda s, h, e=None: seen.extend(h))
+    assert any(k == 'Set-Cookie' and 'Secure' in v for k, v in seen)

@@ -2326,7 +2326,7 @@ class CSRFMiddleware(Middleware):
 
     def __init__(self, secret=None, cookie_name='_csrf_token',
                  header_name='X-CSRF-Token', form_field='_csrf_token',
-                 safe_methods=('GET', 'HEAD', 'OPTIONS'), secure=False):
+                 safe_methods=('GET', 'HEAD', 'OPTIONS'), secure=None):
         if secret is None:
             secret = hashlib.sha256(os.urandom(32)).hexdigest()
             warnings.warn(
@@ -2371,7 +2371,9 @@ class CSRFMiddleware(Middleware):
             ctx.response.set_cookie(self.cookie_name,
                                      self._sign_token(token),
                                      httponly=False, samesite='Strict',
-                                     secure=self.secure)
+                                     # None = auto: Secure whenever the request came in over HTTPS
+                                     secure=(ctx.request.environ.get('wsgi.url_scheme') == 'https'
+                                             if self.secure is None else self.secure))
         ctx.csrf_token = token
 
         if ctx.request.method not in self.safe_methods:
